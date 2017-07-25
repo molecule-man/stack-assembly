@@ -20,32 +20,11 @@ func main() {
 
 	flag.Parse()
 
-	mainConfig := claws.Config{}
-	configFiles := make([]string, 0)
-
-	if _, err := os.Stat("Claws.toml"); err == nil {
-		configFiles = append(configFiles, "Claws.toml")
-	}
-	if cfgFile != nil && *cfgFile != "" {
-		for _, c := range strings.Split(*cfgFile, " ") {
-			configFiles = append(configFiles, c)
-		}
-	}
-
-	for _, cf := range configFiles {
-		cfg := claws.Config{}
-		_, err := toml.DecodeFile(cf, &cfg)
-
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		mainConfig.Merge(cfg)
-	}
+	cfg := readConfigs(cfgFile)
 
 	if tpl != nil && *tpl != "" {
 
-		mainConfig.Templates = map[string]claws.TemplateConfig{
+		cfg.Templates = map[string]claws.TemplateConfig{
 			"tpl": {
 				Path: *tpl,
 				Name: stackName,
@@ -59,16 +38,43 @@ func main() {
 		ChangePresenter: &cli.ChangeTable{},
 	}
 
-	for _, template := range mainConfig.Templates {
+	for _, template := range cfg.Templates {
 		tplBody, err := ioutil.ReadFile(template.Path)
 
 		if err != nil {
 			log.Fatal(err)
 		}
 
-		err = serv.Sync(*template.Name, string(tplBody), mainConfig.Parameters)
+		err = serv.Sync(*template.Name, string(tplBody), cfg.Parameters)
 		if err != nil {
 			log.Fatal(err)
 		}
 	}
+}
+
+func readConfigs(cfgFiles *string) claws.Config {
+	mainConfig := claws.Config{}
+
+	configFiles := make([]string, 0)
+
+	if _, err := os.Stat("Claws.toml"); err == nil {
+		configFiles = append(configFiles, "Claws.toml")
+	}
+
+	if cfgFiles != nil && *cfgFiles != "" {
+		configFiles = append(configFiles, strings.Split(*cfgFiles, " ")...)
+	}
+
+	for _, cf := range configFiles {
+		cfg := claws.Config{}
+		_, err := toml.DecodeFile(cf, &cfg)
+
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		mainConfig.Merge(cfg)
+	}
+
+	return mainConfig
 }
