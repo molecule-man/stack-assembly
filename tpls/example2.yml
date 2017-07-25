@@ -1,0 +1,14 @@
+Parameters:
+  Sns1: 
+    Type: String
+  Sns2: 
+    Type: String
+Resources: 
+  SNSTopic: 
+    Type: AWS::SNS::Topic
+    Properties: 
+      TopicName: !Ref Sns1
+  SNSTopic2: 
+    Type: AWS::SNS::Topic
+    Properties: 
+      TopicName: !Ref Sns2
