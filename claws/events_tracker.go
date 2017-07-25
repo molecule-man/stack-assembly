@@ -33,7 +33,7 @@ func (et *EventsTracker) StartTracking() chan string {
 			case <-et.stopCh:
 				et.publishEvents(eventsCh)
 				close(eventsCh)
-				break
+				return
 			default:
 			}
 			time.Sleep(time.Second)
