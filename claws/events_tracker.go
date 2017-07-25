@@ -48,7 +48,7 @@ func (et *EventsTracker) StopTracking() {
 	close(et.stopCh)
 }
 
-func (et *EventsTracker) eventsSince(sinceEventId *string) []*cloudformation.StackEvent {
+func (et *EventsTracker) eventsSince(sinceEventID *string) []*cloudformation.StackEvent {
 	events, err := et.cf.DescribeStackEvents(&cloudformation.DescribeStackEventsInput{
 		StackName: aws.String(et.stackName),
 	})
@@ -57,14 +57,14 @@ func (et *EventsTracker) eventsSince(sinceEventId *string) []*cloudformation.Sta
 		return []*cloudformation.StackEvent{}
 	}
 
-	if sinceEventId == nil {
+	if sinceEventID == nil {
 		return events.StackEvents
 	}
 
 	lastEventIndex := 0
 
 	for i, e := range events.StackEvents {
-		if *e.EventId == *sinceEventId {
+		if *e.EventId == *sinceEventID {
 			lastEventIndex = i
 			break
 		}

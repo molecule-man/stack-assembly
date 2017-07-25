@@ -16,6 +16,7 @@ type changePresenter interface {
 	ShowChanges([]Change)
 }
 
+// Service orchestrates synchronization of templates
 type Service struct {
 	Approver        approver
 	Log             logger
