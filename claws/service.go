@@ -28,8 +28,7 @@ func (s *Service) Sync(stackName, body string, params map[string]string) error {
 
 	log("Syncing template")
 
-	cl := New(stackName, body)
-	chSet, err := cl.NewChSet(params)
+	chSet, err := New(stackName, body, params)
 
 	if err != nil {
 		if err == ErrNoChange {

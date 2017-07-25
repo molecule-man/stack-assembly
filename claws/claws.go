@@ -15,30 +15,32 @@ import (
 //ErrNoChange is error
 var ErrNoChange = errors.New("No changes")
 
-type Claws struct {
+// ChangeSet represents aws changeset
+type ChangeSet struct {
+	Changes   []Change
 	StackName string
-	tplBody   string
-	chSetID   *string
+	ID        *string
 	operation string
 	cf        *cloudformation.CloudFormation
 }
 
-// New is new
-func New(stackName string, tplBody string) Claws {
-	sess := session.Must(session.NewSession())
-
-	return Claws{
-		StackName: stackName,
-		tplBody:   tplBody,
-		operation: cloudformation.ChangeSetTypeUpdate,
-		cf:        cloudformation.New(sess),
-	}
+// Change is a change that is applied to aws stack
+type Change struct {
+	Action            string
+	ResourceType      string
+	LogicalResourceID string
+	ReplacementNeeded bool
 }
-func (c *Claws) NewChSet(userParams map[string]string) (*ChangeSet, error) {
+
+// New creates a new ChangeSet
+func New(stackName string, tplBody string, userParams map[string]string) (*ChangeSet, error) {
+	sess := session.Must(session.NewSession())
+	cf := cloudformation.New(sess)
+
 	v := &cloudformation.ValidateTemplateInput{
-		TemplateBody: aws.String(c.tplBody),
+		TemplateBody: aws.String(tplBody),
 	}
-	out, err := c.cf.ValidateTemplate(v)
+	out, err := cf.ValidateTemplate(v)
 
 	if err != nil {
 		return nil, err
@@ -52,26 +54,59 @@ func (c *Claws) NewChSet(userParams map[string]string) (*ChangeSet, error) {
 		}
 	}
 
-	return c.createChangeSet(params)
+	chSet := &ChangeSet{
+		StackName: stackName,
+		operation: cloudformation.ChangeSetTypeUpdate,
+		cf:        cf,
+	}
 
+	err = chSet.initialize(tplBody, params)
+	return chSet, err
 }
 
-func (c *Claws) createChangeSet(params map[string]string) (*ChangeSet, error) {
-	info, err := c.cf.DescribeStacks(&cloudformation.DescribeStacksInput{
-		StackName: aws.String(c.StackName),
+// Exec executes the ChangeSet
+func (cs *ChangeSet) Exec() error {
+	_, err := cs.cf.ExecuteChangeSet(&cloudformation.ExecuteChangeSetInput{
+		ChangeSetName: cs.ID,
+	})
+
+	if err != nil {
+		return err
+	}
+
+	stackInput := cloudformation.DescribeStacksInput{
+		StackName: aws.String(cs.StackName),
+	}
+
+	return cs.cf.WaitUntilStackUpdateCompleteWithContext(aws.BackgroundContext(), &stackInput, func(w *request.Waiter) {
+		w.Delay = request.ConstantWaiterDelay(time.Second)
+	})
+}
+
+// EventsTracker creates a new event tracker for the executed stack
+func (cs *ChangeSet) EventsTracker() EventsTracker {
+	return EventsTracker{
+		cf:        cs.cf,
+		stackName: cs.StackName,
+	}
+}
+
+func (cs *ChangeSet) initialize(tplBody string, params map[string]string) error {
+	info, err := cs.cf.DescribeStacks(&cloudformation.DescribeStacksInput{
+		StackName: aws.String(cs.StackName),
 	})
 
 	if err == nil {
 		for _, stack := range info.Stacks {
 			if *stack.StackStatus == cloudformation.StackStatusReviewInProgress {
-				c.operation = cloudformation.ChangeSetTypeCreate
+				cs.operation = cloudformation.ChangeSetTypeCreate
 			}
 		}
 	} else {
 		if strings.Contains(err.Error(), "does not exist") {
-			c.operation = cloudformation.ChangeSetTypeCreate
+			cs.operation = cloudformation.ChangeSetTypeCreate
 		} else {
-			return nil, err
+			return err
 		}
 	}
 
@@ -84,49 +119,42 @@ func (c *Claws) createChangeSet(params map[string]string) (*ChangeSet, error) {
 		})
 	}
 
-	createOut, err := c.cf.CreateChangeSet(&cloudformation.CreateChangeSetInput{
-		ChangeSetType: aws.String(c.operation),
+	createOut, err := cs.cf.CreateChangeSet(&cloudformation.CreateChangeSetInput{
+		ChangeSetType: aws.String(cs.operation),
 		ChangeSetName: aws.String("chst-" + strconv.FormatInt(time.Now().UnixNano(), 10)),
-		TemplateBody:  aws.String(c.tplBody),
-		StackName:     aws.String(c.StackName),
+		TemplateBody:  aws.String(tplBody),
+		StackName:     aws.String(cs.StackName),
 		Parameters:    awsParams,
 	})
 
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	c.chSetID = createOut.Id
+	cs.ID = createOut.Id
 
-	chSet := &ChangeSet{
-		StackName: c.StackName,
-		ID:        createOut.Id,
-		operation: c.operation,
-		cf:        c.cf,
+	if _, err = cs.describe(); err != nil {
+		return err
 	}
 
-	if _, err = chSet.describe(); err != nil {
-		return nil, err
-	}
-
-	err = c.cf.WaitUntilChangeSetCreateCompleteWithContext(aws.BackgroundContext(), &cloudformation.DescribeChangeSetInput{
+	err = cs.cf.WaitUntilChangeSetCreateCompleteWithContext(aws.BackgroundContext(), &cloudformation.DescribeChangeSetInput{
 		ChangeSetName: createOut.Id,
 	}, func(w *request.Waiter) {
 		w.Delay = request.ConstantWaiterDelay(time.Second)
 	})
 
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	chSetInfo, err := chSet.describe()
+	chSetInfo, err := cs.describe()
 
 	if err != nil {
-		return nil, err
+		return err
 	}
-	chSet.Changes = extractChangesFromAwsResponse(chSetInfo.Changes)
+	cs.Changes = extractChangesFromAwsResponse(chSetInfo.Changes)
 
-	return chSet, nil
+	return nil
 }
 
 func extractChangesFromAwsResponse(awsChanges []*cloudformation.Change) []Change {
@@ -136,7 +164,7 @@ func extractChangesFromAwsResponse(awsChanges []*cloudformation.Change) []Change
 		ch := Change{
 			Action:            *awsChange.Action,
 			ResourceType:      *awsChange.ResourceType,
-			LogicalResourceId: *awsChange.LogicalResourceId,
+			LogicalResourceID: *awsChange.LogicalResourceId,
 		}
 		if awsChange.Replacement != nil && *awsChange.Replacement == "True" {
 			ch.ReplacementNeeded = true
@@ -146,4 +174,23 @@ func extractChangesFromAwsResponse(awsChanges []*cloudformation.Change) []Change
 	}
 
 	return changes
+}
+
+func (cs *ChangeSet) describe() (*cloudformation.DescribeChangeSetOutput, error) {
+	setInfo, err := cs.cf.DescribeChangeSet(&cloudformation.DescribeChangeSetInput{
+		ChangeSetName: cs.ID,
+	})
+
+	if err != nil {
+		return setInfo, err
+	}
+
+	if *setInfo.Status == cloudformation.ChangeSetStatusFailed {
+		if *setInfo.StatusReason == "The submitted information didn't contain changes. Submit different information to create a change set." {
+			return setInfo, ErrNoChange
+		}
+		return setInfo, errors.New(*setInfo.StatusReason)
+	}
+
+	return setInfo, nil
 }

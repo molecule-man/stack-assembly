@@ -43,7 +43,7 @@ func (cp *ChangeTable) ShowChanges(changes []claws.Change) {
 			t.Row().
 				Cell(c.Action).
 				Cell(c.ResourceType).
-				Cell(c.LogicalResourceId).
+				Cell(c.LogicalResourceID).
 				Cell(fmt.Sprintf("%t", c.ReplacementNeeded))
 		}
 
