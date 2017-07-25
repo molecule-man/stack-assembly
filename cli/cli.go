@@ -4,20 +4,27 @@ package cli
 import (
 	"bufio"
 	"fmt"
+	"log"
 	"os"
 	"strings"
 
 	"github.com/molecule-man/claws/claws"
 )
 
+// Approval enables user confirmation
 type Approval struct {
 }
 
+// Approve asks user for confirmation
 func (a *Approval) Approve() bool {
 	fmt.Print("Continue? [Y/n] ")
 
 	reader := bufio.NewReader(os.Stdin)
-	response, _ := reader.ReadString('\n')
+	response, err := reader.ReadString('\n')
+
+	if err != nil {
+		log.Fatalf("Reading user input failed with err: %v", err)
+	}
 
 	response = strings.Trim(response, " \n")
 
@@ -31,9 +38,11 @@ func (a *Approval) Approve() bool {
 	return false
 }
 
+// ChangeTable is responsible for displaying claws.Change items
 type ChangeTable struct {
 }
 
+// ShowChanges displays claws.Change items as a table
 func (cp *ChangeTable) ShowChanges(changes []claws.Change) {
 	if len(changes) > 0 {
 		t := NewTable()

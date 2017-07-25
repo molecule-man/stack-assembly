@@ -6,6 +6,7 @@ import (
 	"strings"
 )
 
+// Table represents data as a table
 type Table struct {
 	currentRow int
 	colSizes   []int
@@ -13,23 +14,28 @@ type Table struct {
 	hasHeader  bool
 }
 
+// NewTable creates a new table
 func NewTable() *Table {
 	return &Table{
 		currentRow: -1,
 	}
 }
 
+// Header adds a header to table
 func (t *Table) Header() *Table {
 	t.hasHeader = true
 	return t.Row()
 }
 
+// Row switches table to a new raw. All the Cell calls will cause new cells to
+// be added to a new row
 func (t *Table) Row() *Table {
 	t.currentRow++
 	t.data = append(t.data, make([]string, 0))
 	return t
 }
 
+// Cell adds cell
 func (t *Table) Cell(s string) *Table {
 	currentCell := len(t.data[t.currentRow])
 
@@ -46,6 +52,7 @@ func (t *Table) Cell(s string) *Table {
 	return t
 }
 
+// Render renders the table
 func (t *Table) Render() string {
 	renderedRows := make([]string, 0)
 	borderParts := make([]string, len(t.colSizes))
