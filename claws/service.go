@@ -4,6 +4,9 @@ package claws
 import (
 	"errors"
 	"fmt"
+
+	"github.com/molecule-man/claws/cloudprov"
+	"github.com/molecule-man/claws/cloudprov/awsprov"
 )
 
 type approver interface {
@@ -13,7 +16,7 @@ type logger interface {
 	Print(v ...interface{})
 }
 type changePresenter interface {
-	ShowChanges([]Change)
+	ShowChanges([]cloudprov.Change)
 }
 
 // Service orchestrates synchronization of templates
@@ -29,10 +32,11 @@ func (s *Service) Sync(stackName, body string, params map[string]string) error {
 
 	log("Syncing template")
 
-	chSet, err := New(stackName, body, params)
+	cp := awsprov.New()
+	chSet, err := New(&cp, stackName, body, params)
 
 	if err != nil {
-		if err == ErrNoChange {
+		if err == cloudprov.ErrNoChange {
 			log("No changes to be synced")
 			return nil
 		}

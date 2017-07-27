@@ -8,7 +8,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/molecule-man/claws/claws"
+	"github.com/molecule-man/claws/cloudprov"
 )
 
 // Approval enables user confirmation
@@ -43,7 +43,7 @@ type ChangeTable struct {
 }
 
 // ShowChanges displays claws.Change items as a table
-func (cp *ChangeTable) ShowChanges(changes []claws.Change) {
+func (cp *ChangeTable) ShowChanges(changes []cloudprov.Change) {
 	if len(changes) > 0 {
 		t := NewTable()
 		t.Header().Cell("Action").Cell("ResourceType").Cell("Resource ID").Cell("Replacement needed")
