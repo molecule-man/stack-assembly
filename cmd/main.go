@@ -11,6 +11,7 @@ import (
 	"github.com/BurntSushi/toml"
 	"github.com/molecule-man/claws/claws"
 	"github.com/molecule-man/claws/cli"
+	"github.com/molecule-man/claws/cloudprov/awsprov"
 )
 
 func main() {
@@ -32,10 +33,13 @@ func main() {
 		}
 	}
 
+	cp := awsprov.New()
+
 	serv := claws.Service{
 		Approver:        &cli.Approval{},
 		Log:             log.New(os.Stderr, "", log.LstdFlags),
 		ChangePresenter: &cli.ChangeTable{},
+		CloudProvider:   &cp,
 	}
 
 	for _, template := range cfg.Templates {

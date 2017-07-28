@@ -11,6 +11,7 @@ type CloudProvider interface {
 	CreateChangeSet(stackName string, tplBody string, params map[string]string, op ChangeSetOperation) (string, error)
 	WaitChangeSetCreated(ID string) error
 	ChangeSetChanges(ID string) ([]Change, error)
+	ExecuteChangeSet(ID string) error
 	WaitStack(stackName string) error
 	StackEvents(stackName string) ([]StackEvent, error)
 }

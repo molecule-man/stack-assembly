@@ -7,7 +7,6 @@ import (
 	"sync"
 
 	"github.com/molecule-man/claws/cloudprov"
-	"github.com/molecule-man/claws/cloudprov/awsprov"
 )
 
 type approver interface {
@@ -25,6 +24,7 @@ type Service struct {
 	Approver        approver
 	Log             logger
 	ChangePresenter changePresenter
+	CloudProvider   cloudprov.CloudProvider
 }
 
 // Sync syncs
@@ -33,8 +33,7 @@ func (s *Service) Sync(stackName, body string, params map[string]string) error {
 
 	log("Syncing template")
 
-	cp := awsprov.New()
-	chSet, err := New(&cp, stackName, body, params)
+	chSet, err := New(s.CloudProvider, stackName, body, params)
 
 	if err != nil {
 		if err == cloudprov.ErrNoChange {

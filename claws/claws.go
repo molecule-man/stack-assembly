@@ -1,8 +1,6 @@
 package claws
 
 import (
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/molecule-man/claws/cloudprov"
 )
 
@@ -11,15 +9,11 @@ type ChangeSet struct {
 	Changes   []cloudprov.Change
 	StackName string
 	ID        string
-	cf        *cloudformation.CloudFormation
 	cp        cloudprov.CloudProvider
 }
 
 // New creates a new ChangeSet
 func New(cp cloudprov.CloudProvider, stackName string, tplBody string, userParams map[string]string) (*ChangeSet, error) {
-	sess := session.Must(session.NewSession())
-	cf := cloudformation.New(sess)
-
 	tplParams, err := cp.ValidateTemplate(tplBody)
 
 	if err != nil {
@@ -36,7 +30,6 @@ func New(cp cloudprov.CloudProvider, stackName string, tplBody string, userParam
 
 	chSet := &ChangeSet{
 		StackName: stackName,
-		cf:        cf,
 		cp:        cp,
 	}
 
@@ -46,9 +39,7 @@ func New(cp cloudprov.CloudProvider, stackName string, tplBody string, userParam
 
 // Exec executes the ChangeSet
 func (cs *ChangeSet) Exec() error {
-	_, err := cs.cf.ExecuteChangeSet(&cloudformation.ExecuteChangeSetInput{
-		ChangeSetName: &cs.ID,
-	})
+	err := cs.cp.ExecuteChangeSet(cs.ID)
 
 	if err != nil {
 		return err

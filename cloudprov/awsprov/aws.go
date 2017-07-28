@@ -150,6 +150,14 @@ func (ap *AwsProvider) ChangeSetChanges(ID string) ([]cloudprov.Change, error) {
 	return changes, nil
 }
 
+// ExecuteChangeSet executes change set identified by ID
+func (ap *AwsProvider) ExecuteChangeSet(ID string) error {
+	_, err := ap.cf.ExecuteChangeSet(&cloudformation.ExecuteChangeSetInput{
+		ChangeSetName: aws.String(ID),
+	})
+	return err
+}
+
 // WaitStack blocks runtime until the stack is not created
 func (ap *AwsProvider) WaitStack(stackName string) error {
 	stackInput := cloudformation.DescribeStacksInput{
