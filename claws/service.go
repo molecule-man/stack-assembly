@@ -4,6 +4,7 @@ package claws
 import (
 	"errors"
 	"fmt"
+	"sync"
 
 	"github.com/molecule-man/claws/cloudprov"
 	"github.com/molecule-man/claws/cloudprov/awsprov"
@@ -54,19 +55,19 @@ func (s *Service) Sync(stackName, body string, params map[string]string) error {
 	et := chSet.EventsTracker()
 	events := et.StartTracking()
 
-	//wg := sync.WaitGroup{}
-	//wg.Add(1)
+	wg := sync.WaitGroup{}
+	wg.Add(1)
 	go func() {
 		for event := range events {
 			log(event)
 		}
 
-		//wg.Done()
+		wg.Done()
 	}()
 
 	err = chSet.Exec()
 	et.StopTracking()
-	//wg.Wait()
+	wg.Wait()
 
 	log("Sync is finished")
 
