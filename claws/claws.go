@@ -60,7 +60,7 @@ func (cs *ChangeSet) Exec() error {
 // EventsTracker creates a new event tracker for the executed stack
 func (cs *ChangeSet) EventsTracker() EventsTracker {
 	return EventsTracker{
-		cf:        cs.cf,
+		cp:        cs.cp,
 		stackName: cs.StackName,
 	}
 }

@@ -12,6 +12,7 @@ type CloudProvider interface {
 	WaitChangeSetCreated(ID string) error
 	ChangeSetChanges(ID string) ([]Change, error)
 	WaitStack(stackName string) error
+	StackEvents(stackName string) ([]StackEvent, error)
 }
 
 // ChangeSetOperation enum
@@ -30,6 +31,15 @@ type Change struct {
 	ResourceType      string
 	LogicalResourceID string
 	ReplacementNeeded bool
+}
+
+// StackEvent is a stack event
+type StackEvent struct {
+	ID                string
+	ResourceType      string
+	Status            string
+	LogicalResourceID string
+	StatusReason      string
 }
 
 //ErrNoChange is error that indicate that there are no changes to apply

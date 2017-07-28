@@ -160,3 +160,35 @@ func (ap *AwsProvider) WaitStack(stackName string) error {
 		w.Delay = request.ConstantWaiterDelay(time.Second)
 	})
 }
+
+// StackEvents returns stack events. The latest events appear first
+func (ap *AwsProvider) StackEvents(stackName string) ([]cloudprov.StackEvent, error) {
+	awsEvents, err := ap.cf.DescribeStackEvents(&cloudformation.DescribeStackEventsInput{
+		StackName: aws.String(stackName),
+	})
+
+	if err != nil {
+		return []cloudprov.StackEvent{}, err
+	}
+
+	events := make([]cloudprov.StackEvent, len(awsEvents.StackEvents))
+
+	for i, e := range awsEvents.StackEvents {
+		events[i] = cloudprov.StackEvent{
+			ID:                *e.EventId,
+			ResourceType:      fromAwsString(e.ResourceType),
+			Status:            fromAwsString(e.ResourceStatus),
+			LogicalResourceID: fromAwsString(e.LogicalResourceId),
+			StatusReason:      fromAwsString(e.ResourceStatusReason),
+		}
+	}
+
+	return events, nil
+}
+
+func fromAwsString(s *string) string {
+	if s == nil {
+		return ""
+	}
+	return *s
+}
