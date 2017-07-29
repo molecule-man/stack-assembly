@@ -4,12 +4,15 @@ import (
 	"github.com/molecule-man/claws/cloudprov"
 )
 
+type stackEventListener func(string)
+
 // ChangeSet represents aws changeset
 type ChangeSet struct {
 	Changes   []cloudprov.Change
 	StackName string
 	ID        string
 	cp        cloudprov.CloudProvider
+	listeners []stackEventListener
 }
 
 // New creates a new ChangeSet
@@ -39,21 +42,40 @@ func New(cp cloudprov.CloudProvider, stackName string, tplBody string, userParam
 
 // Exec executes the ChangeSet
 func (cs *ChangeSet) Exec() error {
-	err := cs.cp.ExecuteChangeSet(cs.ID)
-
-	if err != nil {
-		return err
-	}
-
-	return cs.cp.WaitStack(cs.StackName)
-}
-
-// EventsTracker creates a new event tracker for the executed stack
-func (cs *ChangeSet) EventsTracker() EventsTracker {
-	return EventsTracker{
+	et := EventsTracker{
 		cp:        cs.cp,
 		stackName: cs.StackName,
 	}
+
+	events := et.StartTracking()
+
+	err := cs.cp.ExecuteChangeSet(cs.ID)
+
+	if err != nil {
+		et.StopTracking()
+		return err
+	}
+
+	errCh := make(chan error)
+
+	go func() {
+		err := cs.cp.WaitStack(cs.StackName)
+		et.StopTracking()
+		errCh <- err
+	}()
+
+	for event := range events {
+		for _, cb := range cs.listeners {
+			cb(event)
+		}
+	}
+
+	return <-errCh
+}
+
+// Subscribe stack events listener
+func (cs *ChangeSet) Subscribe(cb stackEventListener) {
+	cs.listeners = append(cs.listeners, cb)
 }
 
 func (cs *ChangeSet) initialize(tplBody string, params map[string]string) error {

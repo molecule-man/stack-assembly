@@ -20,8 +20,10 @@ func (et *EventsTracker) StartTracking() chan string {
 	eventsCh := make(chan string)
 	et.stopCh = make(chan bool)
 
+	// @TODO using empty string here is ugly
 	events := et.eventsSince("")
 
+	// @TODO what if events is empty?
 	et.latestEventID = events[0].ID
 
 	go func() {
@@ -35,6 +37,7 @@ func (et *EventsTracker) StartTracking() chan string {
 				return
 			default:
 			}
+			// @TODO duration should be configurable
 			time.Sleep(time.Second)
 		}
 	}()
@@ -54,6 +57,7 @@ func (et *EventsTracker) eventsSince(sinceEventID string) []cloudprov.StackEvent
 		return []cloudprov.StackEvent{}
 	}
 
+	// @TODO come up with better name than sinceEventID
 	if sinceEventID == "" {
 		return events
 	}
@@ -77,6 +81,7 @@ func (et *EventsTracker) publishEvents(eventsCh chan string) {
 		et.latestEventID = events[0].ID
 
 		for _, e := range reverse(events) {
+			// @TODO not format the string. Publish raw event instead
 			eventsCh <- fmt.Sprintf("[%s] [%s] [%s] %s",
 				e.ResourceType, e.Status, e.LogicalResourceID, e.StatusReason,
 			)

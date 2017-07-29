@@ -4,7 +4,6 @@ package claws
 import (
 	"errors"
 	"fmt"
-	"sync"
 
 	"github.com/molecule-man/claws/cloudprov"
 )
@@ -51,22 +50,9 @@ func (s *Service) Sync(stackName, body string, params map[string]string) error {
 		return errors.New("Sync is cancelled")
 	}
 
-	et := chSet.EventsTracker()
-	events := et.StartTracking()
-
-	wg := sync.WaitGroup{}
-	wg.Add(1)
-	go func() {
-		for event := range events {
-			log(event)
-		}
-
-		wg.Done()
-	}()
+	chSet.Subscribe(log)
 
 	err = chSet.Exec()
-	et.StopTracking()
-	wg.Wait()
 
 	log("Sync is finished")
 
