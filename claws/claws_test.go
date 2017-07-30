@@ -1,6 +1,7 @@
 package claws
 
 import (
+	"reflect"
 	"strings"
 	"sync"
 	"testing"
@@ -50,20 +51,66 @@ func TestEventLog(t *testing.T) {
 	}
 }
 
+func TestOperationIsCreateIfStackDoesntExist(t *testing.T) {
+	cp := &CloudProviderMock{}
+	cp.stackExists = false
+	New(cp, StackTemplate{})
+
+	if cp.operation != cloudprov.CreateOperation {
+		t.Error("If stack doesn't exist, changeset should be created with 'Create' operation")
+	}
+}
+
+func TestOperationIsUpdateIfStackExists(t *testing.T) {
+	cp := &CloudProviderMock{}
+	cp.stackExists = true
+	New(cp, StackTemplate{})
+
+	if cp.operation != cloudprov.UpdateOperation {
+		t.Error("If stack exists, changeset should be created with 'Update' operation")
+	}
+}
+
+func TestOnlyRequiredParametersAreSubmitted(t *testing.T) {
+	cp := &CloudProviderMock{}
+	cp.requiredParams = []string{"foo", "bar"}
+	New(cp, StackTemplate{Params: map[string]string{
+		"foo": "fooval",
+		"bar": "barval",
+		"buz": "buzval",
+	}})
+
+	expected := map[string]string{"foo": "fooval", "bar": "barval"}
+	if !reflect.DeepEqual(expected, cp.submittedParams) {
+		t.Errorf("Expected params %v to be submitted. Got %v", expected, cp.submittedParams)
+	}
+}
+
 type CloudProviderMock struct {
 	sync.Mutex
-	waitStackFunc func() error
-	events        []cloudprov.StackEvent
+	waitStackFunc   func() error
+	events          []cloudprov.StackEvent
+	chSetID         string
+	operation       cloudprov.ChangeSetOperation
+	stackExists     bool
+	requiredParams  []string
+	submittedParams map[string]string
 }
 
 func (cpm *CloudProviderMock) ValidateTemplate(tplBody string) ([]string, error) {
-	return []string{}, nil
+	return cpm.requiredParams, nil
 }
 func (cpm *CloudProviderMock) StackExists(stackName string) (bool, error) {
-	return false, nil
+	return cpm.stackExists, nil
 }
 func (cpm *CloudProviderMock) CreateChangeSet(stackName string, tplBody string, params map[string]string, op cloudprov.ChangeSetOperation) (string, error) {
-	return "ID", nil
+	cpm.operation = op
+	cpm.submittedParams = params
+
+	if cpm.chSetID == "" {
+		return "ID", nil
+	}
+	return cpm.chSetID, nil
 }
 func (cpm *CloudProviderMock) WaitChangeSetCreated(ID string) error {
 	return nil
