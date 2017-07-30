@@ -32,7 +32,19 @@ func (s *Service) Sync(stackName, body string, params map[string]string) error {
 
 	log("Syncing template")
 
-	chSet, err := New(s.CloudProvider, stackName, body, params)
+	chSet, err := New(
+		s.CloudProvider,
+		StackTemplate{
+			StackName: stackName,
+			Body:      body,
+			Params:    params,
+		},
+		WithEventSubscriber(func(e cloudprov.StackEvent) {
+			log(fmt.Sprintf("[%s] [%s] [%s] %s",
+				e.ResourceType, e.Status, e.LogicalResourceID, e.StatusReason,
+			))
+		}),
+	)
 
 	if err != nil {
 		if err == cloudprov.ErrNoChange {
@@ -49,8 +61,6 @@ func (s *Service) Sync(stackName, body string, params map[string]string) error {
 	if !s.Approver.Approve() {
 		return errors.New("Sync is cancelled")
 	}
-
-	chSet.Subscribe(log)
 
 	err = chSet.Exec()
 

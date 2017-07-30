@@ -1,10 +1,12 @@
 package claws
 
 import (
+	"time"
+
 	"github.com/molecule-man/claws/cloudprov"
 )
 
-type stackEventListener func(string)
+type stackEventListener func(cloudprov.StackEvent)
 
 // ChangeSet represents aws changeset
 type ChangeSet struct {
@@ -13,31 +15,60 @@ type ChangeSet struct {
 	ID        string
 	cp        cloudprov.CloudProvider
 	listeners []stackEventListener
+	sleep     time.Duration
 }
 
+// StackTemplate encapsulates information about stack template
+type StackTemplate struct {
+	StackName string
+	Body      string
+	Params    map[string]string
+}
+
+type option func(cs *ChangeSet)
+
 // New creates a new ChangeSet
-func New(cp cloudprov.CloudProvider, stackName string, tplBody string, userParams map[string]string) (*ChangeSet, error) {
-	tplParams, err := cp.ValidateTemplate(tplBody)
+func New(cp cloudprov.CloudProvider, tpl StackTemplate, opts ...option) (*ChangeSet, error) {
+	requiredParams, err := cp.ValidateTemplate(tpl.Body)
 
 	if err != nil {
 		return nil, err
 	}
 
-	params := make(map[string]string, len(tplParams))
+	params := make(map[string]string, len(requiredParams))
 
-	for _, p := range tplParams {
-		if v, ok := userParams[p]; ok {
+	for _, p := range requiredParams {
+		if v, ok := tpl.Params[p]; ok {
 			params[p] = v
 		}
 	}
 
 	chSet := &ChangeSet{
-		StackName: stackName,
+		StackName: tpl.StackName,
 		cp:        cp,
+		sleep:     time.Second,
 	}
 
-	err = chSet.initialize(tplBody, params)
+	for _, opt := range opts {
+		opt(chSet)
+	}
+
+	err = chSet.initialize(tpl.Body, params)
 	return chSet, err
+}
+
+// WithEventSubscriber is an option that configures chage set to add stack
+// events listener
+func WithEventSubscriber(cb stackEventListener) option {
+	return func(cs *ChangeSet) {
+		cs.listeners = append(cs.listeners, cb)
+	}
+}
+
+func WithEventSleep(t time.Duration) option {
+	return func(cs *ChangeSet) {
+		cs.sleep = t
+	}
 }
 
 // Exec executes the ChangeSet
@@ -71,11 +102,6 @@ func (cs *ChangeSet) Exec() error {
 	}
 
 	return <-errCh
-}
-
-// Subscribe stack events listener
-func (cs *ChangeSet) Subscribe(cb stackEventListener) {
-	cs.listeners = append(cs.listeners, cb)
 }
 
 func (cs *ChangeSet) initialize(tplBody string, params map[string]string) error {

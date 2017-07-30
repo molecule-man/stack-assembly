@@ -1,7 +1,6 @@
 package claws
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/molecule-man/claws/cloudprov"
@@ -13,11 +12,12 @@ type EventsTracker struct {
 	cp            cloudprov.CloudProvider
 	stopCh        chan bool
 	latestEventID string
+	sleep         time.Duration
 }
 
 // StartTracking starts event tracking
-func (et *EventsTracker) StartTracking() chan string {
-	eventsCh := make(chan string)
+func (et *EventsTracker) StartTracking() chan cloudprov.StackEvent {
+	eventsCh := make(chan cloudprov.StackEvent)
 	et.stopCh = make(chan bool)
 
 	// @TODO using empty string here is ugly
@@ -37,8 +37,7 @@ func (et *EventsTracker) StartTracking() chan string {
 				return
 			default:
 			}
-			// @TODO duration should be configurable
-			time.Sleep(time.Second)
+			time.Sleep(et.sleep)
 		}
 	}()
 
@@ -74,17 +73,14 @@ func (et *EventsTracker) eventsSince(sinceEventID string) []cloudprov.StackEvent
 	return events[:lastEventIndex]
 }
 
-func (et *EventsTracker) publishEvents(eventsCh chan string) {
+func (et *EventsTracker) publishEvents(eventsCh chan cloudprov.StackEvent) {
 	events := et.eventsSince(et.latestEventID)
 
 	if len(events) > 0 {
 		et.latestEventID = events[0].ID
 
 		for _, e := range reverse(events) {
-			// @TODO not format the string. Publish raw event instead
-			eventsCh <- fmt.Sprintf("[%s] [%s] [%s] %s",
-				e.ResourceType, e.Status, e.LogicalResourceID, e.StatusReason,
-			)
+			eventsCh <- e
 		}
 	}
 }
