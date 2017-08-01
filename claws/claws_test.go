@@ -1,6 +1,7 @@
 package claws
 
 import (
+	"errors"
 	"reflect"
 	"strings"
 	"sync"
@@ -86,6 +87,51 @@ func TestOnlyRequiredParametersAreSubmitted(t *testing.T) {
 	}
 }
 
+func TestChangeSetCreationErrors(t *testing.T) {
+	cases := []struct {
+		errProv func(*CloudProviderMock, error)
+		err     error
+	}{
+		{func(cp *CloudProviderMock, err error) { cp.validationErr = err }, errors.New("invalid")},
+		{func(cp *CloudProviderMock, err error) { cp.stackExistsErr = err }, errors.New("stackExistsErr")},
+		{func(cp *CloudProviderMock, err error) { cp.createErr = err }, errors.New("createErr")},
+		{func(cp *CloudProviderMock, err error) { cp.changesErr = err }, errors.New("changesErr")},
+		{func(cp *CloudProviderMock, err error) { cp.waitChSetErr = err }, errors.New("waitChSetErr")},
+	}
+	for _, tc := range cases {
+		cp := &CloudProviderMock{}
+		tc.errProv(cp, tc.err)
+
+		_, err := New(cp, StackTemplate{})
+
+		if tc.err != err {
+			t.Errorf("Expected to get error %v. Got %v", tc.err, err)
+		}
+
+	}
+}
+func TestChangeSetExecutionErrors(t *testing.T) {
+	cases := []struct {
+		errProv func(*CloudProviderMock, error)
+		err     error
+	}{
+		{func(cp *CloudProviderMock, err error) { cp.execErr = err }, errors.New("execErr")},
+		{func(cp *CloudProviderMock, err error) { cp.waitStackErr = err }, errors.New("waitStackErr")},
+	}
+	for _, tc := range cases {
+		cp := &CloudProviderMock{}
+		tc.errProv(cp, tc.err)
+
+		cs, _ := New(cp, StackTemplate{})
+		err := cs.Exec()
+
+		if tc.err != err {
+			t.Errorf("Expected to get error %v. Got %v", tc.err, err)
+		}
+
+	}
+}
+
 type CloudProviderMock struct {
 	sync.Mutex
 	waitStackFunc   func() error
@@ -95,37 +141,44 @@ type CloudProviderMock struct {
 	stackExists     bool
 	requiredParams  []string
 	submittedParams map[string]string
+	validationErr   error
+	stackExistsErr  error
+	createErr       error
+	changesErr      error
+	waitChSetErr    error
+	execErr         error
+	waitStackErr    error
 }
 
 func (cpm *CloudProviderMock) ValidateTemplate(tplBody string) ([]string, error) {
-	return cpm.requiredParams, nil
+	return cpm.requiredParams, cpm.validationErr
 }
 func (cpm *CloudProviderMock) StackExists(stackName string) (bool, error) {
-	return cpm.stackExists, nil
+	return cpm.stackExists, cpm.stackExistsErr
 }
 func (cpm *CloudProviderMock) CreateChangeSet(stackName string, tplBody string, params map[string]string, op cloudprov.ChangeSetOperation) (string, error) {
 	cpm.operation = op
 	cpm.submittedParams = params
 
 	if cpm.chSetID == "" {
-		return "ID", nil
+		return "ID", cpm.createErr
 	}
-	return cpm.chSetID, nil
+	return cpm.chSetID, cpm.createErr
 }
 func (cpm *CloudProviderMock) WaitChangeSetCreated(ID string) error {
-	return nil
+	return cpm.waitChSetErr
 }
 func (cpm *CloudProviderMock) ChangeSetChanges(ID string) ([]cloudprov.Change, error) {
-	return []cloudprov.Change{}, nil
+	return []cloudprov.Change{}, cpm.changesErr
 }
 func (cpm *CloudProviderMock) ExecuteChangeSet(ID string) error {
-	return nil
+	return cpm.execErr
 }
 func (cpm *CloudProviderMock) WaitStack(stackName string) error {
 	if cpm.waitStackFunc != nil {
 		return cpm.waitStackFunc()
 	}
-	return nil
+	return cpm.waitStackErr
 }
 func (cpm *CloudProviderMock) StackEvents(stackName string) ([]cloudprov.StackEvent, error) {
 	cpm.Lock()

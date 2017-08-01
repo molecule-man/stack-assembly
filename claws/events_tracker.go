@@ -21,10 +21,12 @@ func (et *EventsTracker) StartTracking() chan cloudprov.StackEvent {
 	et.stopCh = make(chan bool)
 
 	// @TODO using empty string here is ugly
-	events := et.eventsSince("")
+	et.latestEventID = ""
+	events := et.eventsSince(et.latestEventID)
 
-	// @TODO what if events is empty?
-	et.latestEventID = events[0].ID
+	if len(events) > 0 {
+		et.latestEventID = events[0].ID
+	}
 
 	go func() {
 		for {
