@@ -11,6 +11,12 @@ import (
 	"github.com/molecule-man/claws/cloudprov"
 )
 
+func assertNoError(t *testing.T, err error) {
+	if err != nil {
+		t.Errorf("It was not expected to get error %v", err)
+	}
+}
+
 func TestEventLog(t *testing.T) {
 
 	cp := &CloudProviderMock{
@@ -42,7 +48,7 @@ func TestEventLog(t *testing.T) {
 			cp.Unlock()
 		}
 	}()
-	cs.Exec()
+	assertNoError(t, cs.Exec())
 
 	logged := strings.Join(logs, " ")
 	expected := "log4 log5 log6"
@@ -55,7 +61,8 @@ func TestEventLog(t *testing.T) {
 func TestOperationIsCreateIfStackDoesntExist(t *testing.T) {
 	cp := &CloudProviderMock{}
 	cp.stackExists = false
-	New(cp, StackTemplate{})
+	_, err := New(cp, StackTemplate{})
+	assertNoError(t, err)
 
 	if cp.operation != cloudprov.CreateOperation {
 		t.Error("If stack doesn't exist, changeset should be created with 'Create' operation")
@@ -65,7 +72,8 @@ func TestOperationIsCreateIfStackDoesntExist(t *testing.T) {
 func TestOperationIsUpdateIfStackExists(t *testing.T) {
 	cp := &CloudProviderMock{}
 	cp.stackExists = true
-	New(cp, StackTemplate{})
+	_, err := New(cp, StackTemplate{})
+	assertNoError(t, err)
 
 	if cp.operation != cloudprov.UpdateOperation {
 		t.Error("If stack exists, changeset should be created with 'Update' operation")
@@ -75,11 +83,12 @@ func TestOperationIsUpdateIfStackExists(t *testing.T) {
 func TestOnlyRequiredParametersAreSubmitted(t *testing.T) {
 	cp := &CloudProviderMock{}
 	cp.requiredParams = []string{"foo", "bar"}
-	New(cp, StackTemplate{Params: map[string]string{
+	_, err := New(cp, StackTemplate{Params: map[string]string{
 		"foo": "fooval",
 		"bar": "barval",
 		"buz": "buzval",
 	}})
+	assertNoError(t, err)
 
 	expected := map[string]string{"foo": "fooval", "bar": "barval"}
 	if !reflect.DeepEqual(expected, cp.submittedParams) {
