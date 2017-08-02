@@ -23,18 +23,12 @@ type Service struct {
 }
 
 // Sync syncs
-func (s *Service) Sync(stackName, body string, params map[string]string) error {
-	log := s.logFunc(stackName)
+func (s *Service) Sync(tpl StackTemplate) error {
+	log := s.logFunc(tpl.StackName)
 
 	log("Syncing template")
 
-	chSet, err := New(
-		s.CloudProvider,
-		StackTemplate{
-			StackName: stackName,
-			Body:      body,
-			Params:    params,
-		},
+	chSet, err := New(s.CloudProvider, tpl,
 		WithEventSubscriber(func(e cloudprov.StackEvent) {
 			log(fmt.Sprintf("[%s] [%s] [%s] %s",
 				e.ResourceType, e.Status, e.LogicalResourceID, e.StatusReason,

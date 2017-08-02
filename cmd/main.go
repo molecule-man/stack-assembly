@@ -48,7 +48,11 @@ func main() {
 			log.Fatal(err)
 		}
 
-		err = serv.Sync(*template.Name, string(tplBody), cfg.Parameters)
+		err = serv.Sync(claws.StackTemplate{
+			StackName: *template.Name,
+			Body:      string(tplBody),
+			Params:    cfg.Parameters,
+		})
 		if err != nil {
 			log.Fatal(err)
 		}
