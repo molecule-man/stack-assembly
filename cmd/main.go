@@ -62,26 +62,28 @@ func main() {
 func readConfigs(cfgFiles *string) claws.Config {
 	mainConfig := claws.Config{}
 
-	configFiles := make([]string, 0)
-
 	if _, err := os.Stat("Claws.toml"); err == nil {
-		configFiles = append(configFiles, "Claws.toml")
+		mainConfig = readConfig("Claws.toml")
 	}
 
-	if cfgFiles != nil && *cfgFiles != "" {
-		configFiles = append(configFiles, strings.Split(*cfgFiles, " ")...)
+	if cfgFiles == nil || *cfgFiles == "" {
+		return mainConfig
 	}
 
-	for _, cf := range configFiles {
-		cfg := claws.Config{}
-		_, err := toml.DecodeFile(cf, &cfg)
-
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		mainConfig.Merge(cfg)
+	for _, cf := range strings.Split(*cfgFiles, " ") {
+		mainConfig.Merge(readConfig(cf))
 	}
 
 	return mainConfig
+}
+
+func readConfig(f string) claws.Config {
+	cfg := claws.Config{}
+	_, err := toml.DecodeFile(f, &cfg)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return cfg
 }
