@@ -11,12 +11,17 @@ import (
 	"github.com/molecule-man/claws/cloudprov"
 )
 
-// Approval enables user confirmation
+// Approval enables user confirmation to apply stack changes
 type Approval struct {
 }
 
 // Approve asks user for confirmation
-func (a *Approval) Approve() bool {
+func (a *Approval) Approve(changes []cloudprov.Change) bool {
+	showChanges(changes)
+	return askConfirmation()
+}
+
+func askConfirmation() bool {
 	fmt.Print("Continue? [Y/n] ")
 
 	reader := bufio.NewReader(os.Stdin)
@@ -38,12 +43,7 @@ func (a *Approval) Approve() bool {
 	return false
 }
 
-// ChangeTable is responsible for displaying claws.Change items
-type ChangeTable struct {
-}
-
-// ShowChanges displays claws.Change items as a table
-func (cp *ChangeTable) ShowChanges(changes []cloudprov.Change) {
+func showChanges(changes []cloudprov.Change) {
 	if len(changes) > 0 {
 		t := NewTable()
 		t.Header().Cell("Action").Cell("ResourceType").Cell("Resource ID").Cell("Replacement needed")

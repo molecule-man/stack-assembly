@@ -9,21 +9,17 @@ import (
 )
 
 type approver interface {
-	Approve() bool
+	Approve([]cloudprov.Change) bool
 }
 type logger interface {
 	Print(v ...interface{})
 }
-type changePresenter interface {
-	ShowChanges([]cloudprov.Change)
-}
 
 // Service orchestrates synchronization of templates
 type Service struct {
-	Approver        approver
-	Log             logger
-	ChangePresenter changePresenter
-	CloudProvider   cloudprov.CloudProvider
+	Approver      approver
+	Log           logger
+	CloudProvider cloudprov.CloudProvider
 }
 
 // Sync syncs
@@ -56,9 +52,7 @@ func (s *Service) Sync(stackName, body string, params map[string]string) error {
 
 	log("Change set is created")
 
-	s.ChangePresenter.ShowChanges(chSet.Changes)
-
-	if !s.Approver.Approve() {
+	if !s.Approver.Approve(chSet.Changes) {
 		return errors.New("Sync is cancelled")
 	}
 

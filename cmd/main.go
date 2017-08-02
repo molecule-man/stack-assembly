@@ -36,10 +36,9 @@ func main() {
 	cp := awsprov.New()
 
 	serv := claws.Service{
-		Approver:        &cli.Approval{},
-		Log:             log.New(os.Stderr, "", log.LstdFlags),
-		ChangePresenter: &cli.ChangeTable{},
-		CloudProvider:   &cp,
+		Approver:      &cli.Approval{},
+		Log:           log.New(os.Stderr, "", log.LstdFlags),
+		CloudProvider: &cp,
 	}
 
 	for _, template := range cfg.Templates {
