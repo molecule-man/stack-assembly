@@ -10,3 +10,6 @@ Sns2 = "sns2"
 [templates.example2]
 name = "hello2"
 path = "tpls/example2.yml"
+
+[templates.example2.parameters]
+Sns2 = "foo"

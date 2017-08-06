@@ -14,6 +14,53 @@ import (
 	"github.com/molecule-man/claws/cloudprov/awsprov"
 )
 
+type (
+	// Config is a struct holding templates configurations
+	Config struct {
+		Parameters map[string]string
+		Templates  map[string]TemplateConfig
+	}
+
+	// TemplateConfig is a configuration of a stack template
+	TemplateConfig struct {
+		Path       string
+		Name       string
+		Parameters map[string]string
+	}
+)
+
+// merge merges otherConfig into this config
+func (c *Config) merge(otherConfig Config) {
+	if c.Parameters == nil {
+		c.Parameters = make(map[string]string)
+	}
+	for k, v := range otherConfig.Parameters {
+		c.Parameters[k] = v
+	}
+
+	if c.Templates == nil {
+		c.Templates = make(map[string]TemplateConfig)
+	}
+	for k, tc := range otherConfig.Templates {
+		t := c.Templates[k]
+		t.merge(tc)
+	}
+}
+
+func (tc *TemplateConfig) merge(otherTpl TemplateConfig) {
+	if otherTpl.Path != "" {
+		tc.Path = otherTpl.Path
+	}
+
+	if otherTpl.Name != "" {
+		tc.Name = otherTpl.Name
+	}
+
+	for k, v := range otherTpl.Parameters {
+		tc.Parameters[k] = v
+	}
+}
+
 func main() {
 	tpl := flag.String("tpl", "", "CF tpl")
 	cfgFile := flag.String("cfg", "", "CF tpl")
@@ -47,9 +94,9 @@ func main() {
 			log.Fatal(err)
 		}
 
-		tpls[i] = claws.StackTemplate{Name: template.Name, Body: string(tplBody), Params: cfg.Parameters}
+		tpls[i] = claws.StackTemplate{Name: template.Name, Body: string(tplBody), Params: template.Parameters}
 	}
-	if err := serv.SyncAll(tpls); err != nil {
+	if err := serv.SyncAll(tpls, cfg.Parameters); err != nil {
 		log.Fatal(err)
 	}
 }
@@ -66,7 +113,7 @@ func readConfigs(cfgFiles *string) Config {
 	}
 
 	for _, cf := range strings.Split(*cfgFiles, " ") {
-		mainConfig.Merge(readConfig(cf))
+		mainConfig.merge(readConfig(cf))
 	}
 
 	return mainConfig

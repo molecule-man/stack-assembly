@@ -23,8 +23,16 @@ type Service struct {
 }
 
 // SyncAll syncs all the provided templates one by one
-func (s *Service) SyncAll(tpls map[string]StackTemplate) error {
+func (s *Service) SyncAll(tpls map[string]StackTemplate, globalParams map[string]string) error {
 	for _, t := range tpls {
+		if t.Params == nil {
+			t.Params = make(map[string]string)
+		}
+		for k, v := range globalParams {
+			if _, ok := t.Params[k]; !ok {
+				t.Params[k] = v
+			}
+		}
 		err := s.Sync(t)
 
 		if err != nil {
