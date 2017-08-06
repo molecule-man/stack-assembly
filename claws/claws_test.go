@@ -157,6 +157,7 @@ type CloudProviderMock struct {
 	waitChSetErr    error
 	execErr         error
 	waitStackErr    error
+	executed        bool
 }
 
 func (cpm *CloudProviderMock) ValidateTemplate(tplBody string) ([]string, error) {
@@ -181,6 +182,7 @@ func (cpm *CloudProviderMock) ChangeSetChanges(ID string) ([]cloudprov.Change, e
 	return []cloudprov.Change{}, cpm.changesErr
 }
 func (cpm *CloudProviderMock) ExecuteChangeSet(ID string) error {
+	cpm.executed = true
 	return cpm.execErr
 }
 func (cpm *CloudProviderMock) WaitStack(stackName string) error {
