@@ -20,15 +20,16 @@ type ChangeSet struct {
 
 // StackTemplate encapsulates information about stack template
 type StackTemplate struct {
-	StackName string
-	Body      string
-	Params    map[string]string
+	Name   string
+	Body   string
+	Params map[string]string
 }
 
-type option func(cs *ChangeSet)
+// Option is function that can be used to configure new change set
+type Option func(cs *ChangeSet)
 
 // New creates a new ChangeSet
-func New(cp cloudprov.CloudProvider, tpl StackTemplate, opts ...option) (*ChangeSet, error) {
+func New(cp cloudprov.CloudProvider, tpl StackTemplate, opts ...Option) (*ChangeSet, error) {
 	requiredParams, err := cp.ValidateTemplate(tpl.Body)
 
 	if err != nil {
@@ -44,7 +45,7 @@ func New(cp cloudprov.CloudProvider, tpl StackTemplate, opts ...option) (*Change
 	}
 
 	chSet := &ChangeSet{
-		StackName: tpl.StackName,
+		StackName: tpl.Name,
 		cp:        cp,
 		sleep:     time.Second,
 	}
@@ -59,13 +60,15 @@ func New(cp cloudprov.CloudProvider, tpl StackTemplate, opts ...option) (*Change
 
 // WithEventSubscriber is an option that configures chage set to add stack
 // events listener
-func WithEventSubscriber(cb stackEventListener) option {
+func WithEventSubscriber(cb stackEventListener) Option {
 	return func(cs *ChangeSet) {
 		cs.listeners = append(cs.listeners, cb)
 	}
 }
 
-func WithEventSleep(t time.Duration) option {
+// WithEventSleep is an option that configures sleep time to use when polling
+// for events
+func WithEventSleep(t time.Duration) Option {
 	return func(cs *ChangeSet) {
 		cs.sleep = t
 	}

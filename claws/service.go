@@ -22,9 +22,21 @@ type Service struct {
 	CloudProvider cloudprov.CloudProvider
 }
 
+// SyncAll syncs all the provided templates one by one
+func (s *Service) SyncAll(tpls map[string]StackTemplate) error {
+	for _, t := range tpls {
+		err := s.Sync(t)
+
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // Sync syncs
 func (s *Service) Sync(tpl StackTemplate) error {
-	log := s.logFunc(tpl.StackName)
+	log := s.logFunc(tpl.Name)
 
 	log("Syncing template")
 

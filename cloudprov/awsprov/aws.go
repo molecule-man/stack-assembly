@@ -19,11 +19,11 @@ type AwsProvider struct {
 }
 
 // New creates a new AwsProvider
-func New() AwsProvider {
+func New() *AwsProvider {
 	sess := session.Must(session.NewSession())
 	cf := cloudformation.New(sess)
 
-	return AwsProvider{
+	return &AwsProvider{
 		cf: cf,
 	}
 }

@@ -1,4 +1,4 @@
-package claws
+package main
 
 type (
 	// Config is a struct holding templates configurations
@@ -10,7 +10,7 @@ type (
 	// TemplateConfig is a configuration of a stack template
 	TemplateConfig struct {
 		Path string
-		Name *string
+		Name string
 	}
 )
 

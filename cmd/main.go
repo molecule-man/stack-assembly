@@ -24,43 +24,38 @@ func main() {
 	cfg := readConfigs(cfgFile)
 
 	if tpl != nil && *tpl != "" {
-
-		cfg.Templates = map[string]claws.TemplateConfig{
-			"tpl": {
+		id := *stackName
+		cfg.Templates = map[string]TemplateConfig{
+			id: {
 				Path: *tpl,
-				Name: stackName,
+				Name: *stackName,
 			},
 		}
 	}
 
-	cp := awsprov.New()
-
 	serv := claws.Service{
 		Approver:      &cli.Approval{},
 		Log:           log.New(os.Stderr, "", log.LstdFlags),
-		CloudProvider: &cp,
+		CloudProvider: awsprov.New(),
 	}
 
-	for _, template := range cfg.Templates {
+	tpls := make(map[string]claws.StackTemplate)
+	for i, template := range cfg.Templates {
 		tplBody, err := ioutil.ReadFile(template.Path)
 
 		if err != nil {
 			log.Fatal(err)
 		}
 
-		err = serv.Sync(claws.StackTemplate{
-			StackName: *template.Name,
-			Body:      string(tplBody),
-			Params:    cfg.Parameters,
-		})
-		if err != nil {
-			log.Fatal(err)
-		}
+		tpls[i] = claws.StackTemplate{Name: template.Name, Body: string(tplBody), Params: cfg.Parameters}
+	}
+	if err := serv.SyncAll(tpls); err != nil {
+		log.Fatal(err)
 	}
 }
 
-func readConfigs(cfgFiles *string) claws.Config {
-	mainConfig := claws.Config{}
+func readConfigs(cfgFiles *string) Config {
+	mainConfig := Config{}
 
 	if _, err := os.Stat("Claws.toml"); err == nil {
 		mainConfig = readConfig("Claws.toml")
@@ -77,8 +72,8 @@ func readConfigs(cfgFiles *string) claws.Config {
 	return mainConfig
 }
 
-func readConfig(f string) claws.Config {
-	cfg := claws.Config{}
+func readConfig(f string) Config {
+	cfg := Config{}
 	_, err := toml.DecodeFile(f, &cfg)
 
 	if err != nil {

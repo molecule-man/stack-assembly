@@ -31,7 +31,7 @@ func TestEventLog(t *testing.T) {
 
 	cs, _ := New(
 		cp,
-		StackTemplate{StackName: "stack", Body: "body", Params: map[string]string{}},
+		StackTemplate{Name: "stack", Body: "body", Params: map[string]string{}},
 		WithEventSleep(6*time.Millisecond),
 		WithEventSubscriber(func(e cloudprov.StackEvent) {
 			cp.Lock()
