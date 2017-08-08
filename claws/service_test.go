@@ -108,6 +108,26 @@ func TestGlobalParametersAreMerged(t *testing.T) {
 		t.Errorf("It was expected that SyncAll is successful. Error %v was returned", err)
 	}
 }
+func TestGlobalParametersCanBeTemplated(t *testing.T) {
+	cp := &CloudProviderMock{
+		requiredParams: []string{"foo"},
+	}
+	s := Service{Approver: &FakedApprover{approved: true}, Log: &FakedLogger{}, CloudProvider: cp}
+
+	err := s.SyncAll(
+		map[string]StackTemplate{"tpl1": {Params: map[string]string{"foo": "{{ .serviceName }}-{{ .env }}"}}},
+		map[string]string{"serviceName": "acme", "env": "live"},
+	)
+
+	expected := map[string]string{"foo": "acme-live"}
+
+	if !reflect.DeepEqual(expected, cp.submittedParams) {
+		t.Errorf("Expected params %v to be submitted. Got %v", expected, cp.submittedParams)
+	}
+	if err != nil {
+		t.Errorf("It was expected that SyncAll is successful. Error %v was returned", err)
+	}
+}
 
 type FakedApprover struct {
 	approved bool

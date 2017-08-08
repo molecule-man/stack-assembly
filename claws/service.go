@@ -2,8 +2,10 @@
 package claws
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
+	"text/template"
 
 	"github.com/molecule-man/claws/cloudprov"
 )
@@ -32,6 +34,19 @@ func (s *Service) SyncAll(tpls map[string]StackTemplate, globalParams map[string
 			if _, ok := t.Params[k]; !ok {
 				t.Params[k] = v
 			}
+		}
+		for k, v := range t.Params {
+			tpl, err := template.New(t.Name + k).Parse(v)
+			if err != nil {
+				return err
+			}
+			var buff bytes.Buffer
+
+			if err := tpl.Execute(&buff, globalParams); err != nil {
+				return err
+			}
+
+			t.Params[k] = buff.String()
 		}
 		err := s.Sync(t)
 
