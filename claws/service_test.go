@@ -108,22 +108,35 @@ func TestGlobalParametersAreMerged(t *testing.T) {
 		t.Errorf("It was expected that SyncAll is successful. Error %v was returned", err)
 	}
 }
-func TestGlobalParametersCanBeTemplated(t *testing.T) {
+func TestParametersCanBeTemplated(t *testing.T) {
 	cp := &CloudProviderMock{
-		requiredParams: []string{"foo"},
+		requiredParams: []string{"serviceName"},
 	}
 	s := Service{Approver: &FakedApprover{approved: true}, Log: &FakedLogger{}, CloudProvider: cp}
 
 	err := s.SyncAll(
-		map[string]StackTemplate{"tpl1": {Params: map[string]string{"foo": "{{ .serviceName }}-{{ .env }}"}}},
-		map[string]string{"serviceName": "acme", "env": "live"},
+		map[string]StackTemplate{"tpl1": {
+			Params: map[string]string{"serviceName": "{{ .name }}-{{ .env }}"},
+			Name:   "stack-{{ .serviceName }}",
+			Body:   "body: {{ .serviceName }}-{{ .foo }}",
+		}},
+		map[string]string{"name": "acme", "env": "live", "foo": "bar"},
 	)
 
-	expected := map[string]string{"foo": "acme-live"}
+	expected := map[string]string{"serviceName": "acme-live"}
 
 	if !reflect.DeepEqual(expected, cp.submittedParams) {
 		t.Errorf("Expected params %v to be submitted. Got %v", expected, cp.submittedParams)
 	}
+
+	if expected := "stack-acme-live"; expected != cp.name {
+		t.Errorf("Expected stack name: '%s'. Got '%s'", expected, cp.name)
+	}
+
+	if expected := "body: acme-live-bar"; expected != cp.body {
+		t.Errorf("Expected stack body: '%s'. Got '%s'", expected, cp.body)
+	}
+
 	if err != nil {
 		t.Errorf("It was expected that SyncAll is successful. Error %v was returned", err)
 	}

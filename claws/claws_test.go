@@ -158,6 +158,8 @@ type CloudProviderMock struct {
 	execErr         error
 	waitStackErr    error
 	executed        bool
+	name            string
+	body            string
 }
 
 func (cpm *CloudProviderMock) ValidateTemplate(tplBody string) ([]string, error) {
@@ -168,6 +170,8 @@ func (cpm *CloudProviderMock) StackExists(stackName string) (bool, error) {
 }
 func (cpm *CloudProviderMock) CreateChangeSet(stackName string, tplBody string, params map[string]string, op cloudprov.ChangeSetOperation) (string, error) {
 	cpm.operation = op
+	cpm.name = stackName
+	cpm.body = tplBody
 	cpm.submittedParams = params
 
 	if cpm.chSetID == "" {

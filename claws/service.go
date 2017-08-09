@@ -36,18 +36,13 @@ func (s *Service) SyncAll(tpls map[string]StackTemplate, globalParams map[string
 			}
 		}
 		for k, v := range t.Params {
-			tpl, err := template.New(t.Name + k).Parse(v)
-			if err != nil {
+			var parsed string
+			if err := applyTemplating(&parsed, v, globalParams); err != nil {
 				return err
 			}
-			var buff bytes.Buffer
-
-			if err := tpl.Execute(&buff, globalParams); err != nil {
-				return err
-			}
-
-			t.Params[k] = buff.String()
+			t.Params[k] = parsed
 		}
+
 		err := s.Sync(t)
 
 		if err != nil {
@@ -60,6 +55,13 @@ func (s *Service) SyncAll(tpls map[string]StackTemplate, globalParams map[string
 // Sync syncs
 func (s *Service) Sync(tpl StackTemplate) error {
 	log := s.logFunc(tpl.Name)
+
+	if err := applyTemplating(&tpl.Name, tpl.Name, tpl.Params); err != nil {
+		return err
+	}
+	if err := applyTemplating(&tpl.Body, tpl.Body, tpl.Params); err != nil {
+		return err
+	}
 
 	log("Syncing template")
 
@@ -90,6 +92,21 @@ func (s *Service) Sync(tpl StackTemplate) error {
 	log("Sync is finished")
 
 	return err
+}
+
+func applyTemplating(parsed *string, tpl string, params map[string]string) error {
+	t, err := template.New(tpl).Parse(tpl)
+	if err != nil {
+		return err
+	}
+	var buff bytes.Buffer
+
+	if err := t.Execute(&buff, params); err != nil {
+		return err
+	}
+
+	*parsed = buff.String()
+	return nil
 }
 
 func (s *Service) logFunc(logID string) func(string) {
