@@ -7,8 +7,6 @@ import (
 	"sync"
 	"testing"
 	"time"
-
-	"github.com/molecule-man/claws/cloudprov"
 )
 
 func assertNoError(t *testing.T, err error) {
@@ -20,7 +18,7 @@ func assertNoError(t *testing.T, err error) {
 func TestEventLog(t *testing.T) {
 
 	cp := &CloudProviderMock{
-		events: []cloudprov.StackEvent{{ID: "3"}, {ID: "2"}, {ID: "1"}},
+		events: []StackEvent{{ID: "3"}, {ID: "2"}, {ID: "1"}},
 		waitStackFunc: func() error {
 			time.Sleep(10 * time.Millisecond)
 			return nil
@@ -33,7 +31,7 @@ func TestEventLog(t *testing.T) {
 		cp,
 		StackTemplate{Name: "stack", Body: "body", Params: map[string]string{}},
 		WithEventSleep(6*time.Millisecond),
-		WithEventSubscriber(func(e cloudprov.StackEvent) {
+		WithEventSubscriber(func(e StackEvent) {
 			cp.Lock()
 			logs = append(logs, "log"+e.ID)
 			cp.Unlock()
@@ -44,7 +42,7 @@ func TestEventLog(t *testing.T) {
 		for _, i := range []string{"4", "5", "6"} {
 			time.Sleep(1 * time.Millisecond)
 			cp.Lock()
-			cp.events = append([]cloudprov.StackEvent{{ID: i}}, cp.events...)
+			cp.events = append([]StackEvent{{ID: i}}, cp.events...)
 			cp.Unlock()
 		}
 	}()
@@ -64,7 +62,7 @@ func TestOperationIsCreateIfStackDoesntExist(t *testing.T) {
 	_, err := New(cp, StackTemplate{})
 	assertNoError(t, err)
 
-	if cp.operation != cloudprov.CreateOperation {
+	if cp.operation != CreateOperation {
 		t.Error("If stack doesn't exist, changeset should be created with 'Create' operation")
 	}
 }
@@ -75,7 +73,7 @@ func TestOperationIsUpdateIfStackExists(t *testing.T) {
 	_, err := New(cp, StackTemplate{})
 	assertNoError(t, err)
 
-	if cp.operation != cloudprov.UpdateOperation {
+	if cp.operation != UpdateOperation {
 		t.Error("If stack exists, changeset should be created with 'Update' operation")
 	}
 }
@@ -144,9 +142,9 @@ func TestChangeSetExecutionErrors(t *testing.T) {
 type CloudProviderMock struct {
 	sync.Mutex
 	waitStackFunc   func() error
-	events          []cloudprov.StackEvent
+	events          []StackEvent
 	chSetID         string
-	operation       cloudprov.ChangeSetOperation
+	operation       ChangeSetOperation
 	stackExists     bool
 	requiredParams  []string
 	submittedParams map[string]string
@@ -168,7 +166,7 @@ func (cpm *CloudProviderMock) ValidateTemplate(tplBody string) ([]string, error)
 func (cpm *CloudProviderMock) StackExists(stackName string) (bool, error) {
 	return cpm.stackExists, cpm.stackExistsErr
 }
-func (cpm *CloudProviderMock) CreateChangeSet(stackName string, tplBody string, params map[string]string, op cloudprov.ChangeSetOperation) (string, error) {
+func (cpm *CloudProviderMock) CreateChangeSet(stackName string, tplBody string, params map[string]string, op ChangeSetOperation) (string, error) {
 	cpm.operation = op
 	cpm.name = stackName
 	cpm.body = tplBody
@@ -182,8 +180,8 @@ func (cpm *CloudProviderMock) CreateChangeSet(stackName string, tplBody string, 
 func (cpm *CloudProviderMock) WaitChangeSetCreated(ID string) error {
 	return cpm.waitChSetErr
 }
-func (cpm *CloudProviderMock) ChangeSetChanges(ID string) ([]cloudprov.Change, error) {
-	return []cloudprov.Change{}, cpm.changesErr
+func (cpm *CloudProviderMock) ChangeSetChanges(ID string) ([]Change, error) {
+	return []Change{}, cpm.changesErr
 }
 func (cpm *CloudProviderMock) ExecuteChangeSet(ID string) error {
 	cpm.executed = true
@@ -195,7 +193,7 @@ func (cpm *CloudProviderMock) WaitStack(stackName string) error {
 	}
 	return cpm.waitStackErr
 }
-func (cpm *CloudProviderMock) StackEvents(stackName string) ([]cloudprov.StackEvent, error) {
+func (cpm *CloudProviderMock) StackEvents(stackName string) ([]StackEvent, error) {
 	cpm.Lock()
 	defer cpm.Unlock()
 	return cpm.events, nil

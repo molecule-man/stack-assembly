@@ -6,12 +6,10 @@ import (
 	"errors"
 	"fmt"
 	"text/template"
-
-	"github.com/molecule-man/claws/cloudprov"
 )
 
 type approver interface {
-	Approve([]cloudprov.Change) bool
+	Approve([]Change) bool
 }
 type logger interface {
 	Print(v ...interface{})
@@ -21,7 +19,7 @@ type logger interface {
 type Service struct {
 	Approver      approver
 	Log           logger
-	CloudProvider cloudprov.CloudProvider
+	CloudProvider CloudProvider
 }
 
 // SyncAll syncs all the provided templates one by one
@@ -66,7 +64,7 @@ func (s *Service) Sync(tpl StackTemplate) error {
 	log("Syncing template")
 
 	chSet, err := New(s.CloudProvider, tpl,
-		WithEventSubscriber(func(e cloudprov.StackEvent) {
+		WithEventSubscriber(func(e StackEvent) {
 			log(fmt.Sprintf("[%s] [%s] [%s] %s",
 				e.ResourceType, e.Status, e.LogicalResourceID, e.StatusReason,
 			))
@@ -74,7 +72,7 @@ func (s *Service) Sync(tpl StackTemplate) error {
 	)
 
 	if err != nil {
-		if err == cloudprov.ErrNoChange {
+		if err == ErrNoChange {
 			log("No changes to be synced")
 			return nil
 		}

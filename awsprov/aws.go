@@ -10,7 +10,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
-	"github.com/molecule-man/claws/cloudprov"
+	"github.com/molecule-man/claws/claws"
 )
 
 // AwsProvider is wrapper over aws sdk
@@ -73,7 +73,7 @@ func (ap *AwsProvider) StackExists(stackName string) (bool, error) {
 
 // CreateChangeSet creates new change set
 // Returns change set ID
-func (ap *AwsProvider) CreateChangeSet(stackName string, tplBody string, params map[string]string, op cloudprov.ChangeSetOperation) (string, error) {
+func (ap *AwsProvider) CreateChangeSet(stackName string, tplBody string, params map[string]string, op claws.ChangeSetOperation) (string, error) {
 	awsParams := make([]*cloudformation.Parameter, 0, len(params))
 
 	for k, v := range params {
@@ -85,7 +85,7 @@ func (ap *AwsProvider) CreateChangeSet(stackName string, tplBody string, params 
 
 	awsOperation := cloudformation.ChangeSetTypeCreate
 
-	if op == cloudprov.UpdateOperation {
+	if op == claws.UpdateOperation {
 		awsOperation = cloudformation.ChangeSetTypeUpdate
 	}
 
@@ -115,27 +115,27 @@ func (ap *AwsProvider) WaitChangeSetCreated(ID string) error {
 }
 
 // ChangeSetChanges returns info about changes to be applied to stack
-func (ap *AwsProvider) ChangeSetChanges(ID string) ([]cloudprov.Change, error) {
+func (ap *AwsProvider) ChangeSetChanges(ID string) ([]claws.Change, error) {
 	setInfo, err := ap.cf.DescribeChangeSet(&cloudformation.DescribeChangeSetInput{
 		ChangeSetName: aws.String(ID),
 	})
 
 	if err != nil {
-		return []cloudprov.Change{}, err
+		return []claws.Change{}, err
 	}
 
 	if *setInfo.Status == cloudformation.ChangeSetStatusFailed {
 		if *setInfo.StatusReason == "The submitted information didn't contain changes. Submit different information to create a change set." {
-			return []cloudprov.Change{}, cloudprov.ErrNoChange
+			return []claws.Change{}, claws.ErrNoChange
 		}
-		return []cloudprov.Change{}, errors.New(*setInfo.StatusReason)
+		return []claws.Change{}, errors.New(*setInfo.StatusReason)
 	}
 
-	changes := make([]cloudprov.Change, 0, len(setInfo.Changes))
+	changes := make([]claws.Change, 0, len(setInfo.Changes))
 
 	for _, c := range setInfo.Changes {
 		awsChange := c.ResourceChange
-		ch := cloudprov.Change{
+		ch := claws.Change{
 			Action:            *awsChange.Action,
 			ResourceType:      *awsChange.ResourceType,
 			LogicalResourceID: *awsChange.LogicalResourceId,
@@ -170,19 +170,19 @@ func (ap *AwsProvider) WaitStack(stackName string) error {
 }
 
 // StackEvents returns stack events. The latest events appear first
-func (ap *AwsProvider) StackEvents(stackName string) ([]cloudprov.StackEvent, error) {
+func (ap *AwsProvider) StackEvents(stackName string) ([]claws.StackEvent, error) {
 	awsEvents, err := ap.cf.DescribeStackEvents(&cloudformation.DescribeStackEventsInput{
 		StackName: aws.String(stackName),
 	})
 
 	if err != nil {
-		return []cloudprov.StackEvent{}, err
+		return []claws.StackEvent{}, err
 	}
 
-	events := make([]cloudprov.StackEvent, len(awsEvents.StackEvents))
+	events := make([]claws.StackEvent, len(awsEvents.StackEvents))
 
 	for i, e := range awsEvents.StackEvents {
-		events[i] = cloudprov.StackEvent{
+		events[i] = claws.StackEvent{
 			ID:                *e.EventId,
 			ResourceType:      fromAwsString(e.ResourceType),
 			Status:            fromAwsString(e.ResourceStatus),

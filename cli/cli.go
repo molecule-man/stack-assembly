@@ -8,7 +8,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/molecule-man/claws/cloudprov"
+	"github.com/molecule-man/claws/claws"
 )
 
 // Approval enables user confirmation to apply stack changes
@@ -16,7 +16,7 @@ type Approval struct {
 }
 
 // Approve asks user for confirmation
-func (a *Approval) Approve(changes []cloudprov.Change) bool {
+func (a *Approval) Approve(changes []claws.Change) bool {
 	showChanges(changes)
 	return askConfirmation()
 }
@@ -43,7 +43,7 @@ func askConfirmation() bool {
 	return false
 }
 
-func showChanges(changes []cloudprov.Change) {
+func showChanges(changes []claws.Change) {
 	if len(changes) > 0 {
 		t := NewTable()
 		t.Header().Cell("Action").Cell("ResourceType").Cell("Resource ID").Cell("Replacement needed")

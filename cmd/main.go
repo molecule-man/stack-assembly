@@ -9,9 +9,9 @@ import (
 	"strings"
 
 	"github.com/BurntSushi/toml"
+	"github.com/molecule-man/claws/awsprov"
 	"github.com/molecule-man/claws/claws"
 	"github.com/molecule-man/claws/cli"
-	"github.com/molecule-man/claws/cloudprov/awsprov"
 )
 
 type (

@@ -2,18 +2,16 @@ package claws
 
 import (
 	"time"
-
-	"github.com/molecule-man/claws/cloudprov"
 )
 
-type stackEventListener func(cloudprov.StackEvent)
+type stackEventListener func(StackEvent)
 
 // ChangeSet represents aws changeset
 type ChangeSet struct {
-	Changes   []cloudprov.Change
+	Changes   []Change
 	StackName string
 	ID        string
-	cp        cloudprov.CloudProvider
+	cp        CloudProvider
 	listeners []stackEventListener
 	sleep     time.Duration
 }
@@ -29,7 +27,7 @@ type StackTemplate struct {
 type Option func(cs *ChangeSet)
 
 // New creates a new ChangeSet
-func New(cp cloudprov.CloudProvider, tpl StackTemplate, opts ...Option) (*ChangeSet, error) {
+func New(cp CloudProvider, tpl StackTemplate, opts ...Option) (*ChangeSet, error) {
 	requiredParams, err := cp.ValidateTemplate(tpl.Body)
 
 	if err != nil {
@@ -114,9 +112,9 @@ func (cs *ChangeSet) initialize(tplBody string, params map[string]string) error 
 		return err
 	}
 
-	operation := cloudprov.CreateOperation
+	operation := CreateOperation
 	if exists {
-		operation = cloudprov.UpdateOperation
+		operation = UpdateOperation
 	}
 
 	cs.ID, err = cs.cp.CreateChangeSet(cs.StackName, tplBody, params, operation)

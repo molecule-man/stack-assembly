@@ -2,22 +2,20 @@ package claws
 
 import (
 	"time"
-
-	"github.com/molecule-man/claws/cloudprov"
 )
 
 // EventsTracker tracks stack events
 type EventsTracker struct {
 	stackName     string
-	cp            cloudprov.CloudProvider
+	cp            CloudProvider
 	stopCh        chan bool
 	latestEventID string
 	sleep         time.Duration
 }
 
 // StartTracking starts event tracking
-func (et *EventsTracker) StartTracking() chan cloudprov.StackEvent {
-	eventsCh := make(chan cloudprov.StackEvent)
+func (et *EventsTracker) StartTracking() chan StackEvent {
+	eventsCh := make(chan StackEvent)
 	et.stopCh = make(chan bool)
 
 	// @TODO using empty string here is ugly
@@ -51,11 +49,11 @@ func (et *EventsTracker) StopTracking() {
 	close(et.stopCh)
 }
 
-func (et *EventsTracker) eventsSince(sinceEventID string) []cloudprov.StackEvent {
+func (et *EventsTracker) eventsSince(sinceEventID string) []StackEvent {
 	events, err := et.cp.StackEvents(et.stackName)
 
 	if err != nil {
-		return []cloudprov.StackEvent{}
+		return []StackEvent{}
 	}
 
 	// @TODO come up with better name than sinceEventID
@@ -75,7 +73,7 @@ func (et *EventsTracker) eventsSince(sinceEventID string) []cloudprov.StackEvent
 	return events[:lastEventIndex]
 }
 
-func (et *EventsTracker) publishEvents(eventsCh chan cloudprov.StackEvent) {
+func (et *EventsTracker) publishEvents(eventsCh chan StackEvent) {
 	events := et.eventsSince(et.latestEventID)
 
 	if len(events) > 0 {
@@ -87,7 +85,7 @@ func (et *EventsTracker) publishEvents(eventsCh chan cloudprov.StackEvent) {
 	}
 }
 
-func reverse(s []cloudprov.StackEvent) []cloudprov.StackEvent {
+func reverse(s []StackEvent) []StackEvent {
 	for i, j := 0, len(s)-1; i < j; i, j = i+1, j-1 {
 		s[i], s[j] = s[j], s[i]
 	}

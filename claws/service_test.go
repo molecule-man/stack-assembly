@@ -4,8 +4,6 @@ import (
 	"errors"
 	"reflect"
 	"testing"
-
-	"github.com/molecule-man/claws/cloudprov"
 )
 
 func TestChangeSetExecutedIfApproved(t *testing.T) {
@@ -61,7 +59,7 @@ func TestErrorIsReturnedIfChangeSetFails(t *testing.T) {
 }
 
 func TestSyncIsSuccessfullyIgnoredIfNoChanges(t *testing.T) {
-	cp := &CloudProviderMock{createErr: cloudprov.ErrNoChange}
+	cp := &CloudProviderMock{createErr: ErrNoChange}
 
 	s := Service{Approver: &FakedApprover{approved: true}, Log: &FakedLogger{}, CloudProvider: cp}
 
@@ -146,7 +144,7 @@ type FakedApprover struct {
 	approved bool
 }
 
-func (fa *FakedApprover) Approve(c []cloudprov.Change) bool {
+func (fa *FakedApprover) Approve(c []Change) bool {
 	return fa.approved
 }
 
