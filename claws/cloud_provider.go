@@ -14,6 +14,7 @@ type CloudProvider interface {
 	ExecuteChangeSet(ID string) error
 	WaitStack(stackName string) error
 	StackEvents(stackName string) ([]StackEvent, error)
+	StackOutputs(stackName string) (map[string]string, error)
 }
 
 // ChangeSetOperation enum

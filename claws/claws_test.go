@@ -148,6 +148,7 @@ type CloudProviderMock struct {
 	stackExists     bool
 	requiredParams  []string
 	submittedParams map[string]string
+	outputs         map[string]string
 	validationErr   error
 	stackExistsErr  error
 	createErr       error
@@ -197,4 +198,7 @@ func (cpm *CloudProviderMock) StackEvents(stackName string) ([]StackEvent, error
 	cpm.Lock()
 	defer cpm.Unlock()
 	return cpm.events, nil
+}
+func (cpm *CloudProviderMock) StackOutputs(stackName string) (map[string]string, error) {
+	return cpm.outputs, nil
 }

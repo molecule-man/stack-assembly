@@ -71,6 +71,27 @@ func (ap *AwsProvider) StackExists(stackName string) (bool, error) {
 	return true, nil
 }
 
+// StackOutputs returns the "outputs" of a stack identified by stackName
+func (ap *AwsProvider) StackOutputs(stackName string) (map[string]string, error) {
+	outputs := make(map[string]string)
+
+	resp, err := ap.cf.DescribeStacks(&cloudformation.DescribeStacksInput{
+		StackName: aws.String(stackName),
+	})
+
+	if err != nil {
+		return outputs, err
+	}
+
+	for _, s := range resp.Stacks {
+		for _, o := range s.Outputs {
+			outputs[*o.OutputKey] = *o.OutputValue
+		}
+	}
+
+	return outputs, nil
+}
+
 // CreateChangeSet creates new change set
 // Returns change set ID
 func (ap *AwsProvider) CreateChangeSet(stackName string, tplBody string, params map[string]string, op claws.ChangeSetOperation) (string, error) {

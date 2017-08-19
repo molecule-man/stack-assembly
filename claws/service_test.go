@@ -140,6 +140,28 @@ func TestParametersCanBeTemplated(t *testing.T) {
 	}
 }
 
+func TestStackOutputsCanBeUsedInTemplating(t *testing.T) {
+	cp := &CloudProviderMock{
+		outputs: map[string]string{"foo": "bar"},
+	}
+	s := Service{Approver: &FakedApprover{approved: true}, Log: &FakedLogger{}, CloudProvider: cp}
+
+	err := s.SyncAll(
+		map[string]StackTemplate{
+			"tpl1": {Name: "stack-{{ .out.tpl2.foo }}"},
+		},
+		map[string]string{},
+	)
+
+	if expected := "stack-bar"; expected != cp.name {
+		t.Errorf("Expected stack name: '%s'. Got '%s'", expected, cp.name)
+	}
+
+	if err != nil {
+		t.Errorf("It was expected that SyncAll is successful. Error %v was returned", err)
+	}
+}
+
 type FakedApprover struct {
 	approved bool
 }
