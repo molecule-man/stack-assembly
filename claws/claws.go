@@ -18,9 +18,10 @@ type ChangeSet struct {
 
 // StackTemplate encapsulates information about stack template
 type StackTemplate struct {
-	Name   string
-	Body   string
-	Params map[string]string
+	Name      string
+	Body      string
+	Params    map[string]string
+	DependsOn []string
 }
 
 // Option is function that can be used to configure new change set

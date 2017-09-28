@@ -6,7 +6,12 @@ import (
 	"errors"
 	"fmt"
 	"text/template"
+	"text/template/parse"
+
+	"github.com/molecule-man/claws/depgraph"
 )
+
+const stackOutputVarName = "Outputs"
 
 type approver interface {
 	Approve([]Change) bool
@@ -24,7 +29,42 @@ type Service struct {
 
 // SyncAll syncs all the provided templates one by one
 func (s *Service) SyncAll(tpls map[string]StackTemplate, globalParams map[string]string) error {
-	for _, t := range tpls {
+	dg := depgraph.DepGraph{}
+
+	for id, t := range tpls {
+		dg.Add(id, t.DependsOn)
+
+		templatableFields := make([]string, 0, len(t.Params)+2)
+		for _, v := range t.Params {
+			templatableFields = append(templatableFields, v)
+		}
+		templatableFields = append(templatableFields, t.Name, t.Body)
+
+		for _, f := range templatableFields {
+			deps, err := dependencies(f)
+
+			if err != nil {
+				return err
+			}
+
+			dg.Add(id, deps)
+		}
+	}
+
+	ordered, err := dg.Resolve()
+
+	if err != nil {
+		return err
+	}
+
+	data := struct {
+		Outputs map[string]map[string]string
+		Params  map[string]string
+	}{}
+	data.Outputs = make(map[string]map[string]string)
+
+	for _, id := range ordered {
+		t := tpls[id]
 		if t.Params == nil {
 			t.Params = make(map[string]string)
 		}
@@ -35,10 +75,17 @@ func (s *Service) SyncAll(tpls map[string]StackTemplate, globalParams map[string
 		}
 		for k, v := range t.Params {
 			var parsed string
-			if err := applyTemplating(&parsed, v, globalParams); err != nil {
+			data.Params = globalParams
+			if err := applyTemplating(&parsed, v, data); err != nil {
 				return err
 			}
 			t.Params[k] = parsed
+		}
+
+		data.Params = t.Params
+
+		if err := applyTemplating(&t.Name, t.Name, data); err != nil {
+			return err
 		}
 
 		err := s.Sync(t)
@@ -46,6 +93,14 @@ func (s *Service) SyncAll(tpls map[string]StackTemplate, globalParams map[string
 		if err != nil {
 			return err
 		}
+
+		out, err := s.CloudProvider.StackOutputs(t.Name)
+
+		if err != nil {
+			return err
+		}
+
+		data.Outputs[id] = out
 	}
 	return nil
 }
@@ -54,10 +109,12 @@ func (s *Service) SyncAll(tpls map[string]StackTemplate, globalParams map[string
 func (s *Service) Sync(tpl StackTemplate) error {
 	log := s.logFunc(tpl.Name)
 
-	if err := applyTemplating(&tpl.Name, tpl.Name, tpl.Params); err != nil {
+	data := struct{ Params map[string]string }{tpl.Params}
+
+	if err := applyTemplating(&tpl.Name, tpl.Name, data); err != nil {
 		return err
 	}
-	if err := applyTemplating(&tpl.Body, tpl.Body, tpl.Params); err != nil {
+	if err := applyTemplating(&tpl.Body, tpl.Body, data); err != nil {
 		return err
 	}
 
@@ -92,7 +149,7 @@ func (s *Service) Sync(tpl StackTemplate) error {
 	return err
 }
 
-func applyTemplating(parsed *string, tpl string, params map[string]string) error {
+func applyTemplating(parsed *string, tpl string, params interface{}) error {
 	t, err := template.New(tpl).Parse(tpl)
 	if err != nil {
 		return err
@@ -105,6 +162,33 @@ func applyTemplating(parsed *string, tpl string, params map[string]string) error
 
 	*parsed = buff.String()
 	return nil
+}
+
+func dependencies(tpl string) ([]string, error) {
+	deps := []string{}
+
+	t, err := template.New(tpl).Parse(tpl)
+	if err != nil {
+		return deps, err
+	}
+
+	for _, n := range t.Tree.Root.Nodes {
+		node, ok := n.(*parse.ActionNode)
+		if !ok {
+			continue
+		}
+
+		for _, c := range node.Pipe.Cmds {
+			fn, ok := c.Args[0].(*parse.FieldNode)
+			if !ok || len(fn.Ident) < 1 || fn.Ident[0] != stackOutputVarName {
+				continue
+			}
+
+			deps = append(deps, fn.Ident[1])
+		}
+	}
+
+	return deps, nil
 }
 
 func (s *Service) logFunc(logID string) func(string) {

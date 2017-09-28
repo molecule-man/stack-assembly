@@ -130,3 +130,22 @@ func TestInvalidInput(t *testing.T) {
 		t.Error("Invalid input hasn't produced an error")
 	}
 }
+
+func TestDuplications(t *testing.T) {
+	dg := DepGraph{}
+	dg.Add("1", []string{})
+	dg.Add("2", []string{"1"})
+	dg.Add("3", []string{"1", "2"})
+	dg.Add("3", []string{"2"})
+	dg.Add("3", []string{})
+
+	resolved, err := dg.Resolve()
+
+	if err != nil {
+		t.Errorf("Resolution shouldn't cause an error. But the following error was produced: %v", err)
+	}
+
+	if expected := "1,2,3"; expected != strings.Join(resolved, ",") {
+		t.Errorf("Resolving was supposed to produce %s. Got %v", expected, resolved)
+	}
+}

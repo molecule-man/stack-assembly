@@ -114,9 +114,9 @@ func TestParametersCanBeTemplated(t *testing.T) {
 
 	err := s.SyncAll(
 		map[string]StackTemplate{"tpl1": {
-			Params: map[string]string{"serviceName": "{{ .name }}-{{ .env }}"},
-			Name:   "stack-{{ .serviceName }}",
-			Body:   "body: {{ .serviceName }}-{{ .foo }}",
+			Params: map[string]string{"serviceName": "{{ .Params.name }}-{{ .Params.env }}"},
+			Name:   "stack-{{ .Params.serviceName }}",
+			Body:   "body: {{ .Params.serviceName }}-{{ .Params.foo }}",
 		}},
 		map[string]string{"name": "acme", "env": "live", "foo": "bar"},
 	)
@@ -148,12 +148,16 @@ func TestStackOutputsCanBeUsedInTemplating(t *testing.T) {
 
 	err := s.SyncAll(
 		map[string]StackTemplate{
-			"tpl1": {Name: "stack-{{ .out.tpl2.foo }}"},
+			"tpl1": {
+				Name:   "stack-{{ .Outputs.tpl2.foo }}-{{ .Params.buz}}",
+				Params: map[string]string{"buz": "blah"},
+			},
+			"tpl2": {Name: "hello"},
 		},
 		map[string]string{},
 	)
 
-	if expected := "stack-bar"; expected != cp.name {
+	if expected := "stack-bar-blah"; expected != cp.name {
 		t.Errorf("Expected stack name: '%s'. Got '%s'", expected, cp.name)
 	}
 
