@@ -26,6 +26,7 @@ type (
 		Path       string
 		Name       string
 		Parameters map[string]string
+		DependsOn  []string
 	}
 )
 
@@ -94,7 +95,12 @@ func main() {
 			log.Fatal(err)
 		}
 
-		tpls[i] = claws.StackTemplate{Name: template.Name, Body: string(tplBody), Params: template.Parameters}
+		tpls[i] = claws.StackTemplate{
+			Name:      template.Name,
+			Body:      string(tplBody),
+			Params:    template.Parameters,
+			DependsOn: template.DependsOn,
+		}
 	}
 	if err := serv.SyncAll(tpls, cfg.Parameters); err != nil {
 		log.Fatal(err)
