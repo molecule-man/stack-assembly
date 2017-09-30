@@ -27,59 +27,29 @@ type Service struct {
 	CloudProvider CloudProvider
 }
 
+type stackData struct {
+	Outputs map[string]map[string]string
+	Params  map[string]string
+}
+
 // SyncAll syncs all the provided templates one by one
 func (s *Service) SyncAll(tpls map[string]StackTemplate, globalParams map[string]string) error {
-	dg := depgraph.DepGraph{}
-
-	for id, t := range tpls {
-		dg.Add(id, t.DependsOn)
-
-		templatableFields := make([]string, 0, len(t.Params)+2)
-		for _, v := range t.Params {
-			templatableFields = append(templatableFields, v)
-		}
-		templatableFields = append(templatableFields, t.Name, t.Body)
-
-		for _, f := range templatableFields {
-			deps, err := dependencies(f)
-
-			if err != nil {
-				return err
-			}
-
-			dg.Add(id, deps)
-		}
-	}
-
-	ordered, err := dg.Resolve()
+	ordered, err := s.order(tpls)
 
 	if err != nil {
 		return err
 	}
 
-	data := struct {
-		Outputs map[string]map[string]string
-		Params  map[string]string
-	}{}
+	data := stackData{}
 	data.Outputs = make(map[string]map[string]string)
 
 	for _, id := range ordered {
 		t := tpls[id]
-		if t.Params == nil {
-			t.Params = make(map[string]string)
-		}
-		for k, v := range globalParams {
-			if _, ok := t.Params[k]; !ok {
-				t.Params[k] = v
-			}
-		}
-		for k, v := range t.Params {
-			var parsed string
-			data.Params = globalParams
-			if err := applyTemplating(&parsed, v, data); err != nil {
-				return err
-			}
-			t.Params[k] = parsed
+
+		data.Params = globalParams
+
+		if err := s.initParams(&t, data); err != nil {
+			return err
 		}
 
 		data.Params = t.Params
@@ -191,7 +161,52 @@ func dependencies(tpl string) ([]string, error) {
 	return deps, nil
 }
 
-func (s *Service) logFunc(logID string) func(string) {
+func (s Service) order(tpls map[string]StackTemplate) ([]string, error) {
+	dg := depgraph.DepGraph{}
+
+	for id, t := range tpls {
+		dg.Add(id, t.DependsOn)
+
+		templatableFields := make([]string, 0, len(t.Params)+2)
+		for _, v := range t.Params {
+			templatableFields = append(templatableFields, v)
+		}
+		templatableFields = append(templatableFields, t.Name, t.Body)
+
+		for _, f := range templatableFields {
+			deps, err := dependencies(f)
+
+			if err != nil {
+				return []string{}, err
+			}
+
+			dg.Add(id, deps)
+		}
+	}
+
+	return dg.Resolve()
+}
+
+func (s Service) initParams(tpl *StackTemplate, data stackData) error {
+	if tpl.Params == nil {
+		tpl.Params = make(map[string]string)
+	}
+	for k, v := range data.Params {
+		if _, ok := tpl.Params[k]; !ok {
+			tpl.Params[k] = v
+		}
+	}
+	for k, v := range tpl.Params {
+		var parsed string
+		if err := applyTemplating(&parsed, v, data); err != nil {
+			return err
+		}
+		tpl.Params[k] = parsed
+	}
+	return nil
+}
+
+func (s Service) logFunc(logID string) func(string) {
 	return func(msg string) {
 		s.Log.Print(fmt.Sprintf("[%s] %s", logID, msg))
 	}
