@@ -17,7 +17,7 @@ func assertNoError(t *testing.T, err error) {
 
 func TestEventLog(t *testing.T) {
 
-	cp := &CloudProviderMock{
+	cp := &cpMock{
 		events: []StackEvent{{ID: "3"}, {ID: "2"}, {ID: "1"}},
 		waitStackFunc: func() error {
 			time.Sleep(10 * time.Millisecond)
@@ -57,7 +57,7 @@ func TestEventLog(t *testing.T) {
 }
 
 func TestOperationIsCreateIfStackDoesntExist(t *testing.T) {
-	cp := &CloudProviderMock{}
+	cp := &cpMock{}
 	cp.stackExists = false
 	_, err := New(cp, StackTemplate{})
 	assertNoError(t, err)
@@ -68,7 +68,7 @@ func TestOperationIsCreateIfStackDoesntExist(t *testing.T) {
 }
 
 func TestOperationIsUpdateIfStackExists(t *testing.T) {
-	cp := &CloudProviderMock{}
+	cp := &cpMock{}
 	cp.stackExists = true
 	_, err := New(cp, StackTemplate{})
 	assertNoError(t, err)
@@ -79,7 +79,7 @@ func TestOperationIsUpdateIfStackExists(t *testing.T) {
 }
 
 func TestOnlyRequiredParametersAreSubmitted(t *testing.T) {
-	cp := &CloudProviderMock{}
+	cp := &cpMock{}
 	cp.requiredParams = []string{"foo", "bar"}
 	_, err := New(cp, StackTemplate{Params: map[string]string{
 		"foo": "fooval",
@@ -96,17 +96,17 @@ func TestOnlyRequiredParametersAreSubmitted(t *testing.T) {
 
 func TestChangeSetCreationErrors(t *testing.T) {
 	cases := []struct {
-		errProv func(*CloudProviderMock, error)
+		errProv func(*cpMock, error)
 		err     error
 	}{
-		{func(cp *CloudProviderMock, err error) { cp.validationErr = err }, errors.New("invalid")},
-		{func(cp *CloudProviderMock, err error) { cp.stackExistsErr = err }, errors.New("stackExistsErr")},
-		{func(cp *CloudProviderMock, err error) { cp.createErr = err }, errors.New("createErr")},
-		{func(cp *CloudProviderMock, err error) { cp.changesErr = err }, errors.New("changesErr")},
-		{func(cp *CloudProviderMock, err error) { cp.waitChSetErr = err }, errors.New("waitChSetErr")},
+		{func(cp *cpMock, err error) { cp.validationErr = err }, errors.New("invalid")},
+		{func(cp *cpMock, err error) { cp.stackExistsErr = err }, errors.New("stackExistsErr")},
+		{func(cp *cpMock, err error) { cp.createErr = err }, errors.New("createErr")},
+		{func(cp *cpMock, err error) { cp.changesErr = err }, errors.New("changesErr")},
+		{func(cp *cpMock, err error) { cp.waitChSetErr = err }, errors.New("waitChSetErr")},
 	}
 	for _, tc := range cases {
-		cp := &CloudProviderMock{}
+		cp := &cpMock{}
 		tc.errProv(cp, tc.err)
 
 		_, err := New(cp, StackTemplate{})
@@ -119,14 +119,14 @@ func TestChangeSetCreationErrors(t *testing.T) {
 }
 func TestChangeSetExecutionErrors(t *testing.T) {
 	cases := []struct {
-		errProv func(*CloudProviderMock, error)
+		errProv func(*cpMock, error)
 		err     error
 	}{
-		{func(cp *CloudProviderMock, err error) { cp.execErr = err }, errors.New("execErr")},
-		{func(cp *CloudProviderMock, err error) { cp.waitStackErr = err }, errors.New("waitStackErr")},
+		{func(cp *cpMock, err error) { cp.execErr = err }, errors.New("execErr")},
+		{func(cp *cpMock, err error) { cp.waitStackErr = err }, errors.New("waitStackErr")},
 	}
 	for _, tc := range cases {
-		cp := &CloudProviderMock{}
+		cp := &cpMock{}
 		tc.errProv(cp, tc.err)
 
 		cs, _ := New(cp, StackTemplate{})
@@ -139,7 +139,7 @@ func TestChangeSetExecutionErrors(t *testing.T) {
 	}
 }
 
-type CloudProviderMock struct {
+type cpMock struct {
 	sync.Mutex
 	waitStackFunc   func() error
 	events          []StackEvent
@@ -161,13 +161,13 @@ type CloudProviderMock struct {
 	body            string
 }
 
-func (cpm *CloudProviderMock) ValidateTemplate(tplBody string) ([]string, error) {
+func (cpm *cpMock) ValidateTemplate(tplBody string) ([]string, error) {
 	return cpm.requiredParams, cpm.validationErr
 }
-func (cpm *CloudProviderMock) StackExists(stackName string) (bool, error) {
+func (cpm *cpMock) StackExists(stackName string) (bool, error) {
 	return cpm.stackExists, cpm.stackExistsErr
 }
-func (cpm *CloudProviderMock) CreateChangeSet(stackName string, tplBody string, params map[string]string, op ChangeSetOperation) (string, error) {
+func (cpm *cpMock) CreateChangeSet(stackName string, tplBody string, params map[string]string, op ChangeSetOperation) (string, error) {
 	cpm.operation = op
 	cpm.name = stackName
 	cpm.body = tplBody
@@ -178,27 +178,27 @@ func (cpm *CloudProviderMock) CreateChangeSet(stackName string, tplBody string, 
 	}
 	return cpm.chSetID, cpm.createErr
 }
-func (cpm *CloudProviderMock) WaitChangeSetCreated(ID string) error {
+func (cpm *cpMock) WaitChangeSetCreated(ID string) error {
 	return cpm.waitChSetErr
 }
-func (cpm *CloudProviderMock) ChangeSetChanges(ID string) ([]Change, error) {
+func (cpm *cpMock) ChangeSetChanges(ID string) ([]Change, error) {
 	return []Change{}, cpm.changesErr
 }
-func (cpm *CloudProviderMock) ExecuteChangeSet(ID string) error {
+func (cpm *cpMock) ExecuteChangeSet(ID string) error {
 	cpm.executed = true
 	return cpm.execErr
 }
-func (cpm *CloudProviderMock) WaitStack(stackName string) error {
+func (cpm *cpMock) WaitStack(stackName string) error {
 	if cpm.waitStackFunc != nil {
 		return cpm.waitStackFunc()
 	}
 	return cpm.waitStackErr
 }
-func (cpm *CloudProviderMock) StackEvents(stackName string) ([]StackEvent, error) {
+func (cpm *cpMock) StackEvents(stackName string) ([]StackEvent, error) {
 	cpm.Lock()
 	defer cpm.Unlock()
 	return cpm.events, nil
 }
-func (cpm *CloudProviderMock) StackOutputs(stackName string) (map[string]string, error) {
+func (cpm *cpMock) StackOutputs(stackName string) (map[string]string, error) {
 	return cpm.outputs, nil
 }

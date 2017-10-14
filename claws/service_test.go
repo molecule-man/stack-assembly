@@ -7,7 +7,7 @@ import (
 )
 
 func TestChangeSetExecutedIfApproved(t *testing.T) {
-	cp := &CloudProviderMock{}
+	cp := &cpMock{}
 	s := Service{
 		Approver:      &FakedApprover{approved: true},
 		Log:           &FakedLogger{},
@@ -25,7 +25,7 @@ func TestChangeSetExecutedIfApproved(t *testing.T) {
 }
 
 func TestChangeSetIsCancelledIfNotApproved(t *testing.T) {
-	cp := &CloudProviderMock{}
+	cp := &cpMock{}
 	s := Service{
 		Approver:      &FakedApprover{approved: false},
 		Log:           &FakedLogger{},
@@ -44,7 +44,7 @@ func TestChangeSetIsCancelledIfNotApproved(t *testing.T) {
 
 func TestErrorIsReturnedIfChangeSetFails(t *testing.T) {
 	expectedErr := errors.New("create err")
-	cp := &CloudProviderMock{createErr: expectedErr}
+	cp := &cpMock{createErr: expectedErr}
 
 	s := Service{Approver: &FakedApprover{approved: true}, Log: &FakedLogger{}, CloudProvider: cp}
 
@@ -59,7 +59,7 @@ func TestErrorIsReturnedIfChangeSetFails(t *testing.T) {
 }
 
 func TestSyncIsSuccessfullyIgnoredIfNoChanges(t *testing.T) {
-	cp := &CloudProviderMock{createErr: ErrNoChange}
+	cp := &cpMock{createErr: ErrNoChange}
 
 	s := Service{Approver: &FakedApprover{approved: true}, Log: &FakedLogger{}, CloudProvider: cp}
 
@@ -75,7 +75,7 @@ func TestSyncIsSuccessfullyIgnoredIfNoChanges(t *testing.T) {
 
 func TestExecErrorIsReturnedIfExecutionFails(t *testing.T) {
 	expectedErr := errors.New("exec err")
-	cp := &CloudProviderMock{execErr: expectedErr}
+	cp := &cpMock{execErr: expectedErr}
 
 	s := Service{Approver: &FakedApprover{approved: true}, Log: &FakedLogger{}, CloudProvider: cp}
 
@@ -87,7 +87,7 @@ func TestExecErrorIsReturnedIfExecutionFails(t *testing.T) {
 }
 
 func TestGlobalParametersAreMerged(t *testing.T) {
-	cp := &CloudProviderMock{
+	cp := &cpMock{
 		requiredParams: []string{"foo", "bar"},
 	}
 	s := Service{Approver: &FakedApprover{approved: true}, Log: &FakedLogger{}, CloudProvider: cp}
@@ -107,7 +107,7 @@ func TestGlobalParametersAreMerged(t *testing.T) {
 	}
 }
 func TestParametersCanBeTemplated(t *testing.T) {
-	cp := &CloudProviderMock{
+	cp := &cpMock{
 		requiredParams: []string{"serviceName"},
 	}
 	s := Service{Approver: &FakedApprover{approved: true}, Log: &FakedLogger{}, CloudProvider: cp}
@@ -141,7 +141,7 @@ func TestParametersCanBeTemplated(t *testing.T) {
 }
 
 func TestStackOutputsCanBeUsedInTemplating(t *testing.T) {
-	cp := &CloudProviderMock{
+	cp := &cpMock{
 		outputs: map[string]string{"foo": "bar"},
 	}
 	s := Service{Approver: &FakedApprover{approved: true}, Log: &FakedLogger{}, CloudProvider: cp}
