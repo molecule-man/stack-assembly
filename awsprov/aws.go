@@ -13,6 +13,9 @@ import (
 	"github.com/molecule-man/claws/claws"
 )
 
+const noChangeStatus = "The submitted information didn't contain changes. " +
+	"Submit different information to create a change set."
+
 // AwsProvider is wrapper over aws sdk
 type AwsProvider struct {
 	cf *cloudformation.CloudFormation
@@ -132,12 +135,15 @@ func (ap *AwsProvider) CreateChangeSet(stackName string, tplBody string, params 
 
 // WaitChangeSetCreated blocks runtime until the change set is not created
 func (ap *AwsProvider) WaitChangeSetCreated(ID string) error {
-	return ap.cf.WaitUntilChangeSetCreateCompleteWithContext(aws.BackgroundContext(), &cloudformation.DescribeChangeSetInput{
-		ChangeSetName: aws.String(ID),
-	}, func(w *request.Waiter) {
-		w.Delay = request.ConstantWaiterDelay(time.Second)
-	})
-
+	return ap.cf.WaitUntilChangeSetCreateCompleteWithContext(
+		aws.BackgroundContext(),
+		&cloudformation.DescribeChangeSetInput{
+			ChangeSetName: aws.String(ID),
+		},
+		func(w *request.Waiter) {
+			w.Delay = request.ConstantWaiterDelay(time.Second)
+		},
+	)
 }
 
 // ChangeSetChanges returns info about changes to be applied to stack
@@ -151,7 +157,7 @@ func (ap *AwsProvider) ChangeSetChanges(ID string) ([]claws.Change, error) {
 	}
 
 	if *setInfo.Status == cloudformation.ChangeSetStatusFailed {
-		if *setInfo.StatusReason == "The submitted information didn't contain changes. Submit different information to create a change set." {
+		if *setInfo.StatusReason == noChangeStatus {
 			return []claws.Change{}, claws.ErrNoChange
 		}
 		return []claws.Change{}, errors.New(*setInfo.StatusReason)

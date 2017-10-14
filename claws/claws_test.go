@@ -121,7 +121,6 @@ type cpMock struct {
 	waitStackFunc   func() error
 	events          []StackEvent
 	chSetID         string
-	stackExists     bool
 	requiredParams  []string
 	submittedParams map[string]string
 	outputs         map[string]string
