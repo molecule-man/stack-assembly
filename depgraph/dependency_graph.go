@@ -1,3 +1,6 @@
+// Package depgraph provides functionality to resolve dependencies.  The
+// depth-first topological sorting algorithm is used.  See
+// https://en.wikipedia.org/wiki/Topological_sorting#Depth-first_search
 package depgraph
 
 import (
@@ -8,7 +11,7 @@ import (
 type node struct {
 	id         string
 	next       []string
-	marked     bool
+	markedTemp bool
 	markedPerm bool
 }
 
@@ -78,11 +81,11 @@ func (dg *DepGraph) visit(n node, resolved *[]string) error {
 		return nil
 	}
 
-	if n.marked {
+	if n.markedTemp {
 		return ErrCyclicGraph
 	}
 
-	n.marked = true
+	n.markedTemp = true
 	dg.nodes[n.id] = n
 
 	for _, nextID := range n.next {
