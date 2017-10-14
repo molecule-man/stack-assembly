@@ -94,7 +94,18 @@ func (ap *AwsProvider) StackOutputs(stackName string) (map[string]string, error)
 
 // CreateChangeSet creates new change set
 // Returns change set ID
-func (ap *AwsProvider) CreateChangeSet(stackName string, tplBody string, params map[string]string, op claws.ChangeSetOperation) (string, error) {
+func (ap *AwsProvider) CreateChangeSet(stackName string, tplBody string, params map[string]string) (string, error) {
+	exists, err := ap.StackExists(stackName)
+
+	if err != nil {
+		return "", err
+	}
+
+	operation := cloudformation.ChangeSetTypeCreate
+	if exists {
+		operation = cloudformation.ChangeSetTypeUpdate
+	}
+
 	awsParams := make([]*cloudformation.Parameter, 0, len(params))
 
 	for k, v := range params {
@@ -104,14 +115,8 @@ func (ap *AwsProvider) CreateChangeSet(stackName string, tplBody string, params 
 		})
 	}
 
-	awsOperation := cloudformation.ChangeSetTypeCreate
-
-	if op == claws.UpdateOperation {
-		awsOperation = cloudformation.ChangeSetTypeUpdate
-	}
-
 	createOut, err := ap.cf.CreateChangeSet(&cloudformation.CreateChangeSetInput{
-		ChangeSetType: aws.String(awsOperation),
+		ChangeSetType: aws.String(operation),
 		ChangeSetName: aws.String("chst-" + strconv.FormatInt(time.Now().UnixNano(), 10)),
 		TemplateBody:  aws.String(tplBody),
 		StackName:     aws.String(stackName),

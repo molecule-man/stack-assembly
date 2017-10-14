@@ -107,18 +107,8 @@ func (cs *ChangeSet) Exec() error {
 }
 
 func (cs *ChangeSet) initialize(tplBody string, params map[string]string) error {
-	exists, err := cs.cp.StackExists(cs.StackName)
-
-	if err != nil {
-		return err
-	}
-
-	operation := CreateOperation
-	if exists {
-		operation = UpdateOperation
-	}
-
-	cs.ID, err = cs.cp.CreateChangeSet(cs.StackName, tplBody, params, operation)
+	var err error
+	cs.ID, err = cs.cp.CreateChangeSet(cs.StackName, tplBody, params)
 
 	if err != nil {
 		return err

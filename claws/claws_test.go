@@ -56,28 +56,6 @@ func TestEventLog(t *testing.T) {
 	}
 }
 
-func TestOperationIsCreateIfStackDoesntExist(t *testing.T) {
-	cp := &cpMock{}
-	cp.stackExists = false
-	_, err := New(cp, StackTemplate{})
-	assertNoError(t, err)
-
-	if cp.operation != CreateOperation {
-		t.Error("If stack doesn't exist, changeset should be created with 'Create' operation")
-	}
-}
-
-func TestOperationIsUpdateIfStackExists(t *testing.T) {
-	cp := &cpMock{}
-	cp.stackExists = true
-	_, err := New(cp, StackTemplate{})
-	assertNoError(t, err)
-
-	if cp.operation != UpdateOperation {
-		t.Error("If stack exists, changeset should be created with 'Update' operation")
-	}
-}
-
 func TestOnlyRequiredParametersAreSubmitted(t *testing.T) {
 	cp := &cpMock{}
 	cp.requiredParams = []string{"foo", "bar"}
@@ -100,7 +78,6 @@ func TestChangeSetCreationErrors(t *testing.T) {
 		err     error
 	}{
 		{func(cp *cpMock, err error) { cp.validationErr = err }, errors.New("invalid")},
-		{func(cp *cpMock, err error) { cp.stackExistsErr = err }, errors.New("stackExistsErr")},
 		{func(cp *cpMock, err error) { cp.createErr = err }, errors.New("createErr")},
 		{func(cp *cpMock, err error) { cp.changesErr = err }, errors.New("changesErr")},
 		{func(cp *cpMock, err error) { cp.waitChSetErr = err }, errors.New("waitChSetErr")},
@@ -144,13 +121,11 @@ type cpMock struct {
 	waitStackFunc   func() error
 	events          []StackEvent
 	chSetID         string
-	operation       ChangeSetOperation
 	stackExists     bool
 	requiredParams  []string
 	submittedParams map[string]string
 	outputs         map[string]string
 	validationErr   error
-	stackExistsErr  error
 	createErr       error
 	changesErr      error
 	waitChSetErr    error
@@ -164,11 +139,7 @@ type cpMock struct {
 func (cpm *cpMock) ValidateTemplate(tplBody string) ([]string, error) {
 	return cpm.requiredParams, cpm.validationErr
 }
-func (cpm *cpMock) StackExists(stackName string) (bool, error) {
-	return cpm.stackExists, cpm.stackExistsErr
-}
-func (cpm *cpMock) CreateChangeSet(stackName string, tplBody string, params map[string]string, op ChangeSetOperation) (string, error) {
-	cpm.operation = op
+func (cpm *cpMock) CreateChangeSet(stackName string, tplBody string, params map[string]string) (string, error) {
 	cpm.name = stackName
 	cpm.body = tplBody
 	cpm.submittedParams = params
