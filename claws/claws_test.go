@@ -172,3 +172,10 @@ func (cpm *cpMock) StackEvents(stackName string) ([]StackEvent, error) {
 func (cpm *cpMock) StackOutputs(stackName string) (map[string]string, error) {
 	return cpm.outputs, nil
 }
+func (cpm *cpMock) BlockResource(stackName string, resource string) error {
+	return nil
+}
+
+func (cpm *cpMock) UnblockResource(stackName string, resource string) error {
+	return nil
+}

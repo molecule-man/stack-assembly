@@ -14,6 +14,8 @@ type CloudProvider interface {
 	WaitStack(stackName string) error
 	StackEvents(stackName string) ([]StackEvent, error)
 	StackOutputs(stackName string) (map[string]string, error)
+	BlockResource(stackName string, resource string) error
+	UnblockResource(stackName string, resource string) error
 }
 
 // Change is a change that is applied to the stack

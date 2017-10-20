@@ -2,6 +2,7 @@ package awsprov
 
 import (
 	"errors"
+	"fmt"
 	"strconv"
 	"strings"
 	"time"
@@ -224,6 +225,45 @@ func (ap *AwsProvider) StackEvents(stackName string) ([]claws.StackEvent, error)
 	}
 
 	return events, nil
+}
+
+// BlockResource prevents a stack resource from deletion and replacement
+func (ap *AwsProvider) BlockResource(stackName string, resource string) error {
+	policy := `{
+		"Statement" : [{
+			"Effect" : "Deny",
+			"Action" : [
+				"Update:Replace",
+				"Update:Delete"
+			],
+			"Principal": "*",
+			"Resource" : "LogicalResourceId/%s"
+		}]
+	}`
+
+	return ap.applyPolicy(stackName, fmt.Sprintf(policy, resource))
+}
+
+// UnblockResource discards the blocking from the resource
+func (ap *AwsProvider) UnblockResource(stackName string, resource string) error {
+	policy := `{
+		"Statement" : [{
+			"Effect" : "Allow",
+			"Action" : "Update:*",
+			"Principal": "*",
+			"Resource" : "LogicalResourceId/%s"
+		}]
+	}`
+
+	return ap.applyPolicy(stackName, fmt.Sprintf(policy, resource))
+}
+
+func (ap *AwsProvider) applyPolicy(stackName string, policy string) error {
+	_, err := ap.cf.SetStackPolicy(&cloudformation.SetStackPolicyInput{
+		StackName:       aws.String(stackName),
+		StackPolicyBody: aws.String(policy),
+	})
+	return err
 }
 
 func fromAwsString(s *string) string {
