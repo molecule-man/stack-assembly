@@ -3,9 +3,10 @@ blah = "blah"
 Sns1 = "sns1"
 Sns2 = "sns2"
 
-#[templates.example1]
-#name = "hello1"
-#path = "tpls/example.yml"
+[templates.example1]
+name = "hello1"
+path = "tpls/example.yml"
+blocked = ["SNSTopic"]
 
 [templates.example2]
 name = "hello2"

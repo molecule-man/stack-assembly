@@ -27,6 +27,7 @@ type (
 		Name       string
 		Parameters map[string]string
 		DependsOn  []string
+		Blocked    []string
 	}
 )
 
@@ -100,6 +101,7 @@ func main() {
 			Body:      string(tplBody),
 			Params:    template.Parameters,
 			DependsOn: template.DependsOn,
+			Blocked:   template.Blocked,
 		}
 	}
 	if err := serv.SyncAll(tpls, cfg.Parameters); err != nil {

@@ -22,6 +22,7 @@ type StackTemplate struct {
 	Body      string
 	Params    map[string]string
 	DependsOn []string
+	Blocked   []string
 }
 
 // Option is function that can be used to configure new change set

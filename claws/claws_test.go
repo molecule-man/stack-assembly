@@ -3,6 +3,7 @@ package claws
 import (
 	"errors"
 	"reflect"
+	"sort"
 	"strings"
 	"sync"
 	"testing"
@@ -94,6 +95,7 @@ func TestChangeSetCreationErrors(t *testing.T) {
 
 	}
 }
+
 func TestChangeSetExecutionErrors(t *testing.T) {
 	cases := []struct {
 		errProv func(*cpMock, error)
@@ -133,6 +135,7 @@ type cpMock struct {
 	executed        bool
 	name            string
 	body            string
+	blocked         []string
 }
 
 func (cpm *cpMock) ValidateTemplate(tplBody string) ([]string, error) {
@@ -173,9 +176,20 @@ func (cpm *cpMock) StackOutputs(stackName string) (map[string]string, error) {
 	return cpm.outputs, nil
 }
 func (cpm *cpMock) BlockResource(stackName string, resource string) error {
+	if nil == cpm.blocked {
+		cpm.blocked = make([]string, 0)
+	}
+	cpm.blocked = append(cpm.blocked, resource)
 	return nil
 }
-
 func (cpm *cpMock) UnblockResource(stackName string, resource string) error {
 	return nil
+}
+func (cpm *cpMock) AssertBlocked(t *testing.T, resources []string) {
+	sort.Strings(cpm.blocked)
+	sort.Strings(resources)
+
+	if !reflect.DeepEqual(cpm.blocked, resources) {
+		t.Errorf("Resources %v expected to be blocked. Got %v", resources, cpm.blocked)
+	}
 }

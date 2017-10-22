@@ -16,6 +16,7 @@ const stackOutputVarName = "Outputs"
 type approver interface {
 	Approve([]Change) bool
 }
+
 type logger interface {
 	Print(v ...interface{})
 }
@@ -84,6 +85,7 @@ func (s *Service) Sync(tpl StackTemplate) error {
 	if err := applyTemplating(&tpl.Name, tpl.Name, data); err != nil {
 		return err
 	}
+
 	if err := applyTemplating(&tpl.Body, tpl.Body, data); err != nil {
 		return err
 	}
@@ -98,25 +100,38 @@ func (s *Service) Sync(tpl StackTemplate) error {
 		}),
 	)
 
-	if err != nil {
-		if err == ErrNoChange {
-			log("No changes to be synced")
-			return nil
+	if err == ErrNoChange {
+		log("No changes to be synced")
+	} else {
+		if err != nil {
+			return err
 		}
-		return err
+
+		log(fmt.Sprintf("Change set is created: %s", chSet.ID))
+
+		if !s.Approver.Approve(chSet.Changes) {
+			return errors.New("Sync is cancelled")
+		}
+
+		err = chSet.Exec()
+
+		log("Sync is finished")
+
+		if err != nil {
+			return err
+		}
 	}
 
-	log("Change set is created")
+	for _, r := range tpl.Blocked {
+		log(fmt.Sprintf("Blocking resource %s", r))
+		err := s.CloudProvider.BlockResource(tpl.Name, r)
 
-	if !s.Approver.Approve(chSet.Changes) {
-		return errors.New("Sync is cancelled")
+		if err != nil {
+			return err
+		}
 	}
 
-	err = chSet.Exec()
-
-	log("Sync is finished")
-
-	return err
+	return nil
 }
 
 func applyTemplating(parsed *string, tpl string, params interface{}) error {

@@ -3,9 +3,10 @@
 * Templating support `{{ .T }}`
 * DependsOn.
 * Using stack output as input.
+* Blocking resources.
 
 ## TODO
-* Blocking resources.
+* Enable user to unblock the blocked resource (interactively).
 * Stacks `info` cli command.
 * Exec user scripts.
 * Support of yaml and json configs.

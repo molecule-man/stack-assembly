@@ -106,6 +106,7 @@ func TestGlobalParametersAreMerged(t *testing.T) {
 		t.Errorf("It was expected that SyncAll is successful. Error %v was returned", err)
 	}
 }
+
 func TestParametersCanBeTemplated(t *testing.T) {
 	cp := &cpMock{
 		requiredParams: []string{"serviceName"},
@@ -164,6 +165,44 @@ func TestStackOutputsCanBeUsedInTemplating(t *testing.T) {
 	if err != nil {
 		t.Errorf("It was expected that SyncAll is successful. Error %v was returned", err)
 	}
+}
+
+func TestFoo(t *testing.T) {
+	cp := &cpMock{}
+	s := Service{
+		Approver:      &FakedApprover{approved: true},
+		Log:           &FakedLogger{},
+		CloudProvider: cp,
+	}
+
+	err := s.Sync(StackTemplate{
+		Blocked: []string{"foo", "bar"},
+	})
+
+	if err != nil {
+		t.Errorf("It was expected that Sync is successful. Error %v was returned", err)
+	}
+
+	cp.AssertBlocked(t, []string{"foo", "bar"})
+}
+func TestFooNoChange(t *testing.T) {
+	cp := &cpMock{createErr: ErrNoChange}
+
+	s := Service{
+		Approver:      &FakedApprover{approved: true},
+		Log:           &FakedLogger{},
+		CloudProvider: cp,
+	}
+
+	err := s.Sync(StackTemplate{
+		Blocked: []string{"foo"},
+	})
+
+	if err != nil {
+		t.Errorf("It was expected that Sync is successful. Error %v was returned", err)
+	}
+
+	cp.AssertBlocked(t, []string{"foo"})
 }
 
 type FakedApprover struct {
