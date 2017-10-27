@@ -82,13 +82,24 @@ func main() {
 		}
 	}
 
+	awsConfig := awsprov.Config{}
+
+	if profile, ok := cfg.Parameters["Profile"]; ok && profile != "" {
+		awsConfig.Profile = profile
+	}
+
+	if region, ok := cfg.Parameters["Region"]; ok && region != "" {
+		awsConfig.Region = region
+	}
+
 	serv := claws.Service{
 		Approver:      &cli.Approval{},
 		Log:           log.New(os.Stderr, "", log.LstdFlags),
-		CloudProvider: awsprov.New(),
+		CloudProvider: awsprov.New(awsConfig),
 	}
 
 	tpls := make(map[string]claws.StackTemplate)
+
 	for i, template := range cfg.Templates {
 		tplBody, err := ioutil.ReadFile(template.Path)
 
@@ -104,6 +115,7 @@ func main() {
 			Blocked:   template.Blocked,
 		}
 	}
+
 	if err := serv.SyncAll(tpls, cfg.Parameters); err != nil {
 		log.Fatal(err)
 	}

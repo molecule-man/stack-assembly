@@ -22,9 +22,23 @@ type AwsProvider struct {
 	cf *cloudformation.CloudFormation
 }
 
+// Config of AwsProvider
+type Config struct {
+	Profile string
+	Region  string
+}
+
 // New creates a new AwsProvider
-func New() *AwsProvider {
-	sess := session.Must(session.NewSession())
+func New(c Config) *AwsProvider {
+	opts := session.Options{
+		Profile: c.Profile,
+	}
+
+	if c.Region != "" {
+		opts.Config = aws.Config{Region: aws.String(c.Region)}
+	}
+
+	sess := session.Must(session.NewSessionWithOptions(opts))
 	cf := cloudformation.New(sess)
 
 	return &AwsProvider{

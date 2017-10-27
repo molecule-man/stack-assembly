@@ -3,6 +3,9 @@ blah = "blah"
 Sns1 = "sns1"
 Sns2 = "sns2"
 
+Region = "eu-west-1"
+Profile = "meadmin"
+
 [templates.example1]
 name = "hello1"
 path = "tpls/example.yml"
