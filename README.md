@@ -6,8 +6,8 @@
 * Blocking resources.
 
 ## TODO
+* Stacks `info` cli command. (in progress)
 * Enable user to unblock the blocked resource (interactively).
-* Stacks `info` cli command.
 * Exec user scripts.
 * Support of yaml and json configs.
 * Github support.
