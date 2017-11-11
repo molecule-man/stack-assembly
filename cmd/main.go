@@ -29,7 +29,18 @@ type (
 		DependsOn  []string
 		Blocked    []string
 	}
+
+	cfgFilesFlags []string
 )
+
+func (i *cfgFilesFlags) String() string {
+	return strings.Join(*i, ",")
+}
+
+func (i *cfgFilesFlags) Set(val string) error {
+	*i = append(*i, val)
+	return nil
+}
 
 // merge merges otherConfig into this config
 func (c *Config) merge(otherConfig Config) {
@@ -46,6 +57,7 @@ func (c *Config) merge(otherConfig Config) {
 	for k, tc := range otherConfig.Templates {
 		t := c.Templates[k]
 		t.merge(tc)
+		c.Templates[k] = t
 	}
 }
 
@@ -58,19 +70,23 @@ func (tc *TemplateConfig) merge(otherTpl TemplateConfig) {
 		tc.Name = otherTpl.Name
 	}
 
+	if tc.Parameters == nil {
+		tc.Parameters = make(map[string]string)
+	}
 	for k, v := range otherTpl.Parameters {
 		tc.Parameters[k] = v
 	}
 }
 
 func main() {
+	var cfgFiles cfgFilesFlags
 	tpl := flag.String("tpl", "", "CF tpl")
-	cfgFile := flag.String("cfg", "", "CF tpl")
+	flag.Var(&cfgFiles, "f", "CF configs")
 	stackName := flag.String("stack", "", "Stack name")
 
 	flag.Parse()
 
-	cfg := readConfigs(cfgFile)
+	cfg := readConfigs(cfgFiles)
 
 	if tpl != nil && *tpl != "" {
 		id := *stackName
@@ -125,18 +141,16 @@ func serv(cfg Config) claws.Service {
 	}
 }
 
-func readConfigs(cfgFiles *string) Config {
+func readConfigs(cfgFiles cfgFilesFlags) Config {
 	mainConfig := Config{}
 
-	if _, err := os.Stat("Claws.toml"); err == nil {
-		mainConfig = readConfig("Claws.toml")
+	if len(cfgFiles) == 0 {
+		if _, err := os.Stat("Claws.toml"); err == nil {
+			cfgFiles = cfgFilesFlags{"Claws.toml"}
+		}
 	}
 
-	if cfgFiles == nil || *cfgFiles == "" {
-		return mainConfig
-	}
-
-	for _, cf := range strings.Split(*cfgFiles, " ") {
+	for _, cf := range cfgFiles {
 		mainConfig.merge(readConfig(cf))
 	}
 
