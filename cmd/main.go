@@ -82,21 +82,7 @@ func main() {
 		}
 	}
 
-	awsConfig := awsprov.Config{}
-
-	if profile, ok := cfg.Parameters["Profile"]; ok && profile != "" {
-		awsConfig.Profile = profile
-	}
-
-	if region, ok := cfg.Parameters["Region"]; ok && region != "" {
-		awsConfig.Region = region
-	}
-
-	serv := claws.Service{
-		Approver:      &cli.Approval{},
-		Log:           log.New(os.Stderr, "", log.LstdFlags),
-		CloudProvider: awsprov.New(awsConfig),
-	}
+	serv := serv(cfg)
 
 	tpls := make(map[string]claws.StackTemplate)
 
@@ -118,6 +104,24 @@ func main() {
 
 	if err := serv.SyncAll(tpls, cfg.Parameters); err != nil {
 		log.Fatal(err)
+	}
+}
+
+func serv(cfg Config) claws.Service {
+	awsConfig := awsprov.Config{}
+
+	if profile, ok := cfg.Parameters["Profile"]; ok && profile != "" {
+		awsConfig.Profile = profile
+	}
+
+	if region, ok := cfg.Parameters["Region"]; ok && region != "" {
+		awsConfig.Region = region
+	}
+
+	return claws.Service{
+		Approver:      &cli.Approval{},
+		Log:           log.New(os.Stderr, "", log.LstdFlags),
+		CloudProvider: awsprov.New(awsConfig),
 	}
 }
 
