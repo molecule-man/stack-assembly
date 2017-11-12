@@ -78,8 +78,6 @@ func (s *Service) SyncAll(tpls map[string]StackTemplate, globalParams map[string
 
 // Sync syncs
 func (s *Service) Sync(tpl StackTemplate) error {
-	log := s.logFunc(tpl.Name)
-
 	data := struct{ Params map[string]string }{tpl.Params}
 
 	if err := applyTemplating(&tpl.Name, tpl.Name, data); err != nil {
@@ -89,6 +87,16 @@ func (s *Service) Sync(tpl StackTemplate) error {
 	if err := applyTemplating(&tpl.Body, tpl.Body, data); err != nil {
 		return err
 	}
+
+	if err := s.execSync(tpl); err != nil {
+		return err
+	}
+
+	return s.block(tpl)
+}
+
+func (s Service) execSync(tpl StackTemplate) error {
+	log := s.logFunc(tpl.Name)
 
 	log("Syncing template")
 
@@ -102,25 +110,28 @@ func (s *Service) Sync(tpl StackTemplate) error {
 
 	if err == ErrNoChange {
 		log("No changes to be synced")
-	} else {
-		if err != nil {
-			return err
-		}
-
-		log(fmt.Sprintf("Change set is created: %s", chSet.ID))
-
-		if !s.Approver.Approve(chSet.Changes) {
-			return errors.New("Sync is cancelled")
-		}
-
-		err = chSet.Exec()
-
-		log("Sync is finished")
-
-		if err != nil {
-			return err
-		}
+		return nil
 	}
+
+	if err != nil {
+		return err
+	}
+
+	log(fmt.Sprintf("Change set is created: %s", chSet.ID))
+
+	if !s.Approver.Approve(chSet.Changes) {
+		return errors.New("Sync is cancelled")
+	}
+
+	err = chSet.Exec()
+
+	log("Sync is finished")
+
+	return err
+}
+
+func (s Service) block(tpl StackTemplate) error {
+	log := s.logFunc(tpl.Name)
 
 	for _, r := range tpl.Blocked {
 		log(fmt.Sprintf("Blocking resource %s", r))
