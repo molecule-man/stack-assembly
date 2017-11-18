@@ -7,7 +7,7 @@ preinstall:
 	go test -i -v ${GOFILES}
 
 exec:
-	go run cmd/main.go -f Claws.toml -f tpls/cfg.toml
+	go run cmd/*.go -f Claws.toml -f tpls/cfg.toml
 
 lint:
 	gometalinter \
