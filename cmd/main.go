@@ -29,24 +29,44 @@ func (i *cfgFilesFlags) Set(val string) error {
 
 func main() {
 	var cfgFiles cfgFilesFlags
-	tpl := flag.String("tpl", "", "CF tpl")
 	flag.Var(&cfgFiles, "f", "CF configs")
+
+	tpl := flag.String("tpl", "", "CF tpl")
 	stackName := flag.String("stack", "", "Stack name")
+	infoMode := flag.Bool("i", false, "Info")
 
 	flag.Parse()
 
-	cfg := readConfigs(cfgFiles)
-
-	if tpl != nil && *tpl != "" {
-		id := *stackName
-		cfg.Templates = map[string]TemplateConfig{
-			id: {
-				Path: *tpl,
-				Name: *stackName,
-			},
-		}
+	if *infoMode == true {
+		execInfo()
+		return
 	}
 
+	if tpl != nil && *tpl != "" {
+		execSyncOneTpl(*stackName, *tpl)
+		return
+	}
+
+	sync(readConfigs(cfgFiles))
+}
+
+func execInfo() {
+}
+
+func execSyncOneTpl(stackName, tpl string) {
+	cfg := Config{}
+
+	cfg.Templates = map[string]TemplateConfig{
+		stackName: {
+			Path: tpl,
+			Name: stackName,
+		},
+	}
+
+	sync(cfg)
+}
+
+func sync(cfg Config) {
 	serv := serv(cfg)
 
 	tpls := make(map[string]claws.StackTemplate)
