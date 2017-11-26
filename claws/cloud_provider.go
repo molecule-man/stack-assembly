@@ -2,6 +2,7 @@ package claws
 
 import (
 	"errors"
+	"time"
 )
 
 // CloudProvider wraps the cloud provider functions
@@ -14,6 +15,7 @@ type CloudProvider interface {
 	WaitStack(stackName string) error
 	StackEvents(stackName string) ([]StackEvent, error)
 	StackOutputs(stackName string) ([]StackOutput, error)
+	StackResources(stackName string) ([]StackResource, error)
 	BlockResource(stackName string, resource string) error
 	UnblockResource(stackName string, resource string) error
 }
@@ -41,6 +43,15 @@ type StackOutput struct {
 	Value       string
 	Description string
 	ExportName  string
+}
+
+type StackResource struct {
+	LogicalID    string
+	PhysicalID   string
+	Status       string
+	StatusReason string
+	Type         string
+	Timestamp    time.Time
 }
 
 //ErrNoChange is error that indicate that there are no changes to apply

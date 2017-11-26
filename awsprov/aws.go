@@ -124,6 +124,39 @@ func (ap *AwsProvider) StackOutputs(stackName string) ([]claws.StackOutput, erro
 	return outputs, nil
 }
 
+// StackResources returns info about stack resources
+func (ap *AwsProvider) StackResources(stackName string) ([]claws.StackResource, error) {
+	resp, err := ap.cf.DescribeStackResources(&cloudformation.DescribeStackResourcesInput{
+		StackName: aws.String(stackName),
+	})
+
+	if err != nil {
+		return []claws.StackResource{}, err
+	}
+
+	resources := make([]claws.StackResource, len(resp.StackResources))
+
+	for i, r := range resp.StackResources {
+		resource := claws.StackResource{
+			LogicalID: *r.LogicalResourceId,
+			Status:    *r.ResourceStatus,
+			Type:      *r.ResourceType,
+			Timestamp: *r.Timestamp,
+		}
+
+		if r.PhysicalResourceId != nil {
+			resource.PhysicalID = *r.PhysicalResourceId
+		}
+		if r.ResourceStatusReason != nil {
+			resource.StatusReason = *r.ResourceStatusReason
+		}
+
+		resources[i] = resource
+	}
+
+	return resources, nil
+}
+
 // CreateChangeSet creates new change set
 // Returns change set ID
 func (ap *AwsProvider) CreateChangeSet(stackName string, tplBody string, params map[string]string) (string, error) {

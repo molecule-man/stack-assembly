@@ -175,6 +175,9 @@ func (cpm *cpMock) StackEvents(stackName string) ([]StackEvent, error) {
 func (cpm *cpMock) StackOutputs(stackName string) ([]StackOutput, error) {
 	return cpm.outputs, nil
 }
+func (cpm *cpMock) StackResources(stackName string) ([]StackResource, error) {
+	return nil, nil
+}
 func (cpm *cpMock) BlockResource(stackName string, resource string) error {
 	if nil == cpm.blocked {
 		cpm.blocked = make([]string, 0)
