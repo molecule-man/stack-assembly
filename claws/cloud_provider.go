@@ -13,7 +13,7 @@ type CloudProvider interface {
 	ExecuteChangeSet(ID string) error
 	WaitStack(stackName string) error
 	StackEvents(stackName string) ([]StackEvent, error)
-	StackOutputs(stackName string) (map[string]string, error)
+	StackOutputs(stackName string) ([]StackOutput, error)
 	BlockResource(stackName string, resource string) error
 	UnblockResource(stackName string, resource string) error
 }
@@ -33,6 +33,14 @@ type StackEvent struct {
 	Status            string
 	LogicalResourceID string
 	StatusReason      string
+}
+
+// StackOutput contains info about stack output variables
+type StackOutput struct {
+	Key         string
+	Value       string
+	Description string
+	ExportName  string
 }
 
 //ErrNoChange is error that indicate that there are no changes to apply

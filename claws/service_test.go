@@ -143,7 +143,7 @@ func TestParametersCanBeTemplated(t *testing.T) {
 
 func TestStackOutputsCanBeUsedInTemplating(t *testing.T) {
 	cp := &cpMock{
-		outputs: map[string]string{"foo": "bar"},
+		outputs: []StackOutput{{Key: "foo", Value: "bar"}},
 	}
 	s := Service{Approver: &FakedApprover{approved: true}, Log: &FakedLogger{}, CloudProvider: cp}
 
@@ -167,7 +167,7 @@ func TestStackOutputsCanBeUsedInTemplating(t *testing.T) {
 	}
 }
 
-func TestFoo(t *testing.T) {
+func TestBlocking(t *testing.T) {
 	cp := &cpMock{}
 	s := Service{
 		Approver:      &FakedApprover{approved: true},
@@ -185,7 +185,7 @@ func TestFoo(t *testing.T) {
 
 	cp.AssertBlocked(t, []string{"foo", "bar"})
 }
-func TestFooNoChange(t *testing.T) {
+func TestBlockingNoChange(t *testing.T) {
 	cp := &cpMock{createErr: ErrNoChange}
 
 	s := Service{

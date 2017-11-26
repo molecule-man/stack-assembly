@@ -125,7 +125,7 @@ type cpMock struct {
 	chSetID         string
 	requiredParams  []string
 	submittedParams map[string]string
-	outputs         map[string]string
+	outputs         []StackOutput
 	validationErr   error
 	createErr       error
 	changesErr      error
@@ -172,7 +172,7 @@ func (cpm *cpMock) StackEvents(stackName string) ([]StackEvent, error) {
 	defer cpm.Unlock()
 	return cpm.events, nil
 }
-func (cpm *cpMock) StackOutputs(stackName string) (map[string]string, error) {
+func (cpm *cpMock) StackOutputs(stackName string) ([]StackOutput, error) {
 	return cpm.outputs, nil
 }
 func (cpm *cpMock) BlockResource(stackName string, resource string) error {

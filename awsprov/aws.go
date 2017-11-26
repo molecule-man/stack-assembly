@@ -90,8 +90,8 @@ func (ap *AwsProvider) StackExists(stackName string) (bool, error) {
 }
 
 // StackOutputs returns the "outputs" of a stack identified by stackName
-func (ap *AwsProvider) StackOutputs(stackName string) (map[string]string, error) {
-	outputs := make(map[string]string)
+func (ap *AwsProvider) StackOutputs(stackName string) ([]claws.StackOutput, error) {
+	outputs := make([]claws.StackOutput, 0)
 
 	resp, err := ap.cf.DescribeStacks(&cloudformation.DescribeStacksInput{
 		StackName: aws.String(stackName),
@@ -102,8 +102,22 @@ func (ap *AwsProvider) StackOutputs(stackName string) (map[string]string, error)
 	}
 
 	for _, s := range resp.Stacks {
-		for _, o := range s.Outputs {
-			outputs[*o.OutputKey] = *o.OutputValue
+		outputs = make([]claws.StackOutput, len(s.Outputs))
+		for i, o := range s.Outputs {
+			out := claws.StackOutput{
+				Key:   *o.OutputKey,
+				Value: *o.OutputValue,
+			}
+
+			if o.Description != nil {
+				out.Description = *o.Description
+			}
+
+			if o.ExportName != nil {
+				out.ExportName = *o.ExportName
+			}
+
+			outputs[i] = out
 		}
 	}
 

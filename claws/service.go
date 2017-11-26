@@ -71,7 +71,11 @@ func (s *Service) SyncAll(tpls map[string]StackTemplate, globalParams map[string
 			return err
 		}
 
-		data.Outputs[id] = out
+		data.Outputs[id] = make(map[string]string, len(out))
+
+		for _, v := range out {
+			data.Outputs[id][v.Key] = v.Value
+		}
 	}
 	return nil
 }
