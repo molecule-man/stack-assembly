@@ -99,6 +99,43 @@ func (s *Service) Sync(tpl StackTemplate) error {
 	return s.block(tpl)
 }
 
+type StackInfo struct {
+	Name      string
+	Resources []StackResource
+	Outputs   []StackOutput
+	Events    []StackEvent
+}
+
+func (s *Service) Info(tpl StackTemplate, globalParams map[string]string) (StackInfo, error) {
+	si := StackInfo{}
+
+	data := stackData{Params: globalParams}
+
+	if err := s.initParams(&tpl, data); err != nil {
+		return si, err
+	}
+
+	if err := applyTemplating(&tpl.Name, tpl.Name, data); err != nil {
+		return si, err
+	}
+
+	si.Name = tpl.Name
+
+	var err error
+
+	if si.Resources, err = s.CloudProvider.StackResources(tpl.Name); err != nil {
+		return si, err
+	}
+
+	if si.Outputs, err = s.CloudProvider.StackOutputs(tpl.Name); err != nil {
+		return si, err
+	}
+
+	si.Events, err = s.CloudProvider.StackEvents(tpl.Name)
+
+	return si, err
+}
+
 func (s Service) execSync(tpl StackTemplate) error {
 	log := s.logFunc(tpl.Name)
 

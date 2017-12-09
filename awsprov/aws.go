@@ -282,6 +282,7 @@ func (ap *AwsProvider) StackEvents(stackName string) ([]claws.StackEvent, error)
 			Status:            fromAwsString(e.ResourceStatus),
 			LogicalResourceID: fromAwsString(e.LogicalResourceId),
 			StatusReason:      fromAwsString(e.ResourceStatusReason),
+			Timestamp:         *e.Timestamp,
 		}
 	}
 

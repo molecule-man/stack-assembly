@@ -9,6 +9,9 @@ preinstall:
 exec:
 	go run cmd/*.go -f Claws.toml -f tpls/cfg.toml
 
+info:
+	go run cmd/*.go -f Claws.toml -f tpls/cfg.toml -i
+
 lint:
 	gometalinter \
 	--exclude=vendor \

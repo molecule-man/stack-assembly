@@ -35,6 +35,7 @@ type StackEvent struct {
 	Status            string
 	LogicalResourceID string
 	StatusReason      string
+	Timestamp         time.Time
 }
 
 // StackOutput contains info about stack output variables
