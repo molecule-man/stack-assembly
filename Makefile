@@ -1,10 +1,7 @@
 GOFILES = $$(go list ./... | grep -v /vendor/)
 
-test: preinstall
+test:
 	go test ${GOFILES}
-
-preinstall:
-	go test -i -v ${GOFILES}
 
 exec:
 	go run cmd/*.go -f Claws.toml -f tpls/cfg.toml

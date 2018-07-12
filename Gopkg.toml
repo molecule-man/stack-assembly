@@ -17,7 +17,8 @@ required = [
     "github.com/aws/aws-sdk-go/aws/session",
     "github.com/aws/aws-sdk-go/service/cloudformation",
     "github.com/BurntSushi/toml",
-    "gopkg.in/yaml.v2"
+    "gopkg.in/yaml.v2",
+    "github.com/spf13/cobra/cobra"
 ]
 
 ## "ignored" lists a set of packages (not projects) that are ignored when
