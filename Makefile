@@ -9,10 +9,10 @@ test:
 	go test ${GOFILES}
 
 exec:
-	go run cmd/*.go -f Claws.toml -f tpls/cfg.toml
+	go run cmd/*.go sync -f Claws.toml -f tpls/cfg.toml
 
 info:
-	go run cmd/*.go -f Claws.toml -f tpls/cfg.toml -i
+	go run cmd/*.go info -f Claws.toml -f tpls/cfg.toml
 
 lint:
 	gometalinter \

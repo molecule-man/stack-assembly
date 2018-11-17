@@ -2,50 +2,55 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
-	"strings"
 	"text/tabwriter"
 
 	"github.com/BurntSushi/toml"
 	"github.com/molecule-man/claws/awsprov"
 	"github.com/molecule-man/claws/claws"
 	"github.com/molecule-man/claws/cli"
+	"github.com/spf13/cobra"
 )
-
-type (
-	cfgFilesFlags []string
-)
-
-func (i *cfgFilesFlags) String() string {
-	return strings.Join(*i, ",")
-}
-
-func (i *cfgFilesFlags) Set(val string) error {
-	*i = append(*i, val)
-	return nil
-}
 
 func main() {
-	var cfgFiles cfgFilesFlags
-	flag.Var(&cfgFiles, "f", "CF configs")
+	var cfgFiles []string
+	var stackName string
 
-	tpl := flag.String("tpl", "", "CF tpl")
-	stackName := flag.String("stack", "", "Stack name")
-	infoMode := flag.Bool("i", false, "Info")
+	rootCmd := &cobra.Command{
+		Use: "claws",
+	}
+	rootCmd.PersistentFlags().StringArrayVarP(&cfgFiles, "configs", "f", []string{}, "CF configs")
 
-	flag.Parse()
+	syncCmd := &cobra.Command{
+		Use:   "sync [tpl]",
+		Short: "Sync stacks",
+		Args:  cobra.MaximumNArgs(1),
+		Run: func(cmd *cobra.Command, args []string) {
+			if len(args) > 0 {
+				execSyncOneTpl(stackName, args[0])
+			} else {
+				sync(readConfigs(cfgFiles))
+			}
+		},
+	}
+	syncCmd.Flags().StringVarP(&stackName, "stack", "s", "", "Stack name")
 
-	switch {
-	case *infoMode:
-		execInfo(readConfigs(cfgFiles))
-	case tpl != nil && *tpl != "":
-		execSyncOneTpl(*stackName, *tpl)
-	default:
-		sync(readConfigs(cfgFiles))
+	infoCmd := &cobra.Command{
+		Use:   "info",
+		Short: "Show info about the stack",
+		Run: func(cmd *cobra.Command, args []string) {
+			execInfo(readConfigs(cfgFiles))
+		},
+	}
+
+	rootCmd.AddCommand(infoCmd)
+	rootCmd.AddCommand(syncCmd)
+
+	if err := rootCmd.Execute(); err != nil {
+		log.Fatal(err)
 	}
 }
 
@@ -147,12 +152,12 @@ func serv(cfg Config) claws.Service {
 	}
 }
 
-func readConfigs(cfgFiles cfgFilesFlags) Config {
+func readConfigs(cfgFiles []string) Config {
 	mainConfig := Config{}
 
 	if len(cfgFiles) == 0 {
 		if _, err := os.Stat("Claws.toml"); err == nil {
-			cfgFiles = cfgFilesFlags{"Claws.toml"}
+			cfgFiles = []string{"Claws.toml"}
 		}
 	}
 
