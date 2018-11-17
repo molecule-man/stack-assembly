@@ -1,3 +1,8 @@
+.PHONY: vendor
+
+GO111MODULE := on
+export GO111MODULE
+
 GOFILES = $$(go list ./... | grep -v /vendor/)
 
 test:
@@ -20,3 +25,7 @@ lint:
 	--cyclo-over=8 \
 	--line-length=120 \
 	./...
+
+vendor:
+	rm -rf vendor
+	go mod vendor
