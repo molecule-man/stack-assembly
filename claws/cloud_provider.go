@@ -56,4 +56,4 @@ type StackResource struct {
 }
 
 //ErrNoChange is error that indicate that there are no changes to apply
-var ErrNoChange = errors.New("No changes")
+var ErrNoChange = errors.New("no changes")

@@ -3,10 +3,14 @@
 GO111MODULE := on
 export GO111MODULE
 
-GOFILES = $$(go list ./... | grep -v /vendor/)
-
 test:
-	go test ${GOFILES}
+	go test ./...
+
+clean-testcache:
+	go clean -testcache ./...
+
+test-nocache: clean-testcache
+test-nocache: test
 
 exec:
 	go run cmd/*.go sync -f Claws.toml -f tpls/cfg.toml
@@ -15,16 +19,7 @@ info:
 	go run cmd/*.go info -f Claws.toml -f tpls/cfg.toml
 
 lint:
-	gometalinter \
-	--exclude=vendor \
-	--skip=vendor \
-	--enable=gosimple \
-	--enable=misspell \
-	--enable=lll \
-	--deadline=120s \
-	--cyclo-over=8 \
-	--line-length=120 \
-	./...
+	golangci-lint run
 
 vendor:
 	rm -rf vendor

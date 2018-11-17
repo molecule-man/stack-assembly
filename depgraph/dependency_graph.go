@@ -22,7 +22,7 @@ type DepGraph struct {
 
 // ErrCyclicGraph is an error indicating that the dependency graph is cyclic
 // and therefore can't be resolved
-var ErrCyclicGraph = errors.New("The dependency graph is cyclic")
+var ErrCyclicGraph = errors.New("the dependency graph is cyclic")
 
 // Add a dependency to the dependency graph
 func (dg *DepGraph) Add(id string, dependsOn []string) {
@@ -60,7 +60,7 @@ func (dg *DepGraph) Resolve() ([]string, error) {
 	for id, n := range dg.nodes {
 
 		if n.id == "" {
-			return resolved, fmt.Errorf("Bad input to dependency resolver. Node with id '%s' has not been registered", id)
+			return resolved, fmt.Errorf("bad input to dependency resolver. Node with id '%s' has not been registered", id)
 		}
 
 		err := dg.visit(n, &resolved)

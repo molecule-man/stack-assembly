@@ -37,6 +37,7 @@ func TestResolving(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
+		tc := tc // pinning unpinned variable. See scopelint
 		t.Run(tc.name, func(t *testing.T) {
 			deps := tc.deps
 			dg := DepGraph{}
@@ -103,6 +104,7 @@ func TestCycles(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
+		tc := tc // pinning unpinned variable. See scopelint
 		t.Run(tc.name, func(t *testing.T) {
 			dg := DepGraph{}
 

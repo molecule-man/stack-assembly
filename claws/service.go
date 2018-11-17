@@ -161,7 +161,7 @@ func (s Service) execSync(tpl StackTemplate) error {
 	log(fmt.Sprintf("Change set is created: %s", chSet.ID))
 
 	if !s.Approver.Approve(chSet.Changes) {
-		return errors.New("Sync is cancelled")
+		return errors.New("sync is cancelled")
 	}
 
 	err = chSet.Exec()
