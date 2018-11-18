@@ -11,7 +11,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
-	"github.com/molecule-man/claws/claws"
+	"github.com/molecule-man/stack-assembly/stackassembly"
 )
 
 const noChangeStatus = "The submitted information didn't contain changes. " +
@@ -90,8 +90,8 @@ func (ap *AwsProvider) StackExists(stackName string) (bool, error) {
 }
 
 // StackOutputs returns the "outputs" of a stack identified by stackName
-func (ap *AwsProvider) StackOutputs(stackName string) ([]claws.StackOutput, error) {
-	outputs := make([]claws.StackOutput, 0)
+func (ap *AwsProvider) StackOutputs(stackName string) ([]stackassembly.StackOutput, error) {
+	outputs := make([]stackassembly.StackOutput, 0)
 
 	resp, err := ap.cf.DescribeStacks(&cloudformation.DescribeStacksInput{
 		StackName: aws.String(stackName),
@@ -102,9 +102,9 @@ func (ap *AwsProvider) StackOutputs(stackName string) ([]claws.StackOutput, erro
 	}
 
 	for _, s := range resp.Stacks {
-		outputs = make([]claws.StackOutput, len(s.Outputs))
+		outputs = make([]stackassembly.StackOutput, len(s.Outputs))
 		for i, o := range s.Outputs {
-			out := claws.StackOutput{
+			out := stackassembly.StackOutput{
 				Key:   *o.OutputKey,
 				Value: *o.OutputValue,
 			}
@@ -125,19 +125,19 @@ func (ap *AwsProvider) StackOutputs(stackName string) ([]claws.StackOutput, erro
 }
 
 // StackResources returns info about stack resources
-func (ap *AwsProvider) StackResources(stackName string) ([]claws.StackResource, error) {
+func (ap *AwsProvider) StackResources(stackName string) ([]stackassembly.StackResource, error) {
 	resp, err := ap.cf.DescribeStackResources(&cloudformation.DescribeStackResourcesInput{
 		StackName: aws.String(stackName),
 	})
 
 	if err != nil {
-		return []claws.StackResource{}, err
+		return []stackassembly.StackResource{}, err
 	}
 
-	resources := make([]claws.StackResource, len(resp.StackResources))
+	resources := make([]stackassembly.StackResource, len(resp.StackResources))
 
 	for i, r := range resp.StackResources {
-		resource := claws.StackResource{
+		resource := stackassembly.StackResource{
 			LogicalID: *r.LogicalResourceId,
 			Status:    *r.ResourceStatus,
 			Type:      *r.ResourceType,
@@ -209,27 +209,27 @@ func (ap *AwsProvider) WaitChangeSetCreated(ID string) error {
 }
 
 // ChangeSetChanges returns info about changes to be applied to stack
-func (ap *AwsProvider) ChangeSetChanges(ID string) ([]claws.Change, error) {
+func (ap *AwsProvider) ChangeSetChanges(ID string) ([]stackassembly.Change, error) {
 	setInfo, err := ap.cf.DescribeChangeSet(&cloudformation.DescribeChangeSetInput{
 		ChangeSetName: aws.String(ID),
 	})
 
 	if err != nil {
-		return []claws.Change{}, err
+		return []stackassembly.Change{}, err
 	}
 
 	if *setInfo.Status == cloudformation.ChangeSetStatusFailed {
 		if *setInfo.StatusReason == noChangeStatus {
-			return []claws.Change{}, claws.ErrNoChange
+			return []stackassembly.Change{}, stackassembly.ErrNoChange
 		}
-		return []claws.Change{}, errors.New(*setInfo.StatusReason)
+		return []stackassembly.Change{}, errors.New(*setInfo.StatusReason)
 	}
 
-	changes := make([]claws.Change, 0, len(setInfo.Changes))
+	changes := make([]stackassembly.Change, 0, len(setInfo.Changes))
 
 	for _, c := range setInfo.Changes {
 		awsChange := c.ResourceChange
-		ch := claws.Change{
+		ch := stackassembly.Change{
 			Action:            *awsChange.Action,
 			ResourceType:      *awsChange.ResourceType,
 			LogicalResourceID: *awsChange.LogicalResourceId,
@@ -264,19 +264,19 @@ func (ap *AwsProvider) WaitStack(stackName string) error {
 }
 
 // StackEvents returns stack events. The latest events appear first
-func (ap *AwsProvider) StackEvents(stackName string) ([]claws.StackEvent, error) {
+func (ap *AwsProvider) StackEvents(stackName string) ([]stackassembly.StackEvent, error) {
 	awsEvents, err := ap.cf.DescribeStackEvents(&cloudformation.DescribeStackEventsInput{
 		StackName: aws.String(stackName),
 	})
 
 	if err != nil {
-		return []claws.StackEvent{}, err
+		return []stackassembly.StackEvent{}, err
 	}
 
-	events := make([]claws.StackEvent, len(awsEvents.StackEvents))
+	events := make([]stackassembly.StackEvent, len(awsEvents.StackEvents))
 
 	for i, e := range awsEvents.StackEvents {
-		events[i] = claws.StackEvent{
+		events[i] = stackassembly.StackEvent{
 			ID:                *e.EventId,
 			ResourceType:      fromAwsString(e.ResourceType),
 			Status:            fromAwsString(e.ResourceStatus),

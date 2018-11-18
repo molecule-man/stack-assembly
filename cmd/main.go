@@ -1,4 +1,4 @@
-// Package main provides cmd claws application
+// Package main provides cmd stasm application
 package main
 
 import (
@@ -9,9 +9,9 @@ import (
 	"text/tabwriter"
 
 	"github.com/BurntSushi/toml"
-	"github.com/molecule-man/claws/awsprov"
-	"github.com/molecule-man/claws/claws"
-	"github.com/molecule-man/claws/cli"
+	"github.com/molecule-man/stack-assembly/awsprov"
+	"github.com/molecule-man/stack-assembly/cli"
+	"github.com/molecule-man/stack-assembly/stackassembly"
 	"github.com/spf13/cobra"
 )
 
@@ -20,7 +20,7 @@ func main() {
 	var stackName string
 
 	rootCmd := &cobra.Command{
-		Use: "claws",
+		Use: "stasm",
 	}
 	rootCmd.PersistentFlags().StringArrayVarP(&cfgFiles, "configs", "f", []string{}, "CF configs")
 
@@ -58,7 +58,7 @@ func execInfo(cfg Config) {
 	serv := serv(cfg)
 
 	for _, template := range cfg.Templates {
-		tpl := claws.StackTemplate{Name: template.Name, Params: template.Parameters}
+		tpl := stackassembly.StackTemplate{Name: template.Name, Params: template.Parameters}
 
 		info, err := serv.Info(tpl, cfg.Parameters)
 
@@ -111,7 +111,7 @@ func execSyncOneTpl(stackName, tpl string) {
 func sync(cfg Config) {
 	serv := serv(cfg)
 
-	tpls := make(map[string]claws.StackTemplate)
+	tpls := make(map[string]stackassembly.StackTemplate)
 
 	for i, template := range cfg.Templates {
 		tplBody, err := ioutil.ReadFile(template.Path)
@@ -120,7 +120,7 @@ func sync(cfg Config) {
 			log.Fatal(err)
 		}
 
-		tpls[i] = claws.StackTemplate{
+		tpls[i] = stackassembly.StackTemplate{
 			Name:      template.Name,
 			Body:      string(tplBody),
 			Params:    template.Parameters,
@@ -134,7 +134,7 @@ func sync(cfg Config) {
 	}
 }
 
-func serv(cfg Config) claws.Service {
+func serv(cfg Config) stackassembly.Service {
 	awsConfig := awsprov.Config{}
 
 	if profile, ok := cfg.Parameters["Profile"]; ok && profile != "" {
@@ -145,7 +145,7 @@ func serv(cfg Config) claws.Service {
 		awsConfig.Region = region
 	}
 
-	return claws.Service{
+	return stackassembly.Service{
 		Approver:      &cli.Approval{},
 		Log:           log.New(os.Stderr, "", log.LstdFlags),
 		CloudProvider: awsprov.New(awsConfig),
@@ -156,8 +156,8 @@ func readConfigs(cfgFiles []string) Config {
 	mainConfig := Config{}
 
 	if len(cfgFiles) == 0 {
-		if _, err := os.Stat("Claws.toml"); err == nil {
-			cfgFiles = []string{"Claws.toml"}
+		if _, err := os.Stat("Stack-assembly.toml"); err == nil {
+			cfgFiles = []string{"Stack-assembly.toml"}
 		}
 	}
 

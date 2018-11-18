@@ -1,5 +1,5 @@
-// Package claws provides claws stuff
-package claws
+// Package pkg provides stack-assembly core functionality
+package stackassembly
 
 import (
 	"bytes"
@@ -8,7 +8,7 @@ import (
 	"text/template"
 	"text/template/parse"
 
-	"github.com/molecule-man/claws/depgraph"
+	"github.com/molecule-man/stack-assembly/depgraph"
 )
 
 const stackOutputVarName = "Outputs"

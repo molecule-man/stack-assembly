@@ -13,10 +13,10 @@ test-nocache: clean-testcache
 test-nocache: test
 
 exec:
-	go run cmd/*.go sync -f Claws.toml -f tpls/cfg.toml
+	go run cmd/*.go sync -f Stack-assembly.toml -f tpls/cfg.toml
 
 info:
-	go run cmd/*.go info -f Claws.toml -f tpls/cfg.toml
+	go run cmd/*.go info -f Stack-assembly.toml -f tpls/cfg.toml
 
 lint:
 	golangci-lint run

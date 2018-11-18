@@ -1,4 +1,4 @@
-package claws
+package stackassembly
 
 import (
 	"errors"

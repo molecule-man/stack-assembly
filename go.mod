@@ -1,4 +1,4 @@
-module github.com/molecule-man/claws
+module github.com/molecule-man/stack-assembly
 
 require (
 	github.com/BurntSushi/toml v0.3.0
