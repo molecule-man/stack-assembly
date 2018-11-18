@@ -1,4 +1,4 @@
-// Package pkg provides stack-assembly core functionality
+// Package stackassembly provides stack-assembly core functionality
 package stackassembly
 
 import (
