@@ -4,9 +4,9 @@
 * DependsOn.
 * Using stack output as input.
 * Blocking resources.
+* Stacks `info` cli command.
 
 ## TODO
-* Stacks `info` cli command. (in progress)
 * Enable user to unblock the blocked resource (interactively).
 * Exec user scripts.
 * Support of yaml and json configs.

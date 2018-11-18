@@ -46,9 +46,9 @@ func main() {
 			cfg := readConfigs(cfgFiles)
 			serv := serv(cfg)
 
-			for _, template := range cfg.Templates {
+			for k, template := range cfg.Templates {
 
-				if len(args) > 0 && args[0] != template.Name {
+				if len(args) > 0 && args[0] != template.Name && args[0] != k {
 					continue
 				}
 
