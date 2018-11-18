@@ -39,10 +39,29 @@ func main() {
 	syncCmd.Flags().StringVarP(&stackName, "stack", "s", "", "Stack name")
 
 	infoCmd := &cobra.Command{
-		Use:   "info",
+		Use:   "info [stack name]",
 		Short: "Show info about the stack",
+		Args:  cobra.MaximumNArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
-			execInfo(readConfigs(cfgFiles))
+			cfg := readConfigs(cfgFiles)
+			serv := serv(cfg)
+
+			for _, template := range cfg.Templates {
+
+				if len(args) > 0 && args[0] != template.Name {
+					continue
+				}
+
+				tpl := stackassembly.StackTemplate{Name: template.Name, Params: template.Parameters}
+
+				info, err := serv.Info(tpl, cfg.Parameters)
+
+				if err != nil {
+					log.Fatal(err)
+				}
+
+				displayStackInfo(info)
+			}
 		},
 	}
 
@@ -54,45 +73,34 @@ func main() {
 	}
 }
 
-func execInfo(cfg Config) {
-	serv := serv(cfg)
+func displayStackInfo(info stackassembly.StackInfo) {
 
-	for _, template := range cfg.Templates {
-		tpl := stackassembly.StackTemplate{Name: template.Name, Params: template.Parameters}
+	fmt.Println("===================")
+	fmt.Printf("STACK: %s\n", info.Name)
+	fmt.Println("===================")
+	fmt.Println("")
 
-		info, err := serv.Info(tpl, cfg.Parameters)
-
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		fmt.Println("===================")
-		fmt.Printf("STACK: %s\n", info.Name)
-		fmt.Println("===================")
-		fmt.Println("")
-
-		w := tabwriter.NewWriter(os.Stdout, 0, 0, 1, ' ', 0)
-		fmt.Println("==== RESOURCES ====")
-		for _, res := range info.Resources {
-			fmt.Fprintf(w, "%s\t%s\t%s\n", res.LogicalID, res.PhysicalID, res.Status)
-		}
-		w.Flush()
-		fmt.Println("")
-
-		fmt.Println("==== OUTPUTS ====")
-		for _, out := range info.Outputs {
-			fmt.Fprintf(w, "%s\t%s\t%s\n", out.Key, out.Value, out.ExportName)
-		}
-		w.Flush()
-		fmt.Println("")
-
-		fmt.Println("==== EVENTS ====")
-		for _, e := range info.Events[:10] {
-			fmt.Fprintf(w, "[%v]\t%s\t%s\t%s\t%s\n", e.Timestamp, e.ResourceType, e.LogicalResourceID, e.Status, e.StatusReason)
-		}
-		w.Flush()
-		fmt.Print("\n\n")
+	w := tabwriter.NewWriter(os.Stdout, 0, 0, 1, ' ', 0)
+	fmt.Println("==== RESOURCES ====")
+	for _, res := range info.Resources {
+		fmt.Fprintf(w, "%s\t%s\t%s\n", res.LogicalID, res.PhysicalID, res.Status)
 	}
+	w.Flush()
+	fmt.Println("")
+
+	fmt.Println("==== OUTPUTS ====")
+	for _, out := range info.Outputs {
+		fmt.Fprintf(w, "%s\t%s\t%s\n", out.Key, out.Value, out.ExportName)
+	}
+	w.Flush()
+	fmt.Println("")
+
+	fmt.Println("==== EVENTS ====")
+	for _, e := range info.Events[:10] {
+		fmt.Fprintf(w, "[%v]\t%s\t%s\t%s\t%s\n", e.Timestamp, e.ResourceType, e.LogicalResourceID, e.Status, e.StatusReason)
+	}
+	w.Flush()
+	fmt.Print("\n\n")
 }
 
 func execSyncOneTpl(stackName, tpl string) {
