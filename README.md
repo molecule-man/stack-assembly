@@ -7,6 +7,7 @@
 * Stacks `info` cli command.
 
 ## TODO
+* Add possibilit to introspect aws resources.
 * Enable user to unblock the blocked resource (interactively).
 * Exec user scripts.
 * Support of yaml and json configs.
