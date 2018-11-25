@@ -1,4 +1,4 @@
-// Package main provides cmd stasm application
+// Package main provides cmd stas application
 package main
 
 import (
@@ -20,7 +20,7 @@ func main() {
 	var stackName string
 
 	rootCmd := &cobra.Command{
-		Use: "stasm",
+		Use: "stas",
 	}
 	rootCmd.PersistentFlags().StringArrayVarP(&cfgFiles, "configs", "f", []string{}, "CF configs")
 
