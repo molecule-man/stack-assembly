@@ -8,9 +8,9 @@ import (
 	"os"
 	"text/tabwriter"
 
-	"github.com/BurntSushi/toml"
 	"github.com/molecule-man/stack-assembly/awsprov"
 	"github.com/molecule-man/stack-assembly/cli"
+	"github.com/molecule-man/stack-assembly/cmd/conf"
 	"github.com/molecule-man/stack-assembly/stackassembly"
 	"github.com/spf13/cobra"
 )
@@ -104,9 +104,9 @@ func displayStackInfo(info stackassembly.StackInfo) {
 }
 
 func execSyncOneTpl(stackName, tpl string) {
-	cfg := Config{}
+	cfg := conf.Config{}
 
-	cfg.Templates = map[string]TemplateConfig{
+	cfg.Templates = map[string]conf.TemplateConfig{
 		stackName: {
 			Path: tpl,
 			Name: stackName,
@@ -116,7 +116,7 @@ func execSyncOneTpl(stackName, tpl string) {
 	sync(cfg)
 }
 
-func sync(cfg Config) {
+func sync(cfg conf.Config) {
 	serv := serv(cfg)
 
 	tpls := make(map[string]stackassembly.StackTemplate)
@@ -142,7 +142,7 @@ func sync(cfg Config) {
 	}
 }
 
-func serv(cfg Config) stackassembly.Service {
+func serv(cfg conf.Config) stackassembly.Service {
 	awsConfig := awsprov.Config{}
 
 	if profile, ok := cfg.Parameters["Profile"]; ok && profile != "" {
@@ -160,29 +160,6 @@ func serv(cfg Config) stackassembly.Service {
 	}
 }
 
-func readConfigs(cfgFiles []string) Config {
-	mainConfig := Config{}
-
-	if len(cfgFiles) == 0 {
-		if _, err := os.Stat("Stack-assembly.toml"); err == nil {
-			cfgFiles = []string{"Stack-assembly.toml"}
-		}
-	}
-
-	for _, cf := range cfgFiles {
-		mainConfig.merge(readConfig(cf))
-	}
-
-	return mainConfig
-}
-
-func readConfig(f string) Config {
-	cfg := Config{}
-	_, err := toml.DecodeFile(f, &cfg)
-
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	return cfg
+func readConfigs(cfgFiles []string) conf.Config {
+	return conf.LoadConfig(cfgFiles)
 }
