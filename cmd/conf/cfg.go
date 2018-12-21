@@ -57,6 +57,14 @@ func (tc *TemplateConfig) merge(otherTpl TemplateConfig) {
 		tc.Name = otherTpl.Name
 	}
 
+	if otherTpl.DependsOn != nil {
+		tc.DependsOn = otherTpl.DependsOn
+	}
+
+	if otherTpl.Blocked != nil {
+		tc.Blocked = otherTpl.Blocked
+	}
+
 	if tc.Parameters == nil {
 		tc.Parameters = make(map[string]string)
 	}
