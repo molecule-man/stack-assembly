@@ -94,7 +94,7 @@ func InitStasService(cfg Config) stackassembly.Service {
 	}
 }
 
-func LoadConfig(cfgFiles []string) Config {
+func LoadConfig(cfgFiles []string) (Config, error) {
 	mainConfig := Config{}
 
 	if len(cfgFiles) == 0 {
@@ -106,12 +106,12 @@ func LoadConfig(cfgFiles []string) Config {
 	for _, cf := range cfgFiles {
 		extraCfg := Config{}
 		if err := parseFile(cf, &extraCfg); err != nil {
-			log.Fatalf("error occured while parsing config file %s: %v", cf, err)
+			return mainConfig, fmt.Errorf("error occured while parsing config file %s: %v", cf, err)
 		}
 		mainConfig.merge(extraCfg)
 	}
 
-	return mainConfig
+	return mainConfig, nil
 }
 
 func parseFile(filename string, cfg *Config) error {

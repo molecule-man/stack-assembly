@@ -59,7 +59,9 @@ func TestParseJSON(t *testing.T) {
 	fpath, cleanup := makeTestFile(t, ".json", jsonContent)
 	defer cleanup()
 
-	assert.Equal(t, expectedParsedConfig, LoadConfig([]string{fpath}))
+	actualConfig, err := LoadConfig([]string{fpath})
+	require.NoError(t, err)
+	assert.Equal(t, expectedParsedConfig, actualConfig)
 }
 
 func TestParseYAML(t *testing.T) {
@@ -83,7 +85,9 @@ templates:
 	fpath, cleanup := makeTestFile(t, ".yaml", yamlContent)
 	defer cleanup()
 
-	assert.Equal(t, expectedParsedConfig, LoadConfig([]string{fpath}))
+	actualConfig, err := LoadConfig([]string{fpath})
+	require.NoError(t, err)
+	assert.Equal(t, expectedParsedConfig, actualConfig)
 }
 
 func TestParseTOML(t *testing.T) {
@@ -111,7 +115,9 @@ blocked = []
 	fpath, cleanup := makeTestFile(t, ".toml", tomlContent)
 	defer cleanup()
 
-	assert.Equal(t, expectedParsedConfig, LoadConfig([]string{fpath}))
+	actualConfig, err := LoadConfig([]string{fpath})
+	require.NoError(t, err)
+	assert.Equal(t, expectedParsedConfig, actualConfig)
 }
 
 func TestMergeConfigs(t *testing.T) {
@@ -180,7 +186,9 @@ templates:
 	fpath2, cleanup2 := makeTestFile(t, ".yml", cfg2)
 	defer cleanup2()
 
-	assert.Equal(t, expected, LoadConfig([]string{fpath1, fpath2}))
+	actual, err := LoadConfig([]string{fpath1, fpath2})
+	require.NoError(t, err)
+	assert.Equal(t, expected, actual)
 }
 
 func makeTestFile(t *testing.T, ext, content string) (string, func()) {

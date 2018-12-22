@@ -22,7 +22,9 @@ func syncCmd() *cobra.Command {
 			if len(args) > 0 {
 				execSyncOneTpl(stackName, args[0])
 			} else {
-				sync(conf.LoadConfig(cfgFiles))
+				cfg, err := conf.LoadConfig(cfgFiles)
+				handleError(err)
+				sync(cfg)
 			}
 		},
 	}

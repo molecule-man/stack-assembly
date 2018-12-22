@@ -19,7 +19,8 @@ func infoCmd() *cobra.Command {
 			cfgFiles, err := cmd.Parent().PersistentFlags().GetStringSlice("configs")
 			handleError(err)
 
-			cfg := conf.LoadConfig(cfgFiles)
+			cfg, err := conf.LoadConfig(cfgFiles)
+			handleError(err)
 
 			serv := conf.InitStasService(cfg)
 
