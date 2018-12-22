@@ -9,6 +9,9 @@ import (
 	"strings"
 
 	"github.com/BurntSushi/toml"
+	"github.com/molecule-man/stack-assembly/awsprov"
+	"github.com/molecule-man/stack-assembly/cli"
+	"github.com/molecule-man/stack-assembly/stackassembly"
 	yaml "gopkg.in/yaml.v2"
 )
 
@@ -70,6 +73,24 @@ func (tc *TemplateConfig) merge(otherTpl TemplateConfig) {
 	}
 	for k, v := range otherTpl.Parameters {
 		tc.Parameters[k] = v
+	}
+}
+
+func InitStasService(cfg Config) stackassembly.Service {
+	awsConfig := awsprov.Config{}
+
+	if profile, ok := cfg.Parameters["Profile"]; ok && profile != "" {
+		awsConfig.Profile = profile
+	}
+
+	if region, ok := cfg.Parameters["Region"]; ok && region != "" {
+		awsConfig.Region = region
+	}
+
+	return stackassembly.Service{
+		Approver:      &cli.Approval{},
+		Log:           log.New(os.Stderr, "", log.LstdFlags),
+		CloudProvider: awsprov.New(awsConfig),
 	}
 }
 
