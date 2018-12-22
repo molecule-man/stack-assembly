@@ -6,6 +6,9 @@ export GO111MODULE
 test:
 	go test ./...
 
+testrace:
+	go test -race ./...
+
 clean-testcache:
 	go clean -testcache ./...
 

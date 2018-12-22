@@ -21,7 +21,7 @@ func TestEventLog(t *testing.T) {
 	cp := &cpMock{
 		events: []StackEvent{{ID: "3"}, {ID: "2"}, {ID: "1"}},
 		waitStackFunc: func() error {
-			time.Sleep(10 * time.Millisecond)
+			time.Sleep(15 * time.Millisecond)
 			return nil
 		},
 	}

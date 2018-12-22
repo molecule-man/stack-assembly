@@ -55,5 +55,9 @@ type StackResource struct {
 	Timestamp    time.Time
 }
 
+type StackDetails struct {
+	Body string
+}
+
 //ErrNoChange is error that indicate that there are no changes to apply
 var ErrNoChange = errors.New("no changes")

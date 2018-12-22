@@ -73,20 +73,36 @@ func (ap *AwsProvider) StackExists(stackName string) (bool, error) {
 		StackName: aws.String(stackName),
 	})
 
-	if err == nil {
-		for _, stack := range info.Stacks {
-			if *stack.StackStatus == cloudformation.StackStatusReviewInProgress {
-				return false, nil
-			}
-		}
-	} else {
+	if err != nil {
 		if strings.Contains(err.Error(), "does not exist") {
 			return false, nil
 		}
 		return false, err
 	}
 
+	for _, stack := range info.Stacks {
+		if *stack.StackStatus == cloudformation.StackStatusReviewInProgress {
+			return false, nil
+		}
+	}
+
 	return true, nil
+}
+
+func (ap *AwsProvider) StackDetails(stackName string) (stackassembly.StackDetails, error) {
+	details := stackassembly.StackDetails{}
+
+	tpl, err := ap.cf.GetTemplate(&cloudformation.GetTemplateInput{
+		StackName: aws.String(stackName),
+	})
+
+	if err != nil {
+		return details, err
+	}
+
+	details.Body = *tpl.TemplateBody
+
+	return details, nil
 }
 
 // StackOutputs returns the "outputs" of a stack identified by stackName

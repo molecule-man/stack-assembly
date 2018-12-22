@@ -10,6 +10,7 @@ require (
 	github.com/jtolds/gls v4.2.1+incompatible // indirect
 	github.com/kr/pretty v0.1.0 // indirect
 	github.com/mitchellh/go-homedir v0.0.0-20180523094522-3864e76763d9 // indirect
+	github.com/pmezard/go-difflib v1.0.0
 	github.com/smartystreets/assertions v0.0.0-20180927180507-b2de0cb4f26d // indirect
 	github.com/smartystreets/goconvey v0.0.0-20181108003508-044398e4856c // indirect
 	github.com/spf13/afero v1.2.0 // indirect
