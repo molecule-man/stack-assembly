@@ -1,0 +1,25 @@
+fail_fast: false
+repos:
+  - repo: git@github.com:pre-commit/pre-commit-hooks
+    sha: v1.4.0-1
+    hooks:
+      - id: check-case-conflict
+      - id: check-json
+      - id: check-merge-conflict
+      - id: check-symlinks
+      - id: check-yaml
+        args:
+          - --unsafe
+      - id: end-of-file-fixer
+      - id: pretty-format-json
+        args:
+          - --autofix
+      - id: trailing-whitespace
+  - repo: git://github.com/dnephin/pre-commit-golang
+    sha: HEAD
+    hooks:
+      - id: go-fmt
+      - id: golangci-lint
+        args:
+          - -c .golangci.yml
+      - id: go-unit-tests
