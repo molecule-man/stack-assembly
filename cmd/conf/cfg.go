@@ -79,11 +79,11 @@ func (tc *TemplateConfig) merge(otherTpl TemplateConfig) {
 func InitStasService(cfg Config) stackassembly.Service {
 	awsConfig := awsprov.Config{}
 
-	if profile, ok := cfg.Parameters["Profile"]; ok && profile != "" {
+	if profile, ok := cfg.Parameters["profile"]; ok && profile != "" {
 		awsConfig.Profile = profile
 	}
 
-	if region, ok := cfg.Parameters["Region"]; ok && region != "" {
+	if region, ok := cfg.Parameters["region"]; ok && region != "" {
 		awsConfig.Region = region
 	}
 

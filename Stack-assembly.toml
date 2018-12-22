@@ -3,8 +3,8 @@ blah = "blah"
 Sns1 = "sns1"
 Sns2 = "sns2"
 
-Region = "eu-west-1"
-Profile = "meadmin"
+region = "eu-west-1"
+profile = "meadmin"
 
 [templates.example1]
 name = "hello1"
