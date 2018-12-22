@@ -105,7 +105,7 @@ func LoadConfig(cfgFiles []string) Config {
 
 	for _, cf := range cfgFiles {
 		extraCfg := Config{}
-		if err := fromFile(cf, &extraCfg); err != nil {
+		if err := parseFile(cf, &extraCfg); err != nil {
 			log.Fatalf("error occured while parsing config file %s: %v", cf, err)
 		}
 		mainConfig.merge(extraCfg)
@@ -114,7 +114,7 @@ func LoadConfig(cfgFiles []string) Config {
 	return mainConfig
 }
 
-func fromFile(filename string, cfg *Config) error {
+func parseFile(filename string, cfg *Config) error {
 	f, err := os.Open(filename)
 	if err != nil {
 		return err
