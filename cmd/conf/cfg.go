@@ -124,12 +124,24 @@ func parseFile(filename string, cfg *Config) error {
 	ext := strings.ToLower(filepath.Ext(filename))
 	switch ext {
 	case ".yaml", ".yml":
-		return yaml.NewDecoder(f).Decode(cfg)
+		d := yaml.NewDecoder(f)
+		d.SetStrict(true)
+		return d.Decode(cfg)
 	case ".json":
-		return json.NewDecoder(f).Decode(cfg)
+		d := json.NewDecoder(f)
+		d.DisallowUnknownFields()
+		return d.Decode(cfg)
 	case ".toml":
-		_, err := toml.DecodeReader(f, cfg)
-		return err
+		m, err := toml.DecodeReader(f, cfg)
+		if err != nil {
+			return err
+		}
+
+		unknownFields := m.Undecoded()
+		if len(unknownFields) > 0 {
+			return fmt.Errorf("the config contains unknown fields %v", unknownFields)
+		}
+		return nil
 	}
 
 	return fmt.Errorf("extension %s is not supported", ext)
