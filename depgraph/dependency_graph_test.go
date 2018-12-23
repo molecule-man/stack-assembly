@@ -2,8 +2,10 @@ package depgraph
 
 import (
 	"sort"
-	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestResolving(t *testing.T) {
@@ -48,9 +50,7 @@ func TestResolving(t *testing.T) {
 
 			resolved, err := dg.Resolve()
 
-			if err != nil {
-				t.Errorf("Resolution shouldn't cause an error. But the following error was produced: %v", err)
-			}
+			require.NoError(t, err)
 
 			t.Run("Resolved result has all the provided nodes", func(t *testing.T) {
 				expected := make([]string, 0, len(deps))
@@ -63,9 +63,7 @@ func TestResolving(t *testing.T) {
 				copy(actual, resolved)
 				sort.Strings(actual)
 
-				if strings.Join(expected, ",") != strings.Join(actual, ",") {
-					t.Errorf("Resolving was supposed to produce %v. Got %v", expected, actual)
-				}
+				assert.Equal(t, expected, actual)
 			})
 
 			t.Run("Resolved nodes are ordered correctly", func(t *testing.T) {
@@ -73,9 +71,7 @@ func TestResolving(t *testing.T) {
 
 				for _, id := range resolved {
 					for _, dep := range deps[id] {
-						if _, processed := processedNodes[dep]; !processed {
-							t.Errorf("The node %s depends on %s, which is not yet processed. Order: %v", id, dep, resolved)
-						}
+						assert.Containsf(t, processedNodes, dep, "The node %s depends on %s, which is not yet processed. Order: %v", id, dep, resolved)
 					}
 					processedNodes[id] = true
 				}
@@ -113,10 +109,7 @@ func TestCycles(t *testing.T) {
 			}
 
 			_, err := dg.Resolve()
-
-			if err == nil {
-				t.Error("Resolution of the cyclic graph should produce an error")
-			}
+			assert.Error(t, err)
 		})
 	}
 }
@@ -127,10 +120,7 @@ func TestInvalidInput(t *testing.T) {
 	dg.Add("2", []string{"1", "3"})
 
 	_, err := dg.Resolve()
-
-	if err == nil {
-		t.Error("Invalid input hasn't produced an error")
-	}
+	assert.Error(t, err)
 }
 
 func TestDuplications(t *testing.T) {
@@ -143,11 +133,6 @@ func TestDuplications(t *testing.T) {
 
 	resolved, err := dg.Resolve()
 
-	if err != nil {
-		t.Errorf("Resolution shouldn't cause an error. But the following error was produced: %v", err)
-	}
-
-	if expected := "1,2,3"; expected != strings.Join(resolved, ",") {
-		t.Errorf("Resolving was supposed to produce %s. Got %v", expected, resolved)
-	}
+	require.NoError(t, err)
+	assert.Equal(t, []string{"1", "2", "3"}, resolved)
 }

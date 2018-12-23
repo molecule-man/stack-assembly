@@ -2,19 +2,15 @@ package stackassembly
 
 import (
 	"errors"
-	"reflect"
 	"sort"
 	"strings"
 	"sync"
 	"testing"
 	"time"
-)
 
-func assertNoError(t *testing.T, err error) {
-	if err != nil {
-		t.Errorf("It was not expected to get error %v", err)
-	}
-}
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+)
 
 func TestEventLog(t *testing.T) {
 
@@ -47,14 +43,12 @@ func TestEventLog(t *testing.T) {
 			cp.Unlock()
 		}
 	}()
-	assertNoError(t, cs.Exec())
+	require.NoError(t, cs.Exec())
 
 	logged := strings.Join(logs, " ")
 	expected := "log4 log5 log6"
 
-	if logged != expected {
-		t.Errorf("Expected to be logged \"%s\". Actually logged \"%s\"", expected, logged)
-	}
+	assert.Equal(t, expected, logged)
 }
 
 func TestOnlyRequiredParametersAreSubmitted(t *testing.T) {
@@ -65,12 +59,10 @@ func TestOnlyRequiredParametersAreSubmitted(t *testing.T) {
 		"bar": "barval",
 		"buz": "buzval",
 	}})
-	assertNoError(t, err)
+	require.NoError(t, err)
 
 	expected := map[string]string{"foo": "fooval", "bar": "barval"}
-	if !reflect.DeepEqual(expected, cp.submittedParams) {
-		t.Errorf("Expected params %v to be submitted. Got %v", expected, cp.submittedParams)
-	}
+	assert.Equal(t, expected, cp.submittedParams)
 }
 
 func TestChangeSetCreationErrors(t *testing.T) {
@@ -89,10 +81,7 @@ func TestChangeSetCreationErrors(t *testing.T) {
 
 		_, err := New(cp, StackTemplate{})
 
-		if tc.err != err {
-			t.Errorf("Expected to get error %v. Got %v", tc.err, err)
-		}
-
+		assert.EqualError(t, err, tc.err.Error())
 	}
 }
 
@@ -111,10 +100,7 @@ func TestChangeSetExecutionErrors(t *testing.T) {
 		cs, _ := New(cp, StackTemplate{})
 		err := cs.Exec()
 
-		if tc.err != err {
-			t.Errorf("Expected to get error %v. Got %v", tc.err, err)
-		}
-
+		assert.EqualError(t, err, tc.err.Error())
 	}
 }
 
@@ -192,7 +178,5 @@ func (cpm *cpMock) AssertBlocked(t *testing.T, resources []string) {
 	sort.Strings(cpm.blocked)
 	sort.Strings(resources)
 
-	if !reflect.DeepEqual(cpm.blocked, resources) {
-		t.Errorf("Resources %v expected to be blocked. Got %v", resources, cpm.blocked)
-	}
+	assert.Equal(t, resources, cpm.blocked)
 }

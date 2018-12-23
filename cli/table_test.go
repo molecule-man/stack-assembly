@@ -3,6 +3,8 @@ package cli
 import (
 	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestTable(t *testing.T) {
@@ -18,11 +20,7 @@ func TestTable(t *testing.T) {
 		"| b     |                        |",
 		"+-------+------------------------+\n",
 	}, "\n")
-	actual := table.Render()
-
-	if expected != actual {
-		t.Errorf("Rendered: \n%s\nExpected: \n%s\n", actual, expected)
-	}
+	assert.Equal(t, expected, table.Render())
 }
 
 func TestTableWithHeader(t *testing.T) {
@@ -39,9 +37,5 @@ func TestTableWithHeader(t *testing.T) {
 		"| a           | long long long long... |",
 		"+-------------+------------------------+\n",
 	}, "\n")
-	actual := table.Render()
-
-	if expected != actual {
-		t.Errorf("Rendered: \n%s\nExpected: \n%s\n", actual, expected)
-	}
+	assert.Equal(t, expected, table.Render())
 }

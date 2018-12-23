@@ -2,8 +2,10 @@ package stackassembly
 
 import (
 	"errors"
-	"reflect"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestChangeSetExecutedIfApproved(t *testing.T) {
@@ -16,12 +18,8 @@ func TestChangeSetExecutedIfApproved(t *testing.T) {
 
 	err := s.Sync(StackTemplate{})
 
-	if !cp.executed {
-		t.Error("It was expected that change set is executed")
-	}
-	if err != nil {
-		t.Errorf("It was expected that Sync is successful. Error %v was returned", err)
-	}
+	require.NoError(t, err)
+	assert.True(t, cp.executed, "It was expected that change set is executed")
 }
 
 func TestChangeSetIsCancelledIfNotApproved(t *testing.T) {
@@ -34,12 +32,8 @@ func TestChangeSetIsCancelledIfNotApproved(t *testing.T) {
 
 	err := s.Sync(StackTemplate{})
 
-	if cp.executed {
-		t.Error("It was expected that change set is not executed")
-	}
-	if err == nil {
-		t.Error("It was expected that Sync returns error. Nil was returned")
-	}
+	assert.False(t, cp.executed, "It was expected that change set is not executed")
+	assert.Error(t, err)
 }
 
 func TestErrorIsReturnedIfChangeSetFails(t *testing.T) {
@@ -50,12 +44,8 @@ func TestErrorIsReturnedIfChangeSetFails(t *testing.T) {
 
 	err := s.Sync(StackTemplate{})
 
-	if cp.executed {
-		t.Error("It was expected that change set is not executed")
-	}
-	if err != expectedErr {
-		t.Errorf("It was expected that Sync returns %v. %v was returned", expectedErr, err)
-	}
+	assert.False(t, cp.executed, "It was expected that change set is not executed")
+	assert.EqualError(t, err, expectedErr.Error())
 }
 
 func TestSyncIsSuccessfullyIgnoredIfNoChanges(t *testing.T) {
@@ -65,12 +55,8 @@ func TestSyncIsSuccessfullyIgnoredIfNoChanges(t *testing.T) {
 
 	err := s.Sync(StackTemplate{})
 
-	if cp.executed {
-		t.Error("It was expected that change set is not executed")
-	}
-	if err != nil {
-		t.Errorf("It was expected that Sync is successful. Error %v was returned", err)
-	}
+	require.NoError(t, err)
+	assert.False(t, cp.executed, "It was expected that change set is not executed")
 }
 
 func TestExecErrorIsReturnedIfExecutionFails(t *testing.T) {
@@ -80,10 +66,7 @@ func TestExecErrorIsReturnedIfExecutionFails(t *testing.T) {
 	s := Service{Approver: &FakedApprover{approved: true}, Log: &FakedLogger{}, CloudProvider: cp}
 
 	err := s.Sync(StackTemplate{})
-
-	if err != expectedErr {
-		t.Errorf("It was expected that Sync returns %v. %v was returned", expectedErr, err)
-	}
+	assert.EqualError(t, err, expectedErr.Error())
 }
 
 func TestGlobalParametersAreMerged(t *testing.T) {
@@ -96,15 +79,10 @@ func TestGlobalParametersAreMerged(t *testing.T) {
 		map[string]StackTemplate{"tpl1": {Parameters: map[string]string{"foo": "tpl_foo"}}},
 		map[string]string{"bar": "global_bar", "buz": "global_buz"},
 	)
+	require.NoError(t, err)
 
 	expected := map[string]string{"foo": "tpl_foo", "bar": "global_bar"}
-
-	if !reflect.DeepEqual(expected, cp.submittedParams) {
-		t.Errorf("Expected params %v to be submitted. Got %v", expected, cp.submittedParams)
-	}
-	if err != nil {
-		t.Errorf("It was expected that SyncAll is successful. Error %v was returned", err)
-	}
+	assert.Equal(t, expected, cp.submittedParams)
 }
 
 func TestParametersCanBeTemplated(t *testing.T) {
@@ -121,24 +99,11 @@ func TestParametersCanBeTemplated(t *testing.T) {
 		}},
 		map[string]string{"name": "acme", "env": "live", "foo": "bar"},
 	)
+	require.NoError(t, err)
 
-	expected := map[string]string{"serviceName": "acme-live"}
-
-	if !reflect.DeepEqual(expected, cp.submittedParams) {
-		t.Errorf("Expected params %v to be submitted. Got %v", expected, cp.submittedParams)
-	}
-
-	if expected := "stack-acme-live"; expected != cp.name {
-		t.Errorf("Expected stack name: '%s'. Got '%s'", expected, cp.name)
-	}
-
-	if expected := "body: acme-live-bar"; expected != cp.body {
-		t.Errorf("Expected stack body: '%s'. Got '%s'", expected, cp.body)
-	}
-
-	if err != nil {
-		t.Errorf("It was expected that SyncAll is successful. Error %v was returned", err)
-	}
+	assert.Equal(t, map[string]string{"serviceName": "acme-live"}, cp.submittedParams)
+	assert.Equal(t, "stack-acme-live", cp.name)
+	assert.Equal(t, "body: acme-live-bar", cp.body)
 }
 
 func TestStackOutputsCanBeUsedInTemplating(t *testing.T) {
@@ -157,14 +122,8 @@ func TestStackOutputsCanBeUsedInTemplating(t *testing.T) {
 		},
 		map[string]string{},
 	)
-
-	if expected := "stack-bar-blah"; expected != cp.name {
-		t.Errorf("Expected stack name: '%s'. Got '%s'", expected, cp.name)
-	}
-
-	if err != nil {
-		t.Errorf("It was expected that SyncAll is successful. Error %v was returned", err)
-	}
+	require.NoError(t, err)
+	assert.Equal(t, "stack-bar-blah", cp.name)
 }
 
 func TestBlocking(t *testing.T) {
@@ -179,12 +138,11 @@ func TestBlocking(t *testing.T) {
 		Blocked: []string{"foo", "bar"},
 	})
 
-	if err != nil {
-		t.Errorf("It was expected that Sync is successful. Error %v was returned", err)
-	}
+	require.NoError(t, err)
 
 	cp.AssertBlocked(t, []string{"foo", "bar"})
 }
+
 func TestBlockingNoChange(t *testing.T) {
 	cp := &cpMock{createErr: ErrNoChange}
 
@@ -197,6 +155,7 @@ func TestBlockingNoChange(t *testing.T) {
 	err := s.Sync(StackTemplate{
 		Blocked: []string{"foo"},
 	})
+	require.NoError(t, err)
 
 	if err != nil {
 		t.Errorf("It was expected that Sync is successful. Error %v was returned", err)
