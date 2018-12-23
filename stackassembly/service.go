@@ -53,7 +53,7 @@ func (s *Service) SyncAll(tpls map[string]StackTemplate, globalParams map[string
 			return err
 		}
 
-		data.Params = t.Params
+		data.Params = t.Parameters
 
 		if err := applyTemplating(&t.Name, t.Name, data); err != nil {
 			return err
@@ -82,7 +82,7 @@ func (s *Service) SyncAll(tpls map[string]StackTemplate, globalParams map[string
 
 // Sync syncs
 func (s *Service) Sync(tpl StackTemplate) error {
-	data := struct{ Params map[string]string }{tpl.Params}
+	data := struct{ Params map[string]string }{tpl.Parameters}
 
 	if err := applyTemplating(&tpl.Name, tpl.Name, data); err != nil {
 		return err
@@ -234,8 +234,8 @@ func (s Service) order(tpls map[string]StackTemplate) ([]string, error) {
 	for id, t := range tpls {
 		dg.Add(id, t.DependsOn)
 
-		templatableFields := make([]string, 0, len(t.Params)+2)
-		for _, v := range t.Params {
+		templatableFields := make([]string, 0, len(t.Parameters)+2)
+		for _, v := range t.Parameters {
 			templatableFields = append(templatableFields, v)
 		}
 		templatableFields = append(templatableFields, t.Name, t.Body)
@@ -255,20 +255,20 @@ func (s Service) order(tpls map[string]StackTemplate) ([]string, error) {
 }
 
 func (s Service) initParams(tpl *StackTemplate, data stackData) error {
-	if tpl.Params == nil {
-		tpl.Params = make(map[string]string)
+	if tpl.Parameters == nil {
+		tpl.Parameters = make(map[string]string)
 	}
 	for k, v := range data.Params {
-		if _, ok := tpl.Params[k]; !ok {
-			tpl.Params[k] = v
+		if _, ok := tpl.Parameters[k]; !ok {
+			tpl.Parameters[k] = v
 		}
 	}
-	for k, v := range tpl.Params {
+	for k, v := range tpl.Parameters {
 		var parsed string
 		if err := applyTemplating(&parsed, v, data); err != nil {
 			return err
 		}
-		tpl.Params[k] = parsed
+		tpl.Parameters[k] = parsed
 	}
 	return nil
 }

@@ -16,15 +16,6 @@ type ChangeSet struct {
 	sleep     time.Duration
 }
 
-// StackTemplate encapsulates information about stack template
-type StackTemplate struct {
-	Name      string
-	Body      string
-	Params    map[string]string
-	DependsOn []string
-	Blocked   []string
-}
-
 // Option is function that can be used to configure new change set
 type Option func(cs *ChangeSet)
 
@@ -39,7 +30,7 @@ func New(cp CloudProvider, tpl StackTemplate, opts ...Option) (*ChangeSet, error
 	params := make(map[string]string, len(requiredParams))
 
 	for _, p := range requiredParams {
-		if v, ok := tpl.Params[p]; ok {
+		if v, ok := tpl.Parameters[p]; ok {
 			params[p] = v
 		}
 	}

@@ -34,9 +34,9 @@ func syncCmd() *cobra.Command {
 }
 
 func execSyncOneTpl(stackName, tpl string) {
-	cfg := conf.Config{}
+	cfg := stackassembly.Config{}
 
-	cfg.Templates = map[string]conf.TemplateConfig{
+	cfg.Templates = map[string]stackassembly.StackTemplate{
 		stackName: {
 			Path: tpl,
 			Name: stackName,
@@ -46,24 +46,17 @@ func execSyncOneTpl(stackName, tpl string) {
 	sync(cfg)
 }
 
-func sync(cfg conf.Config) {
+func sync(cfg stackassembly.Config) {
 	serv := conf.InitStasService(cfg)
-
-	tpls := make(map[string]stackassembly.StackTemplate)
 
 	for i, template := range cfg.Templates {
 		tplBody, err := ioutil.ReadFile(template.Path)
 		handleError(err)
 
-		tpls[i] = stackassembly.StackTemplate{
-			Name:      template.Name,
-			Body:      string(tplBody),
-			Params:    template.Parameters,
-			DependsOn: template.DependsOn,
-			Blocked:   template.Blocked,
-		}
+		template.Body = string(tplBody)
+		cfg.Templates[i] = template
 	}
 
-	err := serv.SyncAll(tpls, cfg.Parameters)
+	err := serv.SyncAll(cfg.Templates, cfg.Parameters)
 	handleError(err)
 }

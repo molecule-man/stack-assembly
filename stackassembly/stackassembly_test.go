@@ -30,7 +30,7 @@ func TestEventLog(t *testing.T) {
 
 	cs, _ := New(
 		cp,
-		StackTemplate{Name: "stack", Body: "body", Params: map[string]string{}},
+		StackTemplate{Name: "stack", Body: "body", Parameters: map[string]string{}},
 		WithEventSleep(6*time.Millisecond),
 		WithEventSubscriber(func(e StackEvent) {
 			cp.Lock()
@@ -60,7 +60,7 @@ func TestEventLog(t *testing.T) {
 func TestOnlyRequiredParametersAreSubmitted(t *testing.T) {
 	cp := &cpMock{}
 	cp.requiredParams = []string{"foo", "bar"}
-	_, err := New(cp, StackTemplate{Params: map[string]string{
+	_, err := New(cp, StackTemplate{Parameters: map[string]string{
 		"foo": "fooval",
 		"bar": "barval",
 		"buz": "buzval",

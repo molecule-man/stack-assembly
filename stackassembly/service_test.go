@@ -93,7 +93,7 @@ func TestGlobalParametersAreMerged(t *testing.T) {
 	s := Service{Approver: &FakedApprover{approved: true}, Log: &FakedLogger{}, CloudProvider: cp}
 
 	err := s.SyncAll(
-		map[string]StackTemplate{"tpl1": {Params: map[string]string{"foo": "tpl_foo"}}},
+		map[string]StackTemplate{"tpl1": {Parameters: map[string]string{"foo": "tpl_foo"}}},
 		map[string]string{"bar": "global_bar", "buz": "global_buz"},
 	)
 
@@ -115,9 +115,9 @@ func TestParametersCanBeTemplated(t *testing.T) {
 
 	err := s.SyncAll(
 		map[string]StackTemplate{"tpl1": {
-			Params: map[string]string{"serviceName": "{{ .Params.name }}-{{ .Params.env }}"},
-			Name:   "stack-{{ .Params.serviceName }}",
-			Body:   "body: {{ .Params.serviceName }}-{{ .Params.foo }}",
+			Parameters: map[string]string{"serviceName": "{{ .Params.name }}-{{ .Params.env }}"},
+			Name:       "stack-{{ .Params.serviceName }}",
+			Body:       "body: {{ .Params.serviceName }}-{{ .Params.foo }}",
 		}},
 		map[string]string{"name": "acme", "env": "live", "foo": "bar"},
 	)
@@ -150,8 +150,8 @@ func TestStackOutputsCanBeUsedInTemplating(t *testing.T) {
 	err := s.SyncAll(
 		map[string]StackTemplate{
 			"tpl1": {
-				Name:   "stack-{{ .Outputs.tpl2.foo }}-{{ .Params.buz}}",
-				Params: map[string]string{"buz": "blah"},
+				Name:       "stack-{{ .Outputs.tpl2.foo }}-{{ .Params.buz}}",
+				Parameters: map[string]string{"buz": "blah"},
 			},
 			"tpl2": {Name: "hello"},
 		},

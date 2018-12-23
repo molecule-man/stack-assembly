@@ -8,16 +8,17 @@ import (
 	"testing"
 	"time"
 
+	"github.com/molecule-man/stack-assembly/stackassembly"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-var expectedParsedConfig = Config{
+var expectedParsedConfig = stackassembly.Config{
 	Parameters: map[string]string{
 		"Param1": "val1",
 		"param2": "val2",
 	},
-	Templates: map[string]TemplateConfig{
+	Templates: map[string]stackassembly.StackTemplate{
 		"tpl1": {
 			Path: "path",
 			Parameters: map[string]string{
@@ -156,11 +157,11 @@ templates:
     blocked:
       - sns2`
 
-	expected := Config{
+	expected := stackassembly.Config{
 		Parameters: map[string]string{
 			"Param1": "overwriten_val1",
 		},
-		Templates: map[string]TemplateConfig{
+		Templates: map[string]stackassembly.StackTemplate{
 			"tpl1": {
 				Name: "name1",
 				Path: "overwriten_path1",

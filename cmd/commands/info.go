@@ -30,7 +30,7 @@ func infoCmd() *cobra.Command {
 					continue
 				}
 
-				tpl := stackassembly.StackTemplate{Name: template.Name, Params: template.Parameters}
+				tpl := stackassembly.StackTemplate{Name: template.Name, Parameters: template.Parameters}
 
 				info, err := serv.Info(tpl, cfg.Parameters)
 				handleError(err)
