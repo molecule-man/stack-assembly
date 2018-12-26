@@ -20,8 +20,13 @@ type ChangeSet struct {
 type Option func(cs *ChangeSet)
 
 // New creates a new ChangeSet
-func New(cp CloudProvider, tpl StackTemplate, opts ...Option) (*ChangeSet, error) {
-	requiredParams, err := cp.ValidateTemplate(tpl.Body)
+func New(cp CloudProvider, tpl TheThing, opts ...Option) (*ChangeSet, error) {
+	body, err := tpl.Body()
+	if err != nil {
+		return nil, err
+	}
+
+	requiredParams, err := cp.ValidateTemplate(body)
 
 	if err != nil {
 		return nil, err
@@ -45,7 +50,7 @@ func New(cp CloudProvider, tpl StackTemplate, opts ...Option) (*ChangeSet, error
 		opt(chSet)
 	}
 
-	err = chSet.initialize(tpl.Body, params)
+	err = chSet.initialize(body, params)
 	return chSet, err
 }
 

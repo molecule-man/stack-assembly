@@ -16,7 +16,7 @@ func TestChangeSetExecutedIfApproved(t *testing.T) {
 		CloudProvider: cp,
 	}
 
-	err := s.Sync(StackTemplate{})
+	err := s.Sync(makeConfigFromOneTemplate(StackTemplate{}))
 
 	require.NoError(t, err)
 	assert.True(t, cp.executed, "It was expected that change set is executed")
@@ -30,7 +30,7 @@ func TestChangeSetIsCancelledIfNotApproved(t *testing.T) {
 		CloudProvider: cp,
 	}
 
-	err := s.Sync(StackTemplate{})
+	err := s.Sync(makeConfigFromOneTemplate(StackTemplate{}))
 
 	assert.False(t, cp.executed, "It was expected that change set is not executed")
 	assert.Error(t, err)
@@ -42,7 +42,7 @@ func TestErrorIsReturnedIfChangeSetFails(t *testing.T) {
 
 	s := Service{Approver: &FakedApprover{approved: true}, Log: &FakedLogger{}, CloudProvider: cp}
 
-	err := s.Sync(StackTemplate{})
+	err := s.Sync(makeConfigFromOneTemplate(StackTemplate{}))
 
 	assert.False(t, cp.executed, "It was expected that change set is not executed")
 	assert.EqualError(t, err, expectedErr.Error())
@@ -53,7 +53,7 @@ func TestSyncIsSuccessfullyIgnoredIfNoChanges(t *testing.T) {
 
 	s := Service{Approver: &FakedApprover{approved: true}, Log: &FakedLogger{}, CloudProvider: cp}
 
-	err := s.Sync(StackTemplate{})
+	err := s.Sync(makeConfigFromOneTemplate(StackTemplate{}))
 
 	require.NoError(t, err)
 	assert.False(t, cp.executed, "It was expected that change set is not executed")
@@ -65,7 +65,7 @@ func TestExecErrorIsReturnedIfExecutionFails(t *testing.T) {
 
 	s := Service{Approver: &FakedApprover{approved: true}, Log: &FakedLogger{}, CloudProvider: cp}
 
-	err := s.Sync(StackTemplate{})
+	err := s.Sync(makeConfigFromOneTemplate(StackTemplate{}))
 	assert.EqualError(t, err, expectedErr.Error())
 }
 
@@ -75,10 +75,10 @@ func TestGlobalParametersAreMerged(t *testing.T) {
 	}
 	s := Service{Approver: &FakedApprover{approved: true}, Log: &FakedLogger{}, CloudProvider: cp}
 
-	err := s.SyncAll(
-		map[string]StackTemplate{"tpl1": {Parameters: map[string]string{"foo": "tpl_foo"}}},
-		map[string]string{"bar": "global_bar", "buz": "global_buz"},
-	)
+	err := s.Sync(Config{
+		Templates:  map[string]StackTemplate{"tpl1": {Parameters: map[string]string{"foo": "tpl_foo"}}},
+		Parameters: map[string]string{"bar": "global_bar", "buz": "global_buz"},
+	})
 	require.NoError(t, err)
 
 	expected := map[string]string{"foo": "tpl_foo", "bar": "global_bar"}
@@ -91,39 +91,19 @@ func TestParametersCanBeTemplated(t *testing.T) {
 	}
 	s := Service{Approver: &FakedApprover{approved: true}, Log: &FakedLogger{}, CloudProvider: cp}
 
-	err := s.SyncAll(
-		map[string]StackTemplate{"tpl1": {
+	err := s.Sync(Config{
+		Templates: map[string]StackTemplate{"tpl1": {
 			Parameters: map[string]string{"serviceName": "{{ .Params.name }}-{{ .Params.env }}"},
 			Name:       "stack-{{ .Params.serviceName }}",
 			Body:       "body: {{ .Params.serviceName }}-{{ .Params.foo }}",
 		}},
-		map[string]string{"name": "acme", "env": "live", "foo": "bar"},
-	)
+		Parameters: map[string]string{"name": "acme", "env": "live", "foo": "bar"},
+	})
 	require.NoError(t, err)
 
 	assert.Equal(t, map[string]string{"serviceName": "acme-live"}, cp.submittedParams)
 	assert.Equal(t, "stack-acme-live", cp.name)
 	assert.Equal(t, "body: acme-live-bar", cp.body)
-}
-
-func TestStackOutputsCanBeUsedInTemplating(t *testing.T) {
-	cp := &cpMock{
-		outputs: []StackOutput{{Key: "foo", Value: "bar"}},
-	}
-	s := Service{Approver: &FakedApprover{approved: true}, Log: &FakedLogger{}, CloudProvider: cp}
-
-	err := s.SyncAll(
-		map[string]StackTemplate{
-			"tpl1": {
-				Name:       "stack-{{ .Outputs.tpl2.foo }}-{{ .Params.buz}}",
-				Parameters: map[string]string{"buz": "blah"},
-			},
-			"tpl2": {Name: "hello"},
-		},
-		map[string]string{},
-	)
-	require.NoError(t, err)
-	assert.Equal(t, "stack-bar-blah", cp.name)
 }
 
 func TestBlocking(t *testing.T) {
@@ -134,9 +114,9 @@ func TestBlocking(t *testing.T) {
 		CloudProvider: cp,
 	}
 
-	err := s.Sync(StackTemplate{
+	err := s.Sync(makeConfigFromOneTemplate(StackTemplate{
 		Blocked: []string{"foo", "bar"},
-	})
+	}))
 
 	require.NoError(t, err)
 
@@ -152,9 +132,9 @@ func TestBlockingNoChange(t *testing.T) {
 		CloudProvider: cp,
 	}
 
-	err := s.Sync(StackTemplate{
+	err := s.Sync(makeConfigFromOneTemplate(StackTemplate{
 		Blocked: []string{"foo"},
-	})
+	}))
 	require.NoError(t, err)
 
 	if err != nil {
@@ -162,6 +142,12 @@ func TestBlockingNoChange(t *testing.T) {
 	}
 
 	cp.AssertBlocked(t, []string{"foo"})
+}
+
+func makeConfigFromOneTemplate(tpl StackTemplate) Config {
+	return Config{
+		Templates: map[string]StackTemplate{"tpl": tpl},
+	}
 }
 
 type FakedApprover struct {

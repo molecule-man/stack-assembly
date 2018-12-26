@@ -57,6 +57,6 @@ func sync(cfg stackassembly.Config) {
 		cfg.Templates[i] = template
 	}
 
-	err := serv.SyncAll(cfg.Templates, cfg.Parameters)
+	err := serv.Sync(cfg)
 	handleError(err)
 }
