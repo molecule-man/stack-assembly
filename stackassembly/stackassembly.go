@@ -20,8 +20,8 @@ type ChangeSet struct {
 type Option func(cs *ChangeSet)
 
 // New creates a new ChangeSet
-func New(cp CloudProvider, tpl TheThing, opts ...Option) (*ChangeSet, error) {
-	body, err := tpl.Body()
+func New(cp CloudProvider, stack Stack, opts ...Option) (*ChangeSet, error) {
+	body, err := stack.Body()
 	if err != nil {
 		return nil, err
 	}
@@ -35,13 +35,13 @@ func New(cp CloudProvider, tpl TheThing, opts ...Option) (*ChangeSet, error) {
 	params := make(map[string]string, len(requiredParams))
 
 	for _, p := range requiredParams {
-		if v, ok := tpl.Parameters[p]; ok {
+		if v, ok := stack.Parameters[p]; ok {
 			params[p] = v
 		}
 	}
 
 	chSet := &ChangeSet{
-		StackName: tpl.Name,
+		StackName: stack.Name,
 		cp:        cp,
 		sleep:     time.Second,
 	}

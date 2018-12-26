@@ -18,7 +18,7 @@ var expectedParsedConfig = stackassembly.Config{
 		"Param1": "val1",
 		"param2": "val2",
 	},
-	Templates: map[string]stackassembly.StackTemplate{
+	Stacks: map[string]stackassembly.StackConfig{
 		"tpl1": {
 			Path: "path",
 			Parameters: map[string]string{
@@ -42,7 +42,7 @@ func TestParseJSON(t *testing.T) {
     "Param1": "val1",
     "param2": "val2"
   },
-  "templates": {
+  "stacks": {
     "tpl1": {
       "path": "path",
       "parameters": {
@@ -71,7 +71,7 @@ func TestParseYAML(t *testing.T) {
 parameters:
   Param1: val1
   param2: val2
-templates:
+stacks:
   tpl1:
     path: path
     parameters:
@@ -97,16 +97,16 @@ func TestParseTOML(t *testing.T) {
 Param1 = "val1"
 param2 = "val2"
 
-[templates]
+[stacks]
 
-[templates.tpl1]
+[stacks.tpl1]
 path = "path"
 
-[templates.tpl1.parameters]
+[stacks.tpl1.parameters]
 Param3 = "val3"
 param4 = "val4"
 
-[templates.Tpl2]
+[stacks.Tpl2]
 name = "name1"
 dependson = [
   "sns1"
@@ -125,7 +125,7 @@ func TestMergeConfigs(t *testing.T) {
 	cfg1 := `
 parameters:
   Param1: val1
-templates:
+stacks:
   tpl1:
     name: name1
     path: path1
@@ -143,7 +143,7 @@ templates:
 	cfg2 := `
 parameters:
   Param1: overwriten_val1
-templates:
+stacks:
   tpl1:
     path: overwriten_path1
     dependson:
@@ -161,7 +161,7 @@ templates:
 		Parameters: map[string]string{
 			"Param1": "overwriten_val1",
 		},
-		Templates: map[string]stackassembly.StackTemplate{
+		Stacks: map[string]stackassembly.StackConfig{
 			"tpl1": {
 				Name: "name1",
 				Path: "overwriten_path1",

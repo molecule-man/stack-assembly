@@ -6,14 +6,14 @@ Sns2 = "sns2"
 region = "eu-west-1"
 profile = "meadmin"
 
-[templates.example1]
+[stacks.example1]
 name = "hello1"
 path = "tpls/example.yml"
 blocked = ["SNSTopic"]
 
-[templates.example2]
+[stacks.example2]
 name = "hello2"
 path = "tpls/example2.yml"
 
-[templates.example2.parameters]
+[stacks.example2.parameters]
 Sns2 = "foo"

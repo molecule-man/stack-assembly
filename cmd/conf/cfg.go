@@ -24,38 +24,39 @@ func merge(c *stackassembly.Config, otherConfig stackassembly.Config) {
 		c.Parameters[k] = v
 	}
 
-	if c.Templates == nil {
-		c.Templates = make(map[string]stackassembly.StackTemplate)
+	if c.Stacks == nil {
+		c.Stacks = make(map[string]stackassembly.StackConfig)
 	}
-	for k, tc := range otherConfig.Templates {
-		t := c.Templates[k]
-		mergeTemplates(&t, tc)
-		c.Templates[k] = t
+	for k, otherStack := range otherConfig.Stacks {
+		// TODO what if k is not in c.Stacks
+		thisStack := c.Stacks[k]
+		mergeStacks(&thisStack, otherStack)
+		c.Stacks[k] = thisStack
 	}
 }
 
-func mergeTemplates(tc *stackassembly.StackTemplate, otherTpl stackassembly.StackTemplate) {
-	if otherTpl.Path != "" {
-		tc.Path = otherTpl.Path
+func mergeStacks(s *stackassembly.StackConfig, otherStack stackassembly.StackConfig) {
+	if otherStack.Path != "" {
+		s.Path = otherStack.Path
 	}
 
-	if otherTpl.Name != "" {
-		tc.Name = otherTpl.Name
+	if otherStack.Name != "" {
+		s.Name = otherStack.Name
 	}
 
-	if otherTpl.DependsOn != nil {
-		tc.DependsOn = otherTpl.DependsOn
+	if otherStack.DependsOn != nil {
+		s.DependsOn = otherStack.DependsOn
 	}
 
-	if otherTpl.Blocked != nil {
-		tc.Blocked = otherTpl.Blocked
+	if otherStack.Blocked != nil {
+		s.Blocked = otherStack.Blocked
 	}
 
-	if tc.Parameters == nil {
-		tc.Parameters = make(map[string]string)
+	if s.Parameters == nil {
+		s.Parameters = make(map[string]string)
 	}
-	for k, v := range otherTpl.Parameters {
-		tc.Parameters[k] = v
+	for k, v := range otherStack.Parameters {
+		s.Parameters[k] = v
 	}
 }
 

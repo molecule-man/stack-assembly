@@ -21,7 +21,7 @@ parameters:
 	ds := DiffService{
 		Dp: &dpMock{exists: true, body: oldTplBody},
 	}
-	st := StackTemplate{
+	st := StackConfig{
 		Name: "teststack",
 		Body: newTplBody,
 	}
@@ -48,7 +48,7 @@ parameters:
   param2: val2`
 
 	ds := DiffService{Dp: &dpMock{}}
-	st := StackTemplate{
+	st := StackConfig{
 		Name: "teststack",
 		Body: newTplBody,
 	}

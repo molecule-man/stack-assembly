@@ -15,7 +15,7 @@ type DiffService struct {
 	Dp detailsProvider
 }
 
-func (ds DiffService) Diff(tpl StackTemplate) (string, error) {
+func (ds DiffService) Diff(tpl StackConfig) (string, error) {
 	oldBody := ""
 	oldName := "/dev/null"
 

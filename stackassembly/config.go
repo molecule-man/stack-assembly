@@ -7,8 +7,7 @@ import (
 	"github.com/molecule-man/stack-assembly/depgraph"
 )
 
-// StackTemplate encapsulates information about stack template
-type StackTemplate struct {
+type StackConfig struct {
 	Name       string
 	Path       string
 	Body       string
@@ -17,13 +16,13 @@ type StackTemplate struct {
 	Blocked    []string
 }
 
-// Config is a struct holding templates configurations
+// Config is a struct holding stacks configurations
 type Config struct {
 	Parameters map[string]string
-	Templates  map[string]StackTemplate
+	Stacks     map[string]StackConfig
 }
 
-type TheThing struct {
+type Stack struct {
 	Name       string
 	Parameters map[string]string
 	Blocked    []string
@@ -31,41 +30,41 @@ type TheThing struct {
 	rawBody string
 }
 
-func NewThing(tpl StackTemplate, globalParameters map[string]string) (TheThing, error) {
-	t := TheThing{}
+func NewStack(stackCfg StackConfig, globalParameters map[string]string) (Stack, error) {
+	stack := Stack{}
 
-	// TODO this doesn't belong here
-	t.rawBody = tpl.Body
+	// TODO this doesn'stack belong here
+	stack.rawBody = stackCfg.Body
 
-	t.Blocked = tpl.Blocked
+	stack.Blocked = stackCfg.Blocked
 
-	t.Parameters = make(map[string]string, len(globalParameters)+len(tpl.Parameters))
+	stack.Parameters = make(map[string]string, len(globalParameters)+len(stackCfg.Parameters))
 
 	for k, v := range globalParameters {
-		if _, ok := tpl.Parameters[k]; !ok {
-			t.Parameters[k] = v
+		if _, ok := stackCfg.Parameters[k]; !ok {
+			stack.Parameters[k] = v
 		}
 	}
 
 	data := struct{ Params map[string]string }{}
-	data.Params = t.Parameters
+	data.Params = stack.Parameters
 
-	for k, v := range tpl.Parameters {
+	for k, v := range stackCfg.Parameters {
 		var parsed string
 		if err := applyTemplating(&parsed, v, data); err != nil {
-			return t, err
+			return stack, err
 		}
-		t.Parameters[k] = parsed
+		stack.Parameters[k] = parsed
 	}
 
-	data.Params = t.Parameters
+	data.Params = stack.Parameters
 
-	err := applyTemplating(&t.Name, tpl.Name, data)
+	err := applyTemplating(&stack.Name, stackCfg.Name, data)
 
-	return t, err
+	return stack, err
 }
 
-func (t *TheThing) Body() (string, error) {
+func (t *Stack) Body() (string, error) {
 	var body string
 	data := struct{ Params map[string]string }{}
 	data.Params = t.Parameters
@@ -88,30 +87,30 @@ func applyTemplating(parsed *string, tpl string, data interface{}) error {
 	return nil
 }
 
-func sortedByExecOrder(cfg Config) ([]TheThing, error) {
+func sortedByExecOrder(cfg Config) ([]Stack, error) {
 	dg := depgraph.DepGraph{}
 
-	tplsMap := make(map[string]TheThing, len(cfg.Templates))
-	tpls := make([]TheThing, 0, len(cfg.Templates))
+	stacksMap := make(map[string]Stack, len(cfg.Stacks))
+	stacks := make([]Stack, 0, len(cfg.Stacks))
 
-	for id, tpl := range cfg.Templates {
-		dg.Add(id, tpl.DependsOn)
-		t, err := NewThing(tpl, cfg.Parameters)
+	for id, stackCfg := range cfg.Stacks {
+		dg.Add(id, stackCfg.DependsOn)
+		stack, err := NewStack(stackCfg, cfg.Parameters)
 		if err != nil {
-			return tpls, err
+			return stacks, err
 		}
 
-		tplsMap[id] = t
+		stacksMap[id] = stack
 	}
 
 	orderedIds, err := dg.Resolve()
 	if err != nil {
-		return tpls, err
+		return stacks, err
 	}
 
 	for _, id := range orderedIds {
-		tpls = append(tpls, tplsMap[id])
+		stacks = append(stacks, stacksMap[id])
 	}
 
-	return tpls, nil
+	return stacks, nil
 }

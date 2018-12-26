@@ -24,15 +24,13 @@ func infoCmd() *cobra.Command {
 
 			serv := conf.InitStasService(cfg)
 
-			for k, template := range cfg.Templates {
+			for k, stackCfg := range cfg.Stacks {
 
-				if len(args) > 0 && args[0] != template.Name && args[0] != k {
+				if len(args) > 0 && args[0] != stackCfg.Name && args[0] != k {
 					continue
 				}
 
-				tpl := stackassembly.StackTemplate{Name: template.Name, Parameters: template.Parameters}
-
-				info, err := serv.Info(tpl, cfg.Parameters)
+				info, err := serv.Info(stackCfg, cfg.Parameters)
 				handleError(err)
 
 				displayStackInfo(info)

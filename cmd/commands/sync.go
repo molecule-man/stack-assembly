@@ -12,7 +12,7 @@ func syncCmd() *cobra.Command {
 	var stackName string
 
 	syncCmd := &cobra.Command{
-		Use:   "sync [tpl]",
+		Use:   "sync [stack]",
 		Short: "Sync stacks",
 		Args:  cobra.MaximumNArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
@@ -36,7 +36,7 @@ func syncCmd() *cobra.Command {
 func execSyncOneTpl(stackName, tpl string) {
 	cfg := stackassembly.Config{}
 
-	cfg.Templates = map[string]stackassembly.StackTemplate{
+	cfg.Stacks = map[string]stackassembly.StackConfig{
 		stackName: {
 			Path: tpl,
 			Name: stackName,
@@ -49,12 +49,12 @@ func execSyncOneTpl(stackName, tpl string) {
 func sync(cfg stackassembly.Config) {
 	serv := conf.InitStasService(cfg)
 
-	for i, template := range cfg.Templates {
-		tplBody, err := ioutil.ReadFile(template.Path)
+	for i, stack := range cfg.Stacks {
+		tplBody, err := ioutil.ReadFile(stack.Path)
 		handleError(err)
 
-		template.Body = string(tplBody)
-		cfg.Templates[i] = template
+		stack.Body = string(tplBody)
+		cfg.Stacks[i] = stack
 	}
 
 	err := serv.Sync(cfg)

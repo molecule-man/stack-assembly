@@ -29,12 +29,12 @@ func (s *Service) Sync(cfg Config) error {
 		return err
 	}
 
-	for _, th := range ordered {
-		if err = s.execSync(th); err != nil {
+	for _, stack := range ordered {
+		if err = s.execSync(stack); err != nil {
 			return err
 		}
 
-		err = s.block(th)
+		err = s.block(stack)
 		if err != nil {
 			return err
 		}
@@ -49,36 +49,36 @@ type StackInfo struct {
 	Events    []StackEvent
 }
 
-func (s *Service) Info(tpl StackTemplate, globalParams map[string]string) (StackInfo, error) {
+func (s *Service) Info(stackCfg StackConfig, globalParams map[string]string) (StackInfo, error) {
 	si := StackInfo{}
 
-	th, err := NewThing(tpl, globalParams)
+	stack, err := NewStack(stackCfg, globalParams)
 
 	if err != nil {
 		return si, err
 	}
 
-	si.Name = th.Name
+	si.Name = stack.Name
 
-	if si.Resources, err = s.CloudProvider.StackResources(th.Name); err != nil {
+	if si.Resources, err = s.CloudProvider.StackResources(stack.Name); err != nil {
 		return si, err
 	}
 
-	if si.Outputs, err = s.CloudProvider.StackOutputs(th.Name); err != nil {
+	if si.Outputs, err = s.CloudProvider.StackOutputs(stack.Name); err != nil {
 		return si, err
 	}
 
-	si.Events, err = s.CloudProvider.StackEvents(th.Name)
+	si.Events, err = s.CloudProvider.StackEvents(stack.Name)
 
 	return si, err
 }
 
-func (s Service) execSync(th TheThing) error {
-	log := s.logFunc(th.Name)
+func (s Service) execSync(stack Stack) error {
+	log := s.logFunc(stack.Name)
 
 	log("Syncing template")
 
-	chSet, err := New(s.CloudProvider, th,
+	chSet, err := New(s.CloudProvider, stack,
 		WithEventSubscriber(func(e StackEvent) {
 			log(fmt.Sprintf("[%s] [%s] [%s] %s",
 				e.ResourceType, e.Status, e.LogicalResourceID, e.StatusReason,
@@ -108,12 +108,12 @@ func (s Service) execSync(th TheThing) error {
 	return err
 }
 
-func (s Service) block(tpl TheThing) error {
-	log := s.logFunc(tpl.Name)
+func (s Service) block(stack Stack) error {
+	log := s.logFunc(stack.Name)
 
-	for _, r := range tpl.Blocked {
+	for _, r := range stack.Blocked {
 		log(fmt.Sprintf("Blocking resource %s", r))
-		err := s.CloudProvider.BlockResource(tpl.Name, r)
+		err := s.CloudProvider.BlockResource(stack.Name, r)
 
 		if err != nil {
 			return err

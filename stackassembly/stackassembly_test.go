@@ -26,7 +26,7 @@ func TestEventLog(t *testing.T) {
 
 	cs, _ := New(
 		cp,
-		TheThing{Name: "stack", rawBody: "body", Parameters: map[string]string{}},
+		Stack{Name: "stack", rawBody: "body", Parameters: map[string]string{}},
 		WithEventSleep(6*time.Millisecond),
 		WithEventSubscriber(func(e StackEvent) {
 			cp.Lock()
@@ -54,7 +54,7 @@ func TestEventLog(t *testing.T) {
 func TestOnlyRequiredParametersAreSubmitted(t *testing.T) {
 	cp := &cpMock{}
 	cp.requiredParams = []string{"foo", "bar"}
-	_, err := New(cp, TheThing{Parameters: map[string]string{
+	_, err := New(cp, Stack{Parameters: map[string]string{
 		"foo": "fooval",
 		"bar": "barval",
 		"buz": "buzval",
@@ -79,7 +79,7 @@ func TestChangeSetCreationErrors(t *testing.T) {
 		cp := &cpMock{}
 		tc.errProv(cp, tc.err)
 
-		_, err := New(cp, TheThing{})
+		_, err := New(cp, Stack{})
 
 		assert.EqualError(t, err, tc.err.Error())
 	}
@@ -97,7 +97,7 @@ func TestChangeSetExecutionErrors(t *testing.T) {
 		cp := &cpMock{}
 		tc.errProv(cp, tc.err)
 
-		cs, _ := New(cp, TheThing{})
+		cs, _ := New(cp, Stack{})
 		err := cs.Exec()
 
 		assert.EqualError(t, err, tc.err.Error())
