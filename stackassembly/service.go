@@ -42,37 +42,6 @@ func (s *Service) Sync(cfg Config) error {
 	return nil
 }
 
-type StackInfo struct {
-	Name      string
-	Resources []StackResource
-	Outputs   []StackOutput
-	Events    []StackEvent
-}
-
-func (s *Service) Info(stackCfg StackConfig, globalParams map[string]string) (StackInfo, error) {
-	si := StackInfo{}
-
-	stack, err := NewStack(stackCfg, globalParams)
-
-	if err != nil {
-		return si, err
-	}
-
-	si.Name = stack.Name
-
-	if si.Resources, err = s.CloudProvider.StackResources(stack.Name); err != nil {
-		return si, err
-	}
-
-	if si.Outputs, err = s.CloudProvider.StackOutputs(stack.Name); err != nil {
-		return si, err
-	}
-
-	si.Events, err = s.CloudProvider.StackEvents(stack.Name)
-
-	return si, err
-}
-
 func (s Service) execSync(stack Stack) error {
 	log := s.logFunc(stack.Name)
 

@@ -2,6 +2,7 @@ package commands
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"text/tabwriter"
 
@@ -22,7 +23,9 @@ func infoCmd() *cobra.Command {
 			cfg, err := conf.LoadConfig(cfgFiles)
 			handleError(err)
 
-			serv := conf.InitStasService(cfg)
+			aws := conf.Aws(cfg)
+
+			printer := newInfoPrinter(os.Stdout)
 
 			for k, stackCfg := range cfg.Stacks {
 
@@ -30,10 +33,27 @@ func infoCmd() *cobra.Command {
 					continue
 				}
 
-				info, err := serv.Info(stackCfg, cfg.Parameters)
+				stack, err := stackassembly.NewStack(stackCfg, cfg.Parameters)
 				handleError(err)
 
-				displayStackInfo(info)
+				printer.printStackName(stack.Name)
+
+				resources, err := aws.StackResources(stack.Name)
+				handleError(err)
+
+				printer.printResources(resources)
+
+				outputs, err := aws.StackOutputs(stack.Name)
+				handleError(err)
+
+				printer.printOutputs(outputs)
+
+				events, err := aws.StackEvents(stack.Name)
+				handleError(err)
+
+				printer.printEvents(events)
+
+				fmt.Println("")
 			}
 		},
 	}
@@ -41,32 +61,46 @@ func infoCmd() *cobra.Command {
 	return infoCmd
 }
 
-func displayStackInfo(info stackassembly.StackInfo) {
+type infoPrinter struct {
+	w *tabwriter.Writer
+}
 
+func newInfoPrinter(w io.Writer) infoPrinter {
+	return infoPrinter{
+		w: tabwriter.NewWriter(w, 0, 0, 1, ' ', 0),
+	}
+}
+
+func (p infoPrinter) printStackName(name string) {
 	fmt.Println("===================")
-	fmt.Printf("STACK: %s\n", info.Name)
+	fmt.Printf("STACK: %s\n", name)
 	fmt.Println("===================")
 	fmt.Println("")
+}
 
-	w := tabwriter.NewWriter(os.Stdout, 0, 0, 1, ' ', 0)
+func (p infoPrinter) printResources(resources []stackassembly.StackResource) {
 	fmt.Println("==== RESOURCES ====")
-	for _, res := range info.Resources {
-		fmt.Fprintf(w, "%s\t%s\t%s\n", res.LogicalID, res.PhysicalID, res.Status)
+	for _, res := range resources {
+		fmt.Fprintf(p.w, "%s\t%s\t%s\n", res.LogicalID, res.PhysicalID, res.Status)
 	}
-	w.Flush()
+	p.w.Flush()
 	fmt.Println("")
+}
 
+func (p infoPrinter) printOutputs(outputs []stackassembly.StackOutput) {
 	fmt.Println("==== OUTPUTS ====")
-	for _, out := range info.Outputs {
-		fmt.Fprintf(w, "%s\t%s\t%s\n", out.Key, out.Value, out.ExportName)
+	for _, out := range outputs {
+		fmt.Fprintf(p.w, "%s\t%s\t%s\n", out.Key, out.Value, out.ExportName)
 	}
-	w.Flush()
+	p.w.Flush()
 	fmt.Println("")
+}
 
+func (p infoPrinter) printEvents(events []stackassembly.StackEvent) {
 	fmt.Println("==== EVENTS ====")
-	for _, e := range info.Events[:10] {
-		fmt.Fprintf(w, "[%v]\t%s\t%s\t%s\t%s\n", e.Timestamp, e.ResourceType, e.LogicalResourceID, e.Status, e.StatusReason)
+	for _, e := range events[:10] {
+		fmt.Fprintf(p.w, "[%v]\t%s\t%s\t%s\t%s\n", e.Timestamp, e.ResourceType, e.LogicalResourceID, e.Status, e.StatusReason)
 	}
-	w.Flush()
-	fmt.Print("\n\n")
+	p.w.Flush()
+	fmt.Println("")
 }

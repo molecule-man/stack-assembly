@@ -60,7 +60,7 @@ func mergeStacks(s *stackassembly.StackConfig, otherStack stackassembly.StackCon
 	}
 }
 
-func InitStasService(cfg stackassembly.Config) stackassembly.Service {
+func Aws(cfg stackassembly.Config) *awsprov.AwsProvider {
 	awsConfig := awsprov.Config{}
 
 	if profile, ok := cfg.Parameters["profile"]; ok && profile != "" {
@@ -71,10 +71,14 @@ func InitStasService(cfg stackassembly.Config) stackassembly.Service {
 		awsConfig.Region = region
 	}
 
+	return awsprov.New(awsConfig)
+}
+
+func InitStasService(cfg stackassembly.Config) stackassembly.Service {
 	return stackassembly.Service{
 		Approver:      &cli.Approval{},
 		Log:           log.New(os.Stderr, "", log.LstdFlags),
-		CloudProvider: awsprov.New(awsConfig),
+		CloudProvider: Aws(cfg),
 	}
 }
 
