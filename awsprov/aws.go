@@ -1,6 +1,7 @@
 package awsprov
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"strconv"
@@ -8,6 +9,7 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
@@ -213,7 +215,7 @@ func (ap *AwsProvider) CreateChangeSet(stackName string, tplBody string, params 
 
 // WaitChangeSetCreated blocks runtime until the change set is not created
 func (ap *AwsProvider) WaitChangeSetCreated(ID string) error {
-	return ap.cf.WaitUntilChangeSetCreateCompleteWithContext(
+	err := ap.cf.WaitUntilChangeSetCreateCompleteWithContext(
 		aws.BackgroundContext(),
 		&cloudformation.DescribeChangeSetInput{
 			ChangeSetName: aws.String(ID),
@@ -222,26 +224,49 @@ func (ap *AwsProvider) WaitChangeSetCreated(ID string) error {
 			w.Delay = request.ConstantWaiterDelay(time.Second)
 		},
 	)
+
+	if err == nil {
+		return nil
+	}
+
+	if aerr, ok := err.(awserr.Error); ok {
+		if aerr.Code() == request.WaiterResourceNotReadyErrorCode {
+			setInfo, derr := ap.cf.DescribeChangeSet(&cloudformation.DescribeChangeSetInput{
+				ChangeSetName: aws.String(ID),
+			})
+
+			if derr != nil {
+				return fmt.Errorf("error while retrieving more info about change set failure: %v", derr)
+			}
+
+			return fmt.Errorf("[%s] %s. Status: %s, StatusReason: %s", *setInfo.ChangeSetId, err.Error(), *setInfo.Status, *setInfo.StatusReason)
+		}
+	}
+	return err
 }
 
 // ChangeSetChanges returns info about changes to be applied to stack
 func (ap *AwsProvider) ChangeSetChanges(ID string) ([]stackassembly.Change, error) {
+	changes := make([]stackassembly.Change, 0)
+	return changes, ap.changes(ID, &changes, nil)
+}
+
+func (ap *AwsProvider) changes(ID string, store *[]stackassembly.Change, nextToken *string) error {
 	setInfo, err := ap.cf.DescribeChangeSet(&cloudformation.DescribeChangeSetInput{
 		ChangeSetName: aws.String(ID),
+		NextToken:     nextToken,
 	})
 
 	if err != nil {
-		return []stackassembly.Change{}, err
+		return err
 	}
 
 	if *setInfo.Status == cloudformation.ChangeSetStatusFailed {
 		if *setInfo.StatusReason == noChangeStatus {
-			return []stackassembly.Change{}, stackassembly.ErrNoChange
+			return stackassembly.ErrNoChange
 		}
-		return []stackassembly.Change{}, errors.New(*setInfo.StatusReason)
+		return errors.New(*setInfo.StatusReason)
 	}
-
-	changes := make([]stackassembly.Change, 0, len(setInfo.Changes))
 
 	for _, c := range setInfo.Changes {
 		awsChange := c.ResourceChange
@@ -254,10 +279,14 @@ func (ap *AwsProvider) ChangeSetChanges(ID string) ([]stackassembly.Change, erro
 			ch.ReplacementNeeded = true
 		}
 
-		changes = append(changes, ch)
+		*store = append(*store, ch)
 	}
 
-	return changes, nil
+	if setInfo.NextToken != nil && *setInfo.NextToken != "" {
+		return ap.changes(ID, store, setInfo.NextToken)
+	}
+
+	return nil
 }
 
 // ExecuteChangeSet executes change set identified by ID
@@ -274,9 +303,27 @@ func (ap *AwsProvider) WaitStack(stackName string) error {
 		StackName: aws.String(stackName),
 	}
 
-	return ap.cf.WaitUntilStackUpdateCompleteWithContext(aws.BackgroundContext(), &stackInput, func(w *request.Waiter) {
-		w.Delay = request.ConstantWaiterDelay(time.Second)
-	})
+	c := make(chan error)
+	ctx, cancel := context.WithCancel(aws.BackgroundContext())
+
+	go func() {
+		c <- ap.cf.WaitUntilStackUpdateCompleteWithContext(ctx, &stackInput, func(w *request.Waiter) {
+			w.MaxAttempts = 900
+			w.Delay = request.ConstantWaiterDelay(2 * time.Second)
+		})
+	}()
+
+	go func() {
+		c <- ap.cf.WaitUntilStackCreateCompleteWithContext(ctx, &stackInput, func(w *request.Waiter) {
+			w.MaxAttempts = 900
+			w.Delay = request.ConstantWaiterDelay(2 * time.Second)
+		})
+	}()
+
+	err := <-c
+	cancel()
+
+	return err
 }
 
 // StackEvents returns stack events. The latest events appear first
