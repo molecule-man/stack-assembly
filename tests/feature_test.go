@@ -142,49 +142,49 @@ func (f *feature) outputShouldContain(s *gherkin.DocString) error {
 	return nil
 }
 
-func (f *feature) thereShouldBeStackThatMatches(stackName string, content *gherkin.DocString) error {
-	s := strings.Replace(stackName, "%scenarioid%", f.scenarioID, -1)
+func (f *feature) thereShouldBeStackThatMatches(stackName string, expectedContent *gherkin.DocString) error {
+	stackName = strings.Replace(stackName, "%scenarioid%", f.scenarioID, -1)
 	out, err := f.cf.DescribeStacks(&cloudformation.DescribeStacksInput{
-		StackName: aws.String(s),
+		StackName: aws.String(stackName),
 	})
 	if err != nil {
 		return err
 	}
 
-	stack := out.Stacks[0]
+	actualStackData := out.Stacks[0]
 
-	stackData := struct {
+	expectedStackData := struct {
 		StackStatus string
 		Resources   map[string]string
 	}{}
 
-	c := strings.Replace(content.Content, "%scenarioid%", f.scenarioID, -1)
-	err = yaml.Unmarshal([]byte(c), &stackData)
+	c := strings.Replace(expectedContent.Content, "%scenarioid%", f.scenarioID, -1)
+	err = yaml.Unmarshal([]byte(c), &expectedStackData)
 	if err != nil {
 		return err
 	}
 
-	if stackData.StackStatus != "" {
-		remoteStatus := aws.StringValue(stack.StackStatus)
-		if remoteStatus != stackData.StackStatus {
-			return fmt.Errorf("status %s doesn't match status %s of stack %s", stackData.StackStatus, remoteStatus, stackName)
+	if expectedStackData.StackStatus != "" {
+		actualStatus := aws.StringValue(actualStackData.StackStatus)
+		if actualStatus != expectedStackData.StackStatus {
+			return fmt.Errorf("status %s doesn't match status %s of stack %s", expectedStackData.StackStatus, actualStatus, stackName)
 		}
 	}
 
-	for k, v := range stackData.Resources {
-		resource, err := f.cf.DescribeStackResource(&cloudformation.DescribeStackResourceInput{
-			StackName:         aws.String(s),
-			LogicalResourceId: aws.String(k),
+	for expectedResKey, expectedResValue := range expectedStackData.Resources {
+		actualResource, err := f.cf.DescribeStackResource(&cloudformation.DescribeStackResourceInput{
+			StackName:         aws.String(stackName),
+			LogicalResourceId: aws.String(expectedResKey),
 		})
 		if err != nil {
 			return err
 		}
 
-		s := strings.Split(aws.StringValue(resource.StackResourceDetail.PhysicalResourceId), ":")
-		resourceID := s[len(s)-1]
+		s := strings.Split(aws.StringValue(actualResource.StackResourceDetail.PhysicalResourceId), ":")
+		actualResValue := s[len(s)-1]
 
-		if resourceID != v {
-			return fmt.Errorf("resource %s is expected to have value %s. Actual value: %s", k, v, resourceID)
+		if actualResValue != expectedResValue {
+			return fmt.Errorf("resource %s is expected to have value %s. Actual value: %s", expectedResKey, expectedResValue, actualResValue)
 		}
 	}
 
