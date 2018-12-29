@@ -22,6 +22,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
+	yaml "gopkg.in/yaml.v2"
 )
 
 var opt = godog.Options{
@@ -40,7 +41,6 @@ func init() {
 
 func TestMain(m *testing.M) {
 	flag.Parse()
-	// opt.Paths = flag.Args()
 
 	status := godog.RunWithOptions("stas", func(s *godog.Suite) {
 		FeatureContext(s)
@@ -142,6 +142,55 @@ func (f *feature) outputShouldContain(s *gherkin.DocString) error {
 	return nil
 }
 
+func (f *feature) thereShouldBeStackThatMatches(stackName string, content *gherkin.DocString) error {
+	s := strings.Replace(stackName, "%scenarioid%", f.scenarioID, -1)
+	out, err := f.cf.DescribeStacks(&cloudformation.DescribeStacksInput{
+		StackName: aws.String(s),
+	})
+	if err != nil {
+		return err
+	}
+
+	stack := out.Stacks[0]
+
+	stackData := struct {
+		StackStatus string
+		Resources   map[string]string
+	}{}
+
+	c := strings.Replace(content.Content, "%scenarioid%", f.scenarioID, -1)
+	err = yaml.Unmarshal([]byte(c), &stackData)
+	if err != nil {
+		return err
+	}
+
+	if stackData.StackStatus != "" {
+		remoteStatus := aws.StringValue(stack.StackStatus)
+		if remoteStatus != stackData.StackStatus {
+			return fmt.Errorf("status %s doesn't match status %s of stack %s", stackData.StackStatus, remoteStatus, stackName)
+		}
+	}
+
+	for k, v := range stackData.Resources {
+		resource, err := f.cf.DescribeStackResource(&cloudformation.DescribeStackResourceInput{
+			StackName:         aws.String(s),
+			LogicalResourceId: aws.String(k),
+		})
+		if err != nil {
+			return err
+		}
+
+		s := strings.Split(aws.StringValue(resource.StackResourceDetail.PhysicalResourceId), ":")
+		resourceID := s[len(s)-1]
+
+		if resourceID != v {
+			return fmt.Errorf("resource %s is expected to have value %s. Actual value: %s", k, v, resourceID)
+		}
+	}
+
+	return nil
+}
+
 func FeatureContext(s *godog.Suite) {
 	testDir := "./.tmp"
 	f := feature{}
@@ -158,6 +207,7 @@ func FeatureContext(s *godog.Suite) {
 	s.Step(`^I run "([^"]*)"$`, f.iRun)
 	s.Step(`^exit code should not be zero$`, f.exitCodeShouldNotBeZero)
 	s.Step(`^output should contain:$`, f.outputShouldContain)
+	s.Step(`^there should be stack "([^"]*)" that matches:$`, f.thereShouldBeStackThatMatches)
 
 	s.BeforeScenario(func(interface{}) {
 		f.scenarioID = strconv.FormatInt(rand.Int63(), 10)
