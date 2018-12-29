@@ -8,7 +8,7 @@ import (
 // CloudProvider wraps the cloud provider functions
 type CloudProvider interface {
 	ValidateTemplate(tplBody string) ([]string, error)
-	CreateChangeSet(stackName string, tplBody string, params map[string]string) (string, error)
+	CreateChangeSet(stackName string, tplBody string, params, tags map[string]string) (string, error)
 	WaitChangeSetCreated(ID string) error
 	ChangeSetChanges(ID string) ([]Change, error)
 	ExecuteChangeSet(ID string) error

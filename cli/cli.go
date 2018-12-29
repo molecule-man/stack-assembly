@@ -13,11 +13,17 @@ import (
 
 // Approval enables user confirmation to apply stack changes
 type Approval struct {
+	NonInteractive bool
 }
 
 // Approve asks user for confirmation
 func (a *Approval) Approve(changes []stackassembly.Change) bool {
 	showChanges(changes)
+
+	if a.NonInteractive {
+		return true
+	}
+
 	return askConfirmation()
 }
 

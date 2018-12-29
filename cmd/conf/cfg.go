@@ -52,6 +52,10 @@ func mergeStacks(s *stackassembly.StackConfig, otherStack stackassembly.StackCon
 		s.Blocked = otherStack.Blocked
 	}
 
+	if otherStack.Tags != nil {
+		s.Tags = otherStack.Tags
+	}
+
 	if s.Parameters == nil {
 		s.Parameters = make(map[string]string)
 	}
@@ -74,9 +78,9 @@ func Aws(cfg stackassembly.Config) *awsprov.AwsProvider {
 	return awsprov.New(awsConfig)
 }
 
-func InitStasService(cfg stackassembly.Config) stackassembly.Service {
+func InitStasService(cfg stackassembly.Config, nonInteractive bool) stackassembly.Service {
 	return stackassembly.Service{
-		Approver:      &cli.Approval{},
+		Approver:      &cli.Approval{NonInteractive: nonInteractive},
 		Log:           log.New(os.Stderr, "", log.LstdFlags),
 		CloudProvider: Aws(cfg),
 	}

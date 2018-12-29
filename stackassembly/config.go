@@ -12,6 +12,7 @@ type StackConfig struct {
 	Path       string
 	Body       string
 	Parameters map[string]string
+	Tags       map[string]string
 	DependsOn  []string
 	Blocked    []string
 }
@@ -25,6 +26,7 @@ type Config struct {
 type Stack struct {
 	Name       string
 	Parameters map[string]string
+	Tags       map[string]string
 	Blocked    []string
 
 	rawBody string
@@ -33,10 +35,11 @@ type Stack struct {
 func NewStack(stackCfg StackConfig, globalParameters map[string]string) (Stack, error) {
 	stack := Stack{}
 
-	// TODO this doesn'stack belong here
+	// TODO this doesn't belong here
 	stack.rawBody = stackCfg.Body
 
 	stack.Blocked = stackCfg.Blocked
+	stack.Tags = stackCfg.Tags
 
 	stack.Parameters = make(map[string]string, len(globalParameters)+len(stackCfg.Parameters))
 

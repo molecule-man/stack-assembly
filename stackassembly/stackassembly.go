@@ -50,7 +50,7 @@ func New(cp CloudProvider, stack Stack, opts ...Option) (*ChangeSet, error) {
 		opt(chSet)
 	}
 
-	err = chSet.initialize(body, params)
+	err = chSet.initialize(body, params, stack.Tags)
 	return chSet, err
 }
 
@@ -103,9 +103,9 @@ func (cs *ChangeSet) Exec() error {
 	return <-errCh
 }
 
-func (cs *ChangeSet) initialize(tplBody string, params map[string]string) error {
+func (cs *ChangeSet) initialize(tplBody string, params, tags map[string]string) error {
 	var err error
-	cs.ID, err = cs.cp.CreateChangeSet(cs.StackName, tplBody, params)
+	cs.ID, err = cs.cp.CreateChangeSet(cs.StackName, tplBody, params, tags)
 
 	if err != nil {
 		return err

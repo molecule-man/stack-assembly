@@ -127,7 +127,7 @@ type cpMock struct {
 func (cpm *cpMock) ValidateTemplate(tplBody string) ([]string, error) {
 	return cpm.requiredParams, cpm.validationErr
 }
-func (cpm *cpMock) CreateChangeSet(stackName string, tplBody string, params map[string]string) (string, error) {
+func (cpm *cpMock) CreateChangeSet(stackName string, tplBody string, params, tags map[string]string) (string, error) {
 	cpm.name = stackName
 	cpm.body = tplBody
 	cpm.submittedParams = params

@@ -16,9 +16,10 @@ type logger interface {
 
 // Service orchestrates synchronization of templates
 type Service struct {
-	Approver      approver
-	Log           logger
-	CloudProvider CloudProvider
+	Approver       approver
+	Log            logger
+	CloudProvider  CloudProvider
+	NonInteractive bool
 }
 
 // Sync syncs all the provided templates one by one

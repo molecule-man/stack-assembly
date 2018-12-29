@@ -2,6 +2,7 @@ module github.com/molecule-man/stack-assembly
 
 require (
 	github.com/BurntSushi/toml v0.3.0
+	github.com/DATA-DOG/godog v0.7.8
 	github.com/aws/aws-sdk-go v1.12.33
 	github.com/go-ini/ini v1.28.0 // indirect
 	github.com/gopherjs/gopherjs v0.0.0-20181103185306-d547d1d9531e // indirect

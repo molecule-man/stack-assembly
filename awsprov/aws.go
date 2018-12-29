@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/http"
 	"strconv"
 	"strings"
 	"time"
@@ -36,9 +37,16 @@ func New(c Config) *AwsProvider {
 		Profile: c.Profile,
 	}
 
+	cfg := aws.Config{}
 	if c.Region != "" {
-		opts.Config = aws.Config{Region: aws.String(c.Region)}
+		cfg.Region = aws.String(c.Region)
 	}
+	httpClient := http.Client{
+		Timeout: 2 * time.Second,
+	}
+	cfg.HTTPClient = &httpClient
+
+	opts.Config = cfg
 
 	sess := session.Must(session.NewSessionWithOptions(opts))
 	cf := cloudformation.New(sess)
@@ -177,7 +185,7 @@ func (ap *AwsProvider) StackResources(stackName string) ([]stackassembly.StackRe
 
 // CreateChangeSet creates new change set
 // Returns change set ID
-func (ap *AwsProvider) CreateChangeSet(stackName string, tplBody string, params map[string]string) (string, error) {
+func (ap *AwsProvider) CreateChangeSet(stackName string, tplBody string, params, tags map[string]string) (string, error) {
 	exists, err := ap.StackExists(stackName)
 
 	if err != nil {
@@ -198,12 +206,23 @@ func (ap *AwsProvider) CreateChangeSet(stackName string, tplBody string, params 
 		})
 	}
 
+	awsTags := make([]*cloudformation.Tag, 0, len(tags))
+
+	for k, v := range tags {
+		awsTags = append(awsTags, &cloudformation.Tag{
+			Key:   aws.String(k),
+			Value: aws.String(v),
+		})
+	}
+
 	createOut, err := ap.cf.CreateChangeSet(&cloudformation.CreateChangeSetInput{
 		ChangeSetType: aws.String(operation),
 		ChangeSetName: aws.String("chst-" + strconv.FormatInt(time.Now().UnixNano(), 10)),
 		TemplateBody:  aws.String(tplBody),
 		StackName:     aws.String(stackName),
 		Parameters:    awsParams,
+		Tags:          awsTags,
+		Capabilities:  []*string{aws.String("CAPABILITY_IAM")},
 	})
 
 	if err != nil {
