@@ -15,6 +15,7 @@ Feature: stas sync with templating
                         namesuffix: "{{ .Params.Env }}-{{ .Params.Id }}"
                     tags:
                         STAS_TEST: "%featureid%"
+                        TOPIC_NAME: "{{ .Params.topicprefix }}-{{ .Params.namesuffix }}"
             """
         And file "tpls/stack1.yml" exists:
             """
@@ -30,4 +31,6 @@ Feature: stas sync with templating
             stackStatus: CREATE_COMPLETE
             resources:
                 SNSTopic: stastest-dev-%scenarioid%
+            tags:
+                TOPIC_NAME: stastest-dev-%scenarioid%
             """

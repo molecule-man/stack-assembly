@@ -62,6 +62,15 @@ func NewStack(stackCfg StackConfig, globalParameters map[string]string) (Stack, 
 
 	data.Params = stack.Parameters
 
+	stack.Tags = make(map[string]string, len(stackCfg.Tags))
+	for k, v := range stackCfg.Tags {
+		var parsed string
+		if err := applyTemplating(&parsed, v, data); err != nil {
+			return stack, err
+		}
+		stack.Tags[k] = parsed
+	}
+
 	err := applyTemplating(&stack.Name, stackCfg.Name, data)
 
 	return stack, err

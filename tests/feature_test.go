@@ -156,6 +156,7 @@ func (f *feature) thereShouldBeStackThatMatches(stackName string, expectedConten
 	expectedStackData := struct {
 		StackStatus string
 		Resources   map[string]string
+		Tags        map[string]string
 	}{}
 
 	c := strings.Replace(expectedContent.Content, "%scenarioid%", f.scenarioID, -1)
@@ -168,6 +169,17 @@ func (f *feature) thereShouldBeStackThatMatches(stackName string, expectedConten
 		actualStatus := aws.StringValue(actualStackData.StackStatus)
 		if actualStatus != expectedStackData.StackStatus {
 			return fmt.Errorf("status %s doesn't match status %s of stack %s", expectedStackData.StackStatus, actualStatus, stackName)
+		}
+	}
+	for expectedTagKey, expectedTagValue := range expectedStackData.Tags {
+		actualTagValue := f.tagValue(actualStackData, expectedTagKey)
+
+		if actualTagValue == "" {
+			return fmt.Errorf("tag with key %s is not found in stack %s", expectedTagKey, stackName)
+		}
+
+		if actualTagValue != expectedTagValue {
+			return fmt.Errorf("tag with key %s is expected to have value %s in stack %s. Actual value: %s", expectedTagKey, expectedTagValue, stackName, actualTagValue)
 		}
 	}
 
@@ -189,6 +201,14 @@ func (f *feature) thereShouldBeStackThatMatches(stackName string, expectedConten
 	}
 
 	return nil
+}
+func (f *feature) tagValue(stack *cloudformation.Stack, tagKey string) string {
+	for _, t := range stack.Tags {
+		if aws.StringValue(t.Key) == tagKey {
+			return aws.StringValue(t.Value)
+		}
+	}
+	return ""
 }
 
 func FeatureContext(s *godog.Suite) {
@@ -228,12 +248,10 @@ func FeatureContext(s *godog.Suite) {
 		}
 
 		for _, s := range stacks.Stacks {
-			for _, t := range s.Tags {
-				if aws.StringValue(t.Key) == "STAS_TEST" && aws.StringValue(t.Value) == f.featurID {
-					cf.DeleteStack(&cloudformation.DeleteStackInput{
-						StackName: s.StackName,
-					})
-				}
+			if f.tagValue(s, "STAS_TEST") == f.featurID {
+				cf.DeleteStack(&cloudformation.DeleteStackInput{
+					StackName: s.StackName,
+				})
 			}
 		}
 	})
