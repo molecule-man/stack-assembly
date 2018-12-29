@@ -5,11 +5,14 @@ Feature: stas sync with templating
             parameters:
                 Env: "dev"
                 Id: "%scenarioid%"
+                topicprefix: stastest
 
             stacks:
                 stack1:
-                    name: "stack-tpl-{{ .Params.Env }}-{{ .Params.Id }}"
+                    name: "stack-tpl-{{ .Params.namesuffix }}"
                     path: "tpls/stack1.yml"
+                    parameters:
+                        namesuffix: "{{ .Params.Env }}-{{ .Params.Id }}"
                     tags:
                         STAS_TEST: "%featureid%"
             """
@@ -19,7 +22,7 @@ Feature: stas sync with templating
               SNSTopic:
                 Type: AWS::SNS::Topic
                 Properties:
-                  TopicName: "stastest-{{ .Params.Env }}-{{ .Params.Id }}"
+                  TopicName: "{{ .Params.topicprefix }}-{{ .Params.namesuffix }}"
             """
         When I successfully run "sync -f cfg.yaml --no-interaction"
         Then there should be stack "stack-tpl-dev-%scenarioid%" that matches:
