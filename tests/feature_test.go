@@ -73,8 +73,7 @@ func (f *feature) fileExists(fname string, content *gherkin.DocString) error {
 		return err
 	}
 
-	c := strings.Replace(content.Content, "%scenarioid%", f.scenarioID, -1)
-	c = strings.Replace(c, "%featureid%", f.featurID, -1)
+	c := f.replaceParameters(content.Content)
 
 	return ioutil.WriteFile(fpath, []byte(c), 0700)
 }
@@ -93,7 +92,7 @@ func (f *feature) iSuccessfullyRun(cmd string) error {
 }
 
 func (f *feature) stackShouldHaveStatus(stackName, status string) error {
-	s := strings.Replace(stackName, "%scenarioid%", f.scenarioID, -1)
+	s := f.replaceParameters(stackName)
 	out, err := f.cf.DescribeStacks(&cloudformation.DescribeStacksInput{
 		StackName: aws.String(s),
 	})
@@ -136,14 +135,14 @@ func (f *feature) exitCodeShouldNotBeZero() error {
 }
 
 func (f *feature) outputShouldContain(s *gherkin.DocString) error {
-	if !strings.Contains(f.lastOutput, s.Content) {
+	if !strings.Contains(f.lastOutput, f.replaceParameters(s.Content)) {
 		return fmt.Errorf("output doesn't contain searched string. Output:\n%s", f.lastOutput)
 	}
 	return nil
 }
 
 func (f *feature) thereShouldBeStackThatMatches(stackName string, expectedContent *gherkin.DocString) error {
-	stackName = strings.Replace(stackName, "%scenarioid%", f.scenarioID, -1)
+	stackName = f.replaceParameters(stackName)
 	out, err := f.cf.DescribeStacks(&cloudformation.DescribeStacksInput{
 		StackName: aws.String(stackName),
 	})
@@ -159,7 +158,7 @@ func (f *feature) thereShouldBeStackThatMatches(stackName string, expectedConten
 		Tags        map[string]string
 	}{}
 
-	c := strings.Replace(expectedContent.Content, "%scenarioid%", f.scenarioID, -1)
+	c := f.replaceParameters(expectedContent.Content)
 	err = yaml.Unmarshal([]byte(c), &expectedStackData)
 	if err != nil {
 		return err
@@ -209,6 +208,13 @@ func (f *feature) tagValue(stack *cloudformation.Stack, tagKey string) string {
 		}
 	}
 	return ""
+}
+
+func (f *feature) replaceParameters(s string) string {
+	s = strings.Replace(s, "%scenarioid%", f.scenarioID, -1)
+	s = strings.Replace(s, "%featureid%", f.featurID, -1)
+
+	return s
 }
 
 func FeatureContext(s *godog.Suite) {

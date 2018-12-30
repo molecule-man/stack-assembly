@@ -12,16 +12,27 @@ test:
 testrace:
 	go test -race ./...
 
+run-acctest:
+	go test -tags acceptance -v ./tests
+
 testacc: clean-testcache
 testacc: build
-testacc:
-	go test -tags acceptance -v ./tests
+testacc: run-acctest
+testacc: cleanup
 
 clean-testcache:
 	go clean -testcache ./...
 
 test-nocache: clean-testcache
 test-nocache: test
+
+cleanup:
+	aws cloudformation describe-stacks \
+		| jq '.Stacks[] | select(.Tags[].Key == "STAS_TEST") | .StackId' -r \
+		| xargs -r -l aws cloudformation delete-stack --stack-name
+	aws cloudformation describe-stacks \
+		| jq '.Stacks[] | select(.StackName | startswith("stastest-")) | .StackId' -r \
+		| xargs -r -l aws cloudformation delete-stack --stack-name
 
 exec:
 	go run cmd/*.go sync -f Stack-assembly.toml -f tpls/cfg.toml

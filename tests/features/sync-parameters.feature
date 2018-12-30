@@ -34,5 +34,5 @@ Feature: stas sync with parameters
                 Properties:
                   TopicName: !Ref Topic2
             """
-        When I successfully run "sync -f cfg.yaml --no-interaction"
+        When I successfully run "sync -c cfg.yaml --no-interaction"
         Then stack "stack-param-%scenarioid%" should have status "CREATE_COMPLETE"

@@ -25,7 +25,7 @@ Feature: stas sync with templating
                 Properties:
                   TopicName: "{{ .Params.topicprefix }}-{{ .Params.namesuffix }}"
             """
-        When I successfully run "sync -f cfg.yaml --no-interaction"
+        When I successfully run "sync -c cfg.yaml --no-interaction"
         Then there should be stack "stack-tpl-dev-%scenarioid%" that matches:
             """
             stackStatus: CREATE_COMPLETE

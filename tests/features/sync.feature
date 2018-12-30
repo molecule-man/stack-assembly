@@ -17,5 +17,5 @@ Feature: stas sync
                 Properties:
                   TopicName: synctest-%scenarioid%
             """
-        When I successfully run "sync -f cfg.toml --no-interaction"
+        When I successfully run "sync -c cfg.toml --no-interaction"
         Then stack "stack1-%scenarioid%" should have status "CREATE_COMPLETE"

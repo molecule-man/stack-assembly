@@ -19,7 +19,7 @@ Feature: stas sync block
                 Properties:
                   TopicName: stastest-%scenarioid%
             """
-        When I successfully run "sync -f cfg.toml --no-interaction"
+        When I successfully run "sync -c cfg.toml --no-interaction"
         And I modify file "tpls/stack1.yml":
             """
             Resources:
@@ -28,7 +28,7 @@ Feature: stas sync block
                 Properties:
                   TopicName: stastest-mod-%scenarioid%
             """
-        And I run "sync -f cfg.toml --no-interaction"
+        And I run "sync -c cfg.toml --no-interaction"
         Then exit code should not be zero
         And output should contain:
             """
