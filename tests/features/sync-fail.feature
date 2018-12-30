@@ -1,4 +1,6 @@
 Feature: stas sync failure handling
+
+    @short
     Scenario: sync fails on the stage of change set creation
         Given file "cfg.yaml" exists:
             """

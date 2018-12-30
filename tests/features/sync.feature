@@ -1,4 +1,5 @@
 Feature: stas sync
+    @short
     Scenario: sync single valid template without parameters
         Given file "cfg.toml" exists:
             """

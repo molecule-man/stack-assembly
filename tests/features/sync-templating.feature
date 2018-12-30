@@ -1,4 +1,6 @@
 Feature: stas sync with templating
+
+    @short
     Scenario: sync single valid template with templating
         Given file "cfg.yaml" exists:
             """

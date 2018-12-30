@@ -15,6 +15,9 @@ testrace:
 run-acctest:
 	go test -tags acceptance -v ./tests
 
+run-acctest-short:
+	go test -tags acceptance -v ./tests --godog.tags=short
+
 testacc: clean-testcache
 testacc: build
 testacc: run-acctest
@@ -24,6 +27,11 @@ testaccwip: clean-testcache
 testaccwip: build
 testaccwip:
 	go test -tags acceptance -v ./tests --godog.tags=wip --godog.concurrency=1 --godog.format=pretty
+
+testaccshort: clean-testcache
+testaccshort: build
+testaccshort: run-acctest-short
+testaccshort: cleanup
 
 clean-testcache:
 	go clean -testcache ./...

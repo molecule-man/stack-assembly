@@ -1,5 +1,6 @@
 Feature: stas sync with parameters
 
+    @short
     Scenario: sync single valid template with parameters
         Given file "cfg.yaml" exists:
             """
