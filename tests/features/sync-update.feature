@@ -13,19 +13,19 @@ Feature: stas sync update
         And file "tpls/stack1.yml" exists:
             """
             Resources:
-              SNSTopic1:
-                Type: AWS::SNS::Topic
+              EcsCluster1:
+                Type: AWS::ECS::Cluster
                 Properties:
-                  TopicName: stastest-%scenarioid%
+                  ClusterName: stastest-%scenarioid%
             """
         When I successfully run "sync -c cfg.yaml --no-interaction"
         And I modify file "tpls/stack1.yml":
             """
             Resources:
-              SNSTopic1:
-                Type: AWS::SNS::Topic
+              EcsCluster1:
+                Type: AWS::ECS::Cluster
                 Properties:
-                  TopicName: stastest-mod-%scenarioid%
+                  ClusterName: stastest-mod-%scenarioid%
             """
         And I successfully run "sync -c cfg.yaml --no-interaction"
         Then stack "stastest-up-%scenarioid%" should have status "UPDATE_COMPLETE"

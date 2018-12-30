@@ -8,26 +8,26 @@ Feature: stas sync block
                 name: stastest-block-%scenarioid%
                 path: tpls/stack1.yml
                 blocked:
-                  - SNSTopic1
+                  - EcsCluster1
                 tags:
                   STAS_TEST: '%featureid%'
             """
         And file "tpls/stack1.yml" exists:
             """
             Resources:
-              SNSTopic1:
-                Type: AWS::SNS::Topic
+              EcsCluster1:
+                Type: AWS::ECS::Cluster
                 Properties:
-                  TopicName: stastest-%scenarioid%
+                  ClusterName: stastest-%scenarioid%
             """
         When I successfully run "sync -c cfg.yaml --no-interaction"
         And I modify file "tpls/stack1.yml":
             """
             Resources:
-              SNSTopic1:
-                Type: AWS::SNS::Topic
+              EcsCluster1:
+                Type: AWS::ECS::Cluster
                 Properties:
-                  TopicName: stastest-mod-%scenarioid%
+                  ClusterName: stastest-mod-%scenarioid%
             """
         And I run "sync -c cfg.yaml --no-interaction"
         Then exit code should not be zero
