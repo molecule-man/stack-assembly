@@ -21,9 +21,9 @@ parameters:
 	ds := DiffService{
 		Dp: &dpMock{exists: true, body: oldTplBody},
 	}
-	st := StackConfig{
-		Name: "teststack",
-		Body: newTplBody,
+	st := Stack{
+		Name:    "teststack",
+		rawBody: newTplBody,
 	}
 
 	diff, err := ds.Diff(st)
@@ -48,9 +48,9 @@ parameters:
   param2: val2`
 
 	ds := DiffService{Dp: &dpMock{}}
-	st := StackConfig{
-		Name: "teststack",
-		Body: newTplBody,
+	st := Stack{
+		Name:    "teststack",
+		rawBody: newTplBody,
 	}
 
 	diff, err := ds.Diff(st)

@@ -12,6 +12,7 @@ func RootCmd() *cobra.Command {
 
 	rootCmd.AddCommand(infoCmd())
 	rootCmd.AddCommand(syncCmd())
+	rootCmd.AddCommand(diffCmd())
 
 	return rootCmd
 }

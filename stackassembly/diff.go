@@ -15,31 +15,37 @@ type DiffService struct {
 	Dp detailsProvider
 }
 
-func (ds DiffService) Diff(tpl StackConfig) (string, error) {
+func (ds DiffService) Diff(stack Stack) (string, error) {
+	// TODO diff not only body but also parameters and tags
 	oldBody := ""
 	oldName := "/dev/null"
 
-	exists, err := ds.Dp.StackExists(tpl.Name)
+	exists, err := ds.Dp.StackExists(stack.Name)
 	if err != nil {
 		return "", err
 	}
 
 	if exists {
-		details, err := ds.Dp.StackDetails(tpl.Name)
-		if err != nil {
-			return "", err
+		details, derr := ds.Dp.StackDetails(stack.Name)
+		if derr != nil {
+			return "", derr
 		}
 
 		oldBody = details.Body
-		oldName = "old/" + tpl.Name
+		oldName = "old/" + stack.Name
+	}
+
+	newBody, err := stack.Body()
+	if err != nil {
+		return "", err
 	}
 
 	return difflib.GetUnifiedDiffString(difflib.UnifiedDiff{
 		A:        difflib.SplitLines(strings.TrimSpace(oldBody)),
-		B:        difflib.SplitLines(strings.TrimSpace(tpl.Body)),
+		B:        difflib.SplitLines(strings.TrimSpace(newBody)),
 		FromFile: oldName,
 		FromDate: "",
-		ToFile:   "new/" + tpl.Name,
+		ToFile:   "new/" + stack.Name,
 		ToDate:   "",
 		Context:  5,
 	})
