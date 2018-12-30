@@ -6,13 +6,13 @@ Feature: stas sync with parameters
             """
             parameters:
               Env: dev
-              Topic1: topic1-%scenarioid%
+              Cluster1: cluster1-%scenarioid%
             stacks:
               stack1:
-                name: stack-param-%scenarioid%
+                name: stastest-param-%scenarioid%
                 path: tpls/stack1.yml
                 parameters:
-                  Topic2: topic2-%scenarioid%
+                  Cluster2: cluster2-%scenarioid%
                 tags:
                   STAS_TEST: '%featureid%'
             """
@@ -21,19 +21,19 @@ Feature: stas sync with parameters
             Parameters:
               Env:
                 Type: String
-              Topic1:
+              Cluster1:
                 Type: String
-              Topic2:
+              Cluster2:
                 Type: String
             Resources:
-              SNSTopic1:
-                Type: AWS::SNS::Topic
+              EcsCluster1:
+                Type: AWS::ECS::Cluster
                 Properties:
-                  TopicName: !Sub "${Topic1}-${Env}"
-              SNSTopic2:
-                Type: AWS::SNS::Topic
+                  ClusterName: !Sub "${Cluster1}-${Env}"
+              EcsCluster2:
+                Type: AWS::ECS::Cluster
                 Properties:
-                  TopicName: !Ref Topic2
+                  ClusterName: !Ref Cluster2
             """
         When I successfully run "sync -c cfg.yaml --no-interaction"
-        Then stack "stack-param-%scenarioid%" should have status "CREATE_COMPLETE"
+        Then stack "stastest-param-%scenarioid%" should have status "CREATE_COMPLETE"

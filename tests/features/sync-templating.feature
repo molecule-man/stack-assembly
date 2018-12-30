@@ -7,7 +7,7 @@ Feature: stas sync with templating
             parameters:
                 Env: "dev"
                 Id: "%scenarioid%"
-                topicprefix: stastest
+                nameprefix: stastest
 
             stacks:
                 stack1:
@@ -17,22 +17,22 @@ Feature: stas sync with templating
                         namesuffix: "{{ .Params.Env }}-{{ .Params.Id }}"
                     tags:
                         STAS_TEST: "%featureid%"
-                        TOPIC_NAME: "{{ .Params.topicprefix }}-{{ .Params.namesuffix }}"
+                        NAME: "{{ .Params.nameprefix }}-{{ .Params.namesuffix }}"
             """
         And file "tpls/stack1.yml" exists:
             """
             Resources:
-              SNSTopic:
-                Type: AWS::SNS::Topic
-                Properties:
-                  TopicName: "{{ .Params.topicprefix }}-{{ .Params.namesuffix }}"
+                Cluster:
+                    Type: AWS::ECS::Cluster
+                    Properties:
+                        ClusterName: "{{ .Params.nameprefix }}-{{ .Params.namesuffix }}"
             """
         When I successfully run "sync -c cfg.yaml --no-interaction"
         Then there should be stack "stack-tpl-dev-%scenarioid%" that matches:
             """
             stackStatus: CREATE_COMPLETE
             resources:
-                SNSTopic: stastest-dev-%scenarioid%
+                Cluster: stastest-dev-%scenarioid%
             tags:
-                TOPIC_NAME: stastest-dev-%scenarioid%
+                NAME: stastest-dev-%scenarioid%
             """
