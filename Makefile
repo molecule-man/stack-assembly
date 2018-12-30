@@ -13,25 +13,18 @@ testrace:
 	go test -race ./...
 
 run-acctest:
-	go test -tags acceptance -v ./tests
-
-run-acctest-short:
-	go test -tags acceptance -v ./tests --godog.tags=short
+	go test -tags acceptance -v ./tests $(GODOG_ARGS)
 
 testacc: clean-testcache
 testacc: build
 testacc: run-acctest
 testacc: cleanup
 
-testaccwip: clean-testcache
-testaccwip: build
-testaccwip:
-	go test -tags acceptance -v ./tests --godog.tags=wip --godog.concurrency=1 --godog.format=pretty
+testaccwip: GODOG_ARGS = --godog.tags=wip --godog.concurrency=1 --godog.format=pretty
+testaccwip: testacc
 
-testaccshort: clean-testcache
-testaccshort: build
-testaccshort: run-acctest-short
-testaccshort: cleanup
+testaccshort: GODOG_ARGS = --godog.tags=short
+testaccshort: testacc
 
 clean-testcache:
 	go clean -testcache ./...
