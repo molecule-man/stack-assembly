@@ -3,11 +3,10 @@ module github.com/molecule-man/stack-assembly
 require (
 	github.com/BurntSushi/toml v0.3.0
 	github.com/DATA-DOG/godog v0.7.8
-	github.com/aws/aws-sdk-go v1.12.33
+	github.com/aws/aws-sdk-go v1.16.11
 	github.com/go-ini/ini v1.28.0 // indirect
 	github.com/gopherjs/gopherjs v0.0.0-20181103185306-d547d1d9531e // indirect
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
-	github.com/jmespath/go-jmespath v0.0.0-20160202185014-0b12d6b521d8 // indirect
 	github.com/jtolds/gls v4.2.1+incompatible // indirect
 	github.com/kr/pretty v0.1.0 // indirect
 	github.com/mitchellh/go-homedir v0.0.0-20180523094522-3864e76763d9 // indirect
