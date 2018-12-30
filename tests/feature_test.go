@@ -141,6 +141,13 @@ func (f *feature) outputShouldContain(s *gherkin.DocString) error {
 	return nil
 }
 
+func (f *feature) outputShouldBeExactly(s *gherkin.DocString) error {
+	if strings.TrimSpace(f.lastOutput) != strings.TrimSpace(f.replaceParameters(s.Content)) {
+		return fmt.Errorf("output isn't equal to expected string. Output:\n%s", f.lastOutput)
+	}
+	return nil
+}
+
 func (f *feature) thereShouldBeStackThatMatches(stackName string, expectedContent *gherkin.DocString) error {
 	stackName = f.replaceParameters(stackName)
 	out, err := f.cf.DescribeStacks(&cloudformation.DescribeStacksInput{
@@ -201,6 +208,7 @@ func (f *feature) thereShouldBeStackThatMatches(stackName string, expectedConten
 
 	return nil
 }
+
 func (f *feature) tagValue(stack *cloudformation.Stack, tagKey string) string {
 	for _, t := range stack.Tags {
 		if aws.StringValue(t.Key) == tagKey {
@@ -233,6 +241,7 @@ func FeatureContext(s *godog.Suite) {
 	s.Step(`^I run "([^"]*)"$`, f.iRun)
 	s.Step(`^exit code should not be zero$`, f.exitCodeShouldNotBeZero)
 	s.Step(`^output should contain:$`, f.outputShouldContain)
+	s.Step(`^output should be exactly:$`, f.outputShouldBeExactly)
 	s.Step(`^there should be stack "([^"]*)" that matches:$`, f.thereShouldBeStackThatMatches)
 
 	s.BeforeScenario(func(interface{}) {

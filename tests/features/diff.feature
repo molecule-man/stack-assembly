@@ -1,13 +1,17 @@
 Feature: stas diff
 
-    @wip
-    Scenario: diff
+    Scenario: diff two stacks one of which is changed
         Given file "cfg.yaml" exists:
             """
             stacks:
               stack1:
                 name: stastest-diff1-%scenarioid%
                 path: tpls/stack1.yml
+                tags:
+                  STAS_TEST: '%featureid%'
+              stack2:
+                name: stastest-diff2-%scenarioid%
+                path: tpls/stack2.yml
                 tags:
                   STAS_TEST: '%featureid%'
             """
@@ -19,6 +23,14 @@ Feature: stas diff
                 Properties:
                   ClusterName: stastest1-%scenarioid%
             """
+        And file "tpls/stack2.yml" exists:
+            """
+            Resources:
+              EcsCluster:
+                Type: AWS::ECS::Cluster
+                Properties:
+                  ClusterName: stastest2-%scenarioid%
+            """
         And I successfully run "sync -c cfg.yaml --no-interaction"
         When I modify file "tpls/stack1.yml":
             """
@@ -29,7 +41,7 @@ Feature: stas diff
                   ClusterName: stastest1-mod-%scenarioid%
             """
         And I successfully run "diff -c cfg.yaml"
-        Then output should contain:
+        Then output should be exactly:
             """
             --- old/stastest-diff1-%scenarioid%
             +++ new/stastest-diff1-%scenarioid%

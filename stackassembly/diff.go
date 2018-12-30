@@ -6,9 +6,12 @@ import (
 	"github.com/pmezard/go-difflib/difflib"
 )
 
+const defaultDiffName = "/dev/null"
+
 type detailsProvider interface {
 	StackDetails(stackName string) (StackDetails, error)
 	StackExists(stackName string) (bool, error)
+	ValidateTemplate(tplBody string) ([]string, error)
 }
 
 type DiffService struct {
@@ -17,20 +20,55 @@ type DiffService struct {
 
 func (ds DiffService) Diff(stack Stack) (string, error) {
 	// TODO diff not only body but also parameters and tags
-	oldBody := ""
-	oldName := "/dev/null"
 
 	exists, err := ds.Dp.StackExists(stack.Name)
 	if err != nil {
 		return "", err
 	}
 
+	var details *StackDetails
 	if exists {
-		details, derr := ds.Dp.StackDetails(stack.Name)
+		d, derr := ds.Dp.StackDetails(stack.Name)
 		if derr != nil {
 			return "", derr
 		}
+		details = &d
+	}
 
+	diffs := []string{}
+
+	paramsDiff, err := ds.diffParameters(details, stack)
+	if err != nil {
+		return "", err
+	}
+	if len(paramsDiff) > 0 {
+		diffs = append(diffs, paramsDiff)
+	}
+
+	tagsDiff, err := ds.diffTags(details, stack)
+	if err != nil {
+		return "", err
+	}
+	if len(tagsDiff) > 0 {
+		diffs = append(diffs, tagsDiff)
+	}
+
+	bodyDiff, err := ds.diffBody(details, stack)
+	if err != nil {
+		return "", err
+	}
+	if len(bodyDiff) > 0 {
+		diffs = append(diffs, bodyDiff)
+	}
+
+	return strings.Join(diffs, "\n"), nil
+}
+
+func (ds DiffService) diffBody(details *StackDetails, stack Stack) (string, error) {
+	oldBody := ""
+	oldName := defaultDiffName
+
+	if details != nil {
 		oldBody = details.Body
 		oldName = "old/" + stack.Name
 	}
@@ -46,6 +84,86 @@ func (ds DiffService) Diff(stack Stack) (string, error) {
 		FromFile: oldName,
 		FromDate: "",
 		ToFile:   "new/" + stack.Name,
+		ToDate:   "",
+		Context:  5,
+	})
+}
+
+func (ds DiffService) diffParameters(details *StackDetails, stack Stack) (string, error) {
+	if (details == nil || len(details.Parameters) == 0) && len(stack.Parameters) == 0 {
+		return "", nil
+	}
+
+	body, err := stack.Body()
+	if err != nil {
+		return "", err
+	}
+
+	requiredParams, err := ds.Dp.ValidateTemplate(body)
+	if err != nil {
+		return "", err
+	}
+
+	newParams := make([]string, 0, len(requiredParams))
+
+	for _, p := range requiredParams {
+		if v, ok := stack.Parameters[p]; ok {
+			newParams = append(newParams, p+": "+v+"\n")
+		}
+	}
+
+	oldName := defaultDiffName
+	oldParams := []string{}
+
+	if details != nil {
+		oldName = "old-parameters/" + stack.Name
+		oldParams = make([]string, 0, len(details.Parameters))
+
+		for _, p := range details.Parameters {
+			oldParams = append(oldParams, p.Key+": "+p.Val+"\n")
+		}
+	}
+
+	return difflib.GetUnifiedDiffString(difflib.UnifiedDiff{
+		A:        oldParams,
+		B:        newParams,
+		FromFile: oldName,
+		FromDate: "",
+		ToFile:   "new-parameters/" + stack.Name,
+		ToDate:   "",
+		Context:  5,
+	})
+}
+
+func (ds DiffService) diffTags(details *StackDetails, stack Stack) (string, error) {
+	if (details == nil || len(details.Tags) == 0) && len(stack.Tags) == 0 {
+		return "", nil
+	}
+
+	newTags := make([]string, 0, len(stack.Tags))
+
+	for k, v := range stack.Tags {
+		newTags = append(newTags, k+": "+v+"\n")
+	}
+
+	oldName := defaultDiffName
+	oldTags := []string{}
+
+	if details != nil {
+		oldName = "old-tags/" + stack.Name
+		oldTags = make([]string, 0, len(details.Tags))
+
+		for _, t := range details.Tags {
+			oldTags = append(oldTags, t.Key+": "+t.Val+"\n")
+		}
+	}
+
+	return difflib.GetUnifiedDiffString(difflib.UnifiedDiff{
+		A:        oldTags,
+		B:        newTags,
+		FromFile: oldName,
+		FromDate: "",
+		ToFile:   "new-tags/" + stack.Name,
 		ToDate:   "",
 		Context:  5,
 	})

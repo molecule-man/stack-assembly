@@ -112,6 +112,31 @@ func (ap *AwsProvider) StackDetails(stackName string) (stackassembly.StackDetail
 
 	details.Body = *tpl.TemplateBody
 
+	out, err := ap.cf.DescribeStacks(&cloudformation.DescribeStacksInput{
+		StackName: aws.String(stackName),
+	})
+	if err != nil {
+		return details, err
+	}
+
+	details.Parameters = make([]stackassembly.KeyVal, 0, len(out.Stacks[0].Parameters))
+
+	for _, p := range out.Stacks[0].Parameters {
+		details.Parameters = append(details.Parameters, stackassembly.KeyVal{
+			Key: aws.StringValue(p.ParameterKey),
+			Val: aws.StringValue(p.ParameterValue),
+		})
+	}
+
+	details.Tags = make([]stackassembly.KeyVal, 0, len(out.Stacks[0].Tags))
+
+	for _, t := range out.Stacks[0].Tags {
+		details.Tags = append(details.Tags, stackassembly.KeyVal{
+			Key: aws.StringValue(t.Key),
+			Val: aws.StringValue(t.Value),
+		})
+	}
+
 	return details, nil
 }
 

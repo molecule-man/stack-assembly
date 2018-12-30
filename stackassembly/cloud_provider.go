@@ -56,7 +56,14 @@ type StackResource struct {
 }
 
 type StackDetails struct {
-	Body string
+	Body       string
+	Parameters []KeyVal
+	Tags       []KeyVal
+}
+
+type KeyVal struct {
+	Key string
+	Val string
 }
 
 //ErrNoChange is error that indicate that there are no changes to apply

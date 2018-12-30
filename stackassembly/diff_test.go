@@ -81,3 +81,7 @@ func (dpm *dpMock) StackDetails(name string) (StackDetails, error) {
 func (dpm *dpMock) StackExists(name string) (bool, error) {
 	return dpm.exists, dpm.err
 }
+
+func (dpm *dpMock) ValidateTemplate(tplBody string) ([]string, error) {
+	return []string{}, nil
+}
