@@ -20,6 +20,11 @@ testacc: build
 testacc: run-acctest
 testacc: cleanup
 
+testaccwip: clean-testcache
+testaccwip: build
+testaccwip:
+	go test -tags acceptance -v ./tests --godog.tags=wip --godog.concurrency=1 --godog.format=pretty
+
 clean-testcache:
 	go clean -testcache ./...
 
