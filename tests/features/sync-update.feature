@@ -1,14 +1,12 @@
-Feature: stas sync block
+Feature: stas sync update
 
-    Scenario: sync should fail when blocked resource is modified
+    Scenario: sync create and then update
         Given file "cfg.yaml" exists:
             """
             stacks:
               stack1:
-                name: stastest-block-%scenarioid%
+                name: stastest-up-%scenarioid%
                 path: tpls/stack1.yml
-                blocked:
-                  - SNSTopic1
                 tags:
                   STAS_TEST: '%featureid%'
             """
@@ -29,10 +27,5 @@ Feature: stas sync block
                 Properties:
                   TopicName: stastest-mod-%scenarioid%
             """
-        And I run "sync -c cfg.yaml --no-interaction"
-        Then exit code should not be zero
-        And output should contain:
-            """
-            does not allow [Update:Replace, Update:Delete]
-            """
-        And stack "stastest-block-%scenarioid%" should have status "UPDATE_ROLLBACK_COMPLETE"
+        And I successfully run "sync -c cfg.yaml --no-interaction"
+        Then stack "stastest-up-%scenarioid%" should have status "UPDATE_COMPLETE"
