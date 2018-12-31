@@ -3,14 +3,12 @@ package conf
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
 	"strings"
 
 	"github.com/BurntSushi/toml"
 	"github.com/molecule-man/stack-assembly/awsprov"
-	"github.com/molecule-man/stack-assembly/cli"
 	"github.com/molecule-man/stack-assembly/stackassembly"
 	yaml "gopkg.in/yaml.v2"
 )
@@ -76,14 +74,6 @@ func Aws(cfg stackassembly.Config) *awsprov.AwsProvider {
 	}
 
 	return awsprov.New(awsConfig)
-}
-
-func InitStasService(cfg stackassembly.Config, nonInteractive bool) stackassembly.Service {
-	return stackassembly.Service{
-		Approver:      &cli.Approval{NonInteractive: nonInteractive},
-		Log:           log.New(os.Stderr, "", log.LstdFlags),
-		CloudProvider: Aws(cfg),
-	}
 }
 
 func LoadConfig(cfgFiles []string) (stackassembly.Config, error) {

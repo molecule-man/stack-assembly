@@ -1,6 +1,5 @@
 Feature: stas sync
-    @short
-    Scenario: sync single valid template without parameters
+    Background:
         Given file "cfg.yaml" exists:
             """
             stacks:
@@ -19,5 +18,17 @@ Feature: stas sync
                     Properties:
                         ClusterName: stastest-%scenarioid%
             """
+
+    @short
+    Scenario: sync single valid template without parameters
         When I successfully run "sync -c cfg.yaml --no-interaction"
         Then stack "stastest-%scenarioid%" should have status "CREATE_COMPLETE"
+
+    @short
+    Scenario: sync stack with no changes
+        Given I successfully run "sync -c cfg.yaml --no-interaction"
+        When I successfully run "sync -c cfg.yaml"
+        Then output should contain:
+            """
+            No changes to be synced
+            """

@@ -99,7 +99,7 @@ func applyTemplating(parsed *string, tpl string, data interface{}) error {
 	return nil
 }
 
-func sortedByExecOrder(cfg Config) ([]Stack, error) {
+func StacksSortedByExecOrder(cfg Config) ([]Stack, error) {
 	dg := depgraph.DepGraph{}
 
 	stacksMap := make(map[string]Stack, len(cfg.Stacks))

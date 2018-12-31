@@ -1,8 +1,15 @@
 package commands
 
 import (
+	"bufio"
+	"errors"
+	"fmt"
 	"io/ioutil"
+	"log"
+	"os"
+	"strings"
 
+	"github.com/molecule-man/stack-assembly/cli"
 	"github.com/molecule-man/stack-assembly/cmd/conf"
 	"github.com/molecule-man/stack-assembly/stackassembly"
 	"github.com/spf13/cobra"
@@ -49,7 +56,7 @@ func execSyncOneTpl(stackName, tpl string, nonInteractive bool) {
 }
 
 func sync(cfg stackassembly.Config, nonInteractive bool) {
-	serv := conf.InitStasService(cfg, nonInteractive)
+	aws := conf.Aws(cfg)
 
 	for i, stack := range cfg.Stacks {
 		tplBody, err := ioutil.ReadFile(stack.Path)
@@ -59,6 +66,88 @@ func sync(cfg stackassembly.Config, nonInteractive bool) {
 		cfg.Stacks[i] = stack
 	}
 
-	err := serv.Sync(cfg)
+	ordered, err := stackassembly.StacksSortedByExecOrder(cfg)
 	handleError(err)
+
+	logger := log.New(os.Stderr, "", log.LstdFlags)
+
+	for _, stack := range ordered {
+		stack := stack // pin
+		print := func(msg string, args ...interface{}) {
+			logger.Print(fmt.Sprintf(fmt.Sprintf("[%s] %s", stack.Name, msg), args...))
+		}
+
+		print("Syncing template")
+
+		chSet, err := stackassembly.New(aws, stack,
+			stackassembly.WithEventSubscriber(func(e stackassembly.StackEvent) {
+				print("[%s] [%s] [%s] %s", e.ResourceType, e.Status, e.LogicalResourceID, e.StatusReason)
+			}),
+		)
+
+		if err == stackassembly.ErrNoChange {
+			print("No changes to be synced")
+		} else {
+			handleError(err)
+
+			print("Change set is created: %s", chSet.ID)
+
+			showChanges(chSet.Changes)
+
+			if !nonInteractive && !askConfirmation() {
+				handleError(errors.New("sync is cancelled"))
+			}
+
+			err = chSet.Exec()
+			handleError(err)
+
+			print("Sync is finished")
+		}
+
+		for _, r := range stack.Blocked {
+			print("Blocking resource %s", r)
+			err := aws.BlockResource(stack.Name, r)
+
+			handleError(err)
+		}
+	}
+}
+
+func showChanges(changes []stackassembly.Change) {
+	if len(changes) > 0 {
+		t := cli.NewTable()
+		t.Header().Cell("Action").Cell("ResourceType").Cell("Resource ID").Cell("Replacement needed")
+
+		for _, c := range changes {
+			t.Row().
+				Cell(c.Action).
+				Cell(c.ResourceType).
+				Cell(c.LogicalResourceID).
+				Cell(fmt.Sprintf("%t", c.ReplacementNeeded))
+		}
+
+		fmt.Println(t.Render())
+	}
+}
+
+func askConfirmation() bool {
+	fmt.Print("Continue? [Y/n] ")
+
+	reader := bufio.NewReader(os.Stdin)
+	response, err := reader.ReadString('\n')
+
+	if err != nil {
+		log.Fatalf("Reading user input failed with err: %v", err)
+	}
+
+	response = strings.Trim(response, " \n")
+
+	for _, okayResponse := range []string{"", "y", "Y", "yes", "Yes", "YES"} {
+		if response == okayResponse {
+			return true
+		}
+	}
+
+	fmt.Println("Interrupted by user")
+	return false
 }
