@@ -5,11 +5,14 @@ require (
 	github.com/DATA-DOG/godog v0.7.8
 	github.com/Netflix/go-expect v0.0.0-20180928190340-9d1f4485533b
 	github.com/aws/aws-sdk-go v1.16.11
+	github.com/fatih/color v1.7.0
 	github.com/go-ini/ini v1.28.0 // indirect
 	github.com/gopherjs/gopherjs v0.0.0-20181103185306-d547d1d9531e // indirect
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
 	github.com/jtolds/gls v4.2.1+incompatible // indirect
 	github.com/kr/pretty v0.1.0 // indirect
+	github.com/mattn/go-colorable v0.0.9 // indirect
+	github.com/mattn/go-isatty v0.0.4 // indirect
 	github.com/mitchellh/go-homedir v0.0.0-20180523094522-3864e76763d9 // indirect
 	github.com/pmezard/go-difflib v1.0.0
 	github.com/smartystreets/assertions v0.0.0-20180927180507-b2de0cb4f26d // indirect

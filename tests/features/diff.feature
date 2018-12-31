@@ -1,5 +1,6 @@
 Feature: stas diff
 
+    @short
     Scenario: diff two stacks one of which is changed
         Given file "cfg.yaml" exists:
             """
@@ -40,7 +41,7 @@ Feature: stas diff
                 Properties:
                   ClusterName: stastest1-mod-%scenarioid%
             """
-        And I successfully run "diff -c cfg.yaml"
+        And I successfully run "diff -c cfg.yaml --nocolor"
         Then output should be exactly:
             """
             --- old/stastest-diff1-%scenarioid%

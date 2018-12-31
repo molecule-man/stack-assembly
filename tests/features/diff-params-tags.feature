@@ -39,7 +39,7 @@ Feature: stas diff tags and parameters
                   STAS_TEST: "%featureid%"
                   NEW_TAG: "newtag"
             """
-        And I successfully run "diff -c cfg.yaml"
+        And I successfully run "diff -c cfg.yaml --nocolor"
         Then output should be exactly:
             """
             --- old-parameters/stastest-diff1-%scenarioid%

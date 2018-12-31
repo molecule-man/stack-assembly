@@ -4,6 +4,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/fatih/color"
 	"github.com/pmezard/go-difflib/difflib"
 )
 
@@ -41,7 +42,7 @@ func (ds DiffService) Diff(stack Stack) (string, error) {
 		return "", err
 	}
 	if len(paramsDiff) > 0 {
-		diffs = append(diffs, paramsDiff)
+		diffs = append(diffs, colorizeDiff(paramsDiff))
 	}
 
 	tagsDiff, err := ds.diffTags(details, stack)
@@ -49,7 +50,7 @@ func (ds DiffService) Diff(stack Stack) (string, error) {
 		return "", err
 	}
 	if len(tagsDiff) > 0 {
-		diffs = append(diffs, tagsDiff)
+		diffs = append(diffs, colorizeDiff(tagsDiff))
 	}
 
 	bodyDiff, err := ds.diffBody(details, stack)
@@ -57,7 +58,7 @@ func (ds DiffService) Diff(stack Stack) (string, error) {
 		return "", err
 	}
 	if len(bodyDiff) > 0 {
-		diffs = append(diffs, bodyDiff)
+		diffs = append(diffs, colorizeDiff(bodyDiff))
 	}
 
 	return strings.Join(diffs, "\n"), nil
@@ -86,6 +87,30 @@ func (ds DiffService) diffBody(details *StackDetails, stack Stack) (string, erro
 		ToDate:   "",
 		Context:  5,
 	})
+}
+
+func colorizeDiff(diff string) string {
+	if color.NoColor {
+		return diff
+	}
+
+	colorized := strings.Split(diff, "\n")
+
+	for i, line := range colorized {
+		switch {
+		case strings.HasPrefix(line, "+++"), strings.HasPrefix(line, "---"):
+			colorized[i] = color.YellowString(line)
+		case strings.HasPrefix(line, "@@"):
+			colorized[i] = color.CyanString(line)
+		case strings.HasPrefix(line, "+"):
+			colorized[i] = color.GreenString(line)
+		case strings.HasPrefix(line, "-"):
+			colorized[i] = color.RedString(line)
+		}
+
+	}
+
+	return strings.Join(colorized, "\n")
 }
 
 func (ds DiffService) diffParameters(details *StackDetails, stack Stack) (string, error) {
