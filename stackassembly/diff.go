@@ -98,6 +98,7 @@ func (ds DiffService) diffParameters(details *StackDetails, stack Stack) (string
 		return "", err
 	}
 
+	// TODO it looks strange to use ValidateTemplate only to get parameters
 	requiredParams, err := ds.Dp.ValidateTemplate(body)
 	if err != nil {
 		return "", err

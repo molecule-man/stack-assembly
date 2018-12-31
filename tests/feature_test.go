@@ -19,6 +19,7 @@ import (
 	"github.com/DATA-DOG/godog"
 	"github.com/DATA-DOG/godog/colors"
 	"github.com/DATA-DOG/godog/gherkin"
+	expect "github.com/Netflix/go-expect"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
@@ -60,6 +61,9 @@ type feature struct {
 
 	lastOutput string
 	lastErr    error
+
+	console *expect.Console
+	lastCmd *exec.Cmd
 
 	cf *cloudformation.CloudFormation
 }
@@ -209,6 +213,67 @@ func (f *feature) thereShouldBeStackThatMatches(stackName string, expectedConten
 	return nil
 }
 
+func (f *feature) iLaunched(cmdInstruction string) error {
+	c, err := expect.NewConsole(expect.WithDefaultTimeout(15 * time.Second))
+	if err != nil {
+		return err
+	}
+
+	bin, err := filepath.Abs("../bin/stas")
+	if err != nil {
+		return err
+	}
+
+	cmd := exec.Command(bin, strings.Split(cmdInstruction, " ")...)
+	cmd.Dir = f.testDir
+
+	cmd.Stdin = c.Tty()
+	cmd.Stdout = c.Tty()
+	cmd.Stderr = c.Tty()
+
+	// go func() {
+	// 	c.ExpectEOF()
+	// }()
+
+	err = cmd.Start()
+	if err != nil {
+		return err
+	}
+
+	f.lastCmd = cmd
+	f.console = c
+
+	return nil
+}
+
+func (f *feature) terminalShows(s *gherkin.DocString) error {
+	o, err := f.console.ExpectString(s.Content)
+	if err != nil {
+		return fmt.Errorf("error: %v, output:\n%s", err, o)
+	}
+
+	return nil
+}
+
+func (f *feature) iEnter(s string) error {
+	_, err := f.console.SendLine(s)
+	return err
+}
+
+func (f *feature) launchedProgramShouldExitWithZeroStatus() error {
+	defer f.console.Close()
+	return f.lastCmd.Wait()
+}
+
+func (f *feature) launchedProgramShouldExitWithNonZeroStatus() error {
+	defer f.console.Close()
+	err := f.lastCmd.Wait()
+	if err == nil {
+		return errors.New("program returned zero exit code")
+	}
+	return nil
+}
+
 func (f *feature) tagValue(stack *cloudformation.Stack, tagKey string) string {
 	for _, t := range stack.Tags {
 		if aws.StringValue(t.Key) == tagKey {
@@ -243,6 +308,11 @@ func FeatureContext(s *godog.Suite) {
 	s.Step(`^output should contain:$`, f.outputShouldContain)
 	s.Step(`^output should be exactly:$`, f.outputShouldBeExactly)
 	s.Step(`^there should be stack "([^"]*)" that matches:$`, f.thereShouldBeStackThatMatches)
+	s.Step(`^I launched "([^"]*)"$`, f.iLaunched)
+	s.Step(`^terminal shows:$`, f.terminalShows)
+	s.Step(`^I enter "([^"]*)"$`, f.iEnter)
+	s.Step(`^launched program should exit with zero status$`, f.launchedProgramShouldExitWithZeroStatus)
+	s.Step(`^launched program should exit with non zero status$`, f.launchedProgramShouldExitWithNonZeroStatus)
 
 	s.BeforeScenario(func(interface{}) {
 		f.scenarioID = strconv.FormatInt(rand.Int63(), 10)

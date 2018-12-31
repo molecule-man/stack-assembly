@@ -41,10 +41,10 @@ cleanup:
 		| xargs -r -l aws cloudformation delete-stack --stack-name
 
 exec:
-	go run cmd/*.go sync -f Stack-assembly.toml -f tpls/cfg.toml
+	go run cmd/*.go sync -c Stack-assembly.toml -c tpls/cfg.toml
 
 info:
-	go run cmd/*.go info -f Stack-assembly.toml -f tpls/cfg.toml
+	go run cmd/*.go info -c Stack-assembly.toml -c tpls/cfg.toml
 
 lint:
 	golangci-lint run
