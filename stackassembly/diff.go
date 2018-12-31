@@ -1,6 +1,7 @@
 package stackassembly
 
 import (
+	"sort"
 	"strings"
 
 	"github.com/pmezard/go-difflib/difflib"
@@ -19,8 +20,6 @@ type DiffService struct {
 }
 
 func (ds DiffService) Diff(stack Stack) (string, error) {
-	// TODO diff not only body but also parameters and tags
-
 	exists, err := ds.Dp.StackExists(stack.Name)
 	if err != nil {
 		return "", err
@@ -157,6 +156,9 @@ func (ds DiffService) diffTags(details *StackDetails, stack Stack) (string, erro
 			oldTags = append(oldTags, t.Key+": "+t.Val+"\n")
 		}
 	}
+
+	sort.Strings(oldTags)
+	sort.Strings(newTags)
 
 	return difflib.GetUnifiedDiffString(difflib.UnifiedDiff{
 		A:        oldTags,

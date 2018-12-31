@@ -1,6 +1,6 @@
 Feature: stas diff tags and parameters
 
-    @short
+    @short @wip
     Scenario: diff stack where body, parameters and tags are changed
         Given file "cfg.yaml" exists:
             """
@@ -36,6 +36,7 @@ Feature: stas diff tags and parameters
                   env: prod
                   nameprefix: stastest-mod
                 tags:
+                  STAS_TEST: "%featureid%"
                   NEW_TAG: "newtag"
             """
         And I successfully run "diff -c cfg.yaml"
@@ -49,9 +50,9 @@ Feature: stas diff tags and parameters
 
             --- old-tags/stastest-diff1-%scenarioid%
             +++ new-tags/stastest-diff1-%scenarioid%
-            @@ -1 +1 @@
-            -STAS_TEST: %featureid%
+            @@ -1 +1,2 @@
             +NEW_TAG: newtag
+             STAS_TEST: %featureid%
 
             --- old/stastest-diff1-%scenarioid%
             +++ new/stastest-diff1-%scenarioid%
