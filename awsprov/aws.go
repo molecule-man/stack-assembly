@@ -353,14 +353,14 @@ func (ap *AwsProvider) WaitStack(stackName string) error {
 	go func() {
 		c <- ap.cf.WaitUntilStackUpdateCompleteWithContext(ctx, &stackInput, func(w *request.Waiter) {
 			w.MaxAttempts = 900
-			w.Delay = request.ConstantWaiterDelay(4 * time.Second)
+			w.Delay = request.ConstantWaiterDelay(5 * time.Second)
 		})
 	}()
 
 	go func() {
 		c <- ap.cf.WaitUntilStackCreateCompleteWithContext(ctx, &stackInput, func(w *request.Waiter) {
 			w.MaxAttempts = 900
-			w.Delay = request.ConstantWaiterDelay(4 * time.Second)
+			w.Delay = request.ConstantWaiterDelay(5 * time.Second)
 		})
 	}()
 

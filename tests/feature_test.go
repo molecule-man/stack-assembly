@@ -3,6 +3,7 @@
 package tests
 
 import (
+	"context"
 	"errors"
 	"flag"
 	"fmt"
@@ -64,6 +65,7 @@ type feature struct {
 
 	console *expect.Console
 	lastCmd *exec.Cmd
+	cancel  context.CancelFunc
 
 	cf *cloudformation.CloudFormation
 }
@@ -224,16 +226,14 @@ func (f *feature) iLaunched(cmdInstruction string) error {
 		return err
 	}
 
-	cmd := exec.Command(bin, strings.Split(cmdInstruction, " ")...)
+	ctx, cancel := context.WithTimeout(context.Background(), 25*time.Second)
+	f.cancel = cancel
+	cmd := exec.CommandContext(ctx, bin, strings.Split(cmdInstruction, " ")...)
 	cmd.Dir = f.testDir
 
 	cmd.Stdin = c.Tty()
 	cmd.Stdout = c.Tty()
 	cmd.Stderr = c.Tty()
-
-	// go func() {
-	// 	c.ExpectEOF()
-	// }()
 
 	err = cmd.Start()
 	if err != nil {
@@ -247,9 +247,12 @@ func (f *feature) iLaunched(cmdInstruction string) error {
 }
 
 func (f *feature) terminalShows(s *gherkin.DocString) error {
-	o, err := f.console.ExpectString(s.Content)
-	if err != nil {
-		return fmt.Errorf("error: %v, output:\n%s", err, o)
+	lines := strings.Split(f.replaceParameters(s.Content), "\n")
+	for _, l := range lines {
+		o, err := f.console.ExpectString(l)
+		if err != nil {
+			return fmt.Errorf("error: %v, output:\n%s", err, o)
+		}
 	}
 
 	return nil
@@ -262,11 +265,13 @@ func (f *feature) iEnter(s string) error {
 
 func (f *feature) launchedProgramShouldExitWithZeroStatus() error {
 	defer f.console.Close()
+	defer f.cancel()
 	return f.lastCmd.Wait()
 }
 
 func (f *feature) launchedProgramShouldExitWithNonZeroStatus() error {
 	defer f.console.Close()
+	defer f.cancel()
 	err := f.lastCmd.Wait()
 	if err == nil {
 		return errors.New("program returned zero exit code")

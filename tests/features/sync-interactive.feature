@@ -19,23 +19,29 @@ Feature: stas sync in interactive mode
                         ClusterName: stastest-%scenarioid%
             """
 
+    @short
     Scenario: confirm syncing
         Given I launched "sync -c cfg.yaml"
         And terminal shows:
             """
-            Continue? [Y/n]
+            *** Commands ***
+              [s]ync
+              [d]iff
+              [q]uit
+            What now>
             """
-        When I enter "y"
+        When I enter "s"
         Then launched program should exit with zero status
         And stack "stastest-%scenarioid%" should have status "CREATE_COMPLETE"
 
+    @short
     Scenario: reject syncing
         Given I launched "sync -c cfg.yaml"
         And terminal shows:
             """
-            Continue? [Y/n]
+            What now>
             """
-        When I enter "n"
+        When I enter "q"
         Then terminal shows:
             """
             Interrupted by user
@@ -45,3 +51,35 @@ Feature: stas sync in interactive mode
             sync is cancelled
             """
         And launched program should exit with non zero status
+
+    @short
+    Scenario: show diff
+        Given I launched "sync -c cfg.yaml"
+        And terminal shows:
+            """
+            What now>
+            """
+        When I enter "d"
+        Then terminal shows:
+            """
+            --- /dev/null
+            +++ new-tags/stastest-%scenarioid%
+            @@ -0,0 +1 @@
+            +STAS_TEST: %featureid%
+
+            --- /dev/null
+            +++ new/stastest-%scenarioid%
+            @@ -1 +1,5 @@
+            -
+            +Resources:
+            +    Cluster:
+            +        Type: AWS::ECS::Cluster
+            +        Properties:
+            +            ClusterName: stastest-%scenarioid%
+
+            *** Commands ***
+              [s]ync
+              [d]iff
+              [q]uit
+            What now>
+            """

@@ -94,8 +94,41 @@ func sync(cfg stackassembly.Config, nonInteractive bool) {
 
 			showChanges(chSet.Changes)
 
-			if !nonInteractive && !askConfirmation() {
-				handleError(errors.New("sync is cancelled"))
+			if !nonInteractive {
+				continueSync := false
+				for !continueSync {
+					prompt([]promptCmd{
+						{
+							description:   "[s]ync",
+							triggerInputs: []string{"s", "sync"},
+							action: func() {
+								continueSync = true
+							},
+						},
+						{
+							description:   "[d]iff",
+							triggerInputs: []string{"d", "diff"},
+							action: func() {
+								diffS := stackassembly.DiffService{
+									Dp: aws,
+								}
+
+								diff, derr := diffS.Diff(stack)
+								handleError(derr)
+
+								fmt.Println(diff)
+							},
+						},
+						{
+							description:   "[q]uit",
+							triggerInputs: []string{"q", "quit"},
+							action: func() {
+								print("Interrupted by user")
+								handleError(errors.New("sync is cancelled"))
+							},
+						},
+					})
+				}
 			}
 
 			err = chSet.Exec()
@@ -130,24 +163,36 @@ func showChanges(changes []stackassembly.Change) {
 	}
 }
 
-func askConfirmation() bool {
-	fmt.Print("Continue? [Y/n] ")
+type promptCmd struct {
+	triggerInputs []string
+	description   string
+	action        func()
+}
+
+func prompt(commands []promptCmd) {
+	fmt.Println("*** Commands ***")
+	for _, c := range commands {
+		fmt.Println("  " + c.description)
+	}
+	fmt.Print("What now> ")
 
 	reader := bufio.NewReader(os.Stdin)
 	response, err := reader.ReadString('\n')
 
 	if err != nil {
-		log.Fatalf("Reading user input failed with err: %v", err)
+		handleError(fmt.Errorf("reading user input failed with err: %v", err))
 	}
 
-	response = strings.Trim(response, " \n")
+	response = strings.TrimSpace(response)
 
-	for _, okayResponse := range []string{"", "y", "Y", "yes", "Yes", "YES"} {
-		if response == okayResponse {
-			return true
+	for _, c := range commands {
+		for _, inp := range c.triggerInputs {
+			if inp == response {
+				c.action()
+				return
+			}
 		}
 	}
 
-	fmt.Println("Interrupted by user")
-	return false
+	fmt.Printf("Command %s is not known\n", response)
 }
