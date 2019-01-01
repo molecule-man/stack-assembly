@@ -21,7 +21,7 @@ Feature: stas sync in interactive mode
 
     @short
     Scenario: confirm syncing
-        Given I launched "sync -c cfg.yaml"
+        Given I launched "sync -c cfg.yaml --nocolor"
         And terminal shows:
             """
             +--------+-------------------+-------------+--------------------+

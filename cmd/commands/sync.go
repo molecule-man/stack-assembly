@@ -9,6 +9,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/fatih/color"
 	"github.com/molecule-man/stack-assembly/cli"
 	"github.com/molecule-man/stack-assembly/cmd/conf"
 	"github.com/molecule-man/stack-assembly/stackassembly"
@@ -151,12 +152,30 @@ func showChanges(changes []stackassembly.Change) {
 		t := cli.NewTable()
 		t.Header().Cell("Action").Cell("ResourceType").Cell("Resource ID").Cell("Replacement needed")
 
+		green := color.New(color.FgGreen)
+		cyan := color.New(color.FgCyan)
+		boldRed := color.New(color.FgRed, color.Bold)
+
 		for _, c := range changes {
-			t.Row().
-				Cell(c.Action).
-				Cell(c.ResourceType).
-				Cell(c.LogicalResourceID).
-				Cell(fmt.Sprintf("%t", c.ReplacementNeeded))
+			t.Row()
+
+			switch strings.ToLower(c.Action) {
+			case "add":
+				t.ColorizedCell(c.Action, green)
+			case "remove":
+				t.ColorizedCell(c.Action, boldRed)
+			default:
+				t.ColorizedCell(c.Action, cyan)
+			}
+
+			t.Cell(c.ResourceType)
+			t.Cell(c.LogicalResourceID)
+
+			col := green
+			if c.ReplacementNeeded {
+				col = boldRed
+			}
+			t.ColorizedCell(fmt.Sprintf("%t", c.ReplacementNeeded), col)
 		}
 
 		fmt.Println(t.Render())

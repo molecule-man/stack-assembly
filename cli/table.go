@@ -1,18 +1,26 @@
 package cli
 
 import (
-	"fmt"
 	"strconv"
 	"strings"
+
+	"github.com/fatih/color"
 )
+
+type cell struct {
+	content  string
+	colorDef *color.Color
+}
 
 // Table represents data as a table
 type Table struct {
 	currentRow int
 	colSizes   []int
-	data       [][]string
+	data       [][]cell
 	hasHeader  bool
 }
+
+var noColor = color.New()
 
 // NewTable creates a new table
 func NewTable() *Table {
@@ -31,12 +39,16 @@ func (t *Table) Header() *Table {
 // be added to a new row
 func (t *Table) Row() *Table {
 	t.currentRow++
-	t.data = append(t.data, make([]string, 0))
+	t.data = append(t.data, make([]cell, 0))
 	return t
 }
 
 // Cell adds cell
 func (t *Table) Cell(s string) *Table {
+	return t.ColorizedCell(s, noColor)
+}
+
+func (t *Table) ColorizedCell(s string, colorDef *color.Color) *Table {
 	currentCell := len(t.data[t.currentRow])
 
 	if currentCell >= len(t.colSizes) {
@@ -47,7 +59,7 @@ func (t *Table) Cell(s string) *Table {
 		t.colSizes[currentCell] = len(s)
 	}
 
-	t.data[t.currentRow] = append(t.data[t.currentRow], s)
+	t.data[t.currentRow] = append(t.data[t.currentRow], cell{content: s, colorDef: colorDef})
 
 	return t
 }
@@ -68,13 +80,13 @@ func (t *Table) Render() string {
 		renderedCells := make([]string, len(t.colSizes))
 
 		for c, size := range t.colSizes {
-			cell := ""
+			nextCell := cell{colorDef: noColor}
 
 			if c < len(row) {
-				cell = row[c]
+				nextCell = row[c]
 			}
 
-			renderedCells[c] = fmt.Sprintf("%-"+strconv.Itoa(size)+"s", cell)
+			renderedCells[c] = nextCell.colorDef.Sprintf("%-"+strconv.Itoa(size)+"s", nextCell.content)
 		}
 		renderedRows = append(renderedRows, "| "+strings.Join(renderedCells, " | ")+" |")
 
