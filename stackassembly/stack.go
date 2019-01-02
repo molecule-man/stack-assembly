@@ -17,35 +17,25 @@ type StackConfig struct {
 	Blocked    []string
 }
 
-// Config is a struct holding stacks configurations
-type Config struct {
-	Settings struct {
-		Aws struct {
-			Region   string
-			Profile  string
-			Endpoint string
-		}
-	}
-
-	Parameters map[string]string
-	Stacks     map[string]StackConfig
-}
-
 type Stack struct {
+	ID         string
 	Name       string
 	Parameters map[string]string
 	Tags       map[string]string
+	DependsOn  []string
 	Blocked    []string
 
 	rawBody string
 }
 
-func NewStack(stackCfg StackConfig, globalParameters map[string]string) (Stack, error) {
+func NewStack(id string, stackCfg StackConfig, globalParameters map[string]string) (Stack, error) {
 	stack := Stack{}
 
 	// TODO this doesn't belong here
 	stack.rawBody = stackCfg.Body
 
+	stack.ID = id
+	stack.DependsOn = stackCfg.DependsOn
 	stack.Blocked = stackCfg.Blocked
 	stack.Tags = stackCfg.Tags
 
@@ -107,30 +97,24 @@ func applyTemplating(parsed *string, tpl string, data interface{}) error {
 	return nil
 }
 
-func StacksSortedByExecOrder(cfg Config) ([]Stack, error) {
+func SortStacksByExecOrder(stacks []Stack) error {
 	dg := depgraph.DepGraph{}
 
-	stacksMap := make(map[string]Stack, len(cfg.Stacks))
-	stacks := make([]Stack, 0, len(cfg.Stacks))
+	stacksMap := make(map[string]Stack, len(stacks))
 
-	for id, stackCfg := range cfg.Stacks {
-		dg.Add(id, stackCfg.DependsOn)
-		stack, err := NewStack(stackCfg, cfg.Parameters)
-		if err != nil {
-			return stacks, err
-		}
-
-		stacksMap[id] = stack
+	for _, stack := range stacks {
+		dg.Add(stack.ID, stack.DependsOn)
+		stacksMap[stack.ID] = stack
 	}
 
 	orderedIds, err := dg.Resolve()
 	if err != nil {
-		return stacks, err
+		return err
 	}
 
-	for _, id := range orderedIds {
-		stacks = append(stacks, stacksMap[id])
+	for i, id := range orderedIds {
+		stacks[i] = stacksMap[id]
 	}
 
-	return stacks, nil
+	return nil
 }

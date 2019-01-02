@@ -44,7 +44,7 @@ func syncCmd() *cobra.Command {
 }
 
 func execSyncOneTpl(stackName, tpl string, nonInteractive bool) {
-	cfg := stackassembly.Config{}
+	cfg := conf.Config{}
 
 	cfg.Stacks = map[string]stackassembly.StackConfig{
 		stackName: {
@@ -56,7 +56,7 @@ func execSyncOneTpl(stackName, tpl string, nonInteractive bool) {
 	sync(cfg, nonInteractive)
 }
 
-func sync(cfg stackassembly.Config, nonInteractive bool) {
+func sync(cfg conf.Config, nonInteractive bool) {
 	aws := conf.Aws(cfg)
 
 	for i, stack := range cfg.Stacks {
@@ -67,12 +67,14 @@ func sync(cfg stackassembly.Config, nonInteractive bool) {
 		cfg.Stacks[i] = stack
 	}
 
-	ordered, err := stackassembly.StacksSortedByExecOrder(cfg)
+	stacks, err := cfg.GetStacks()
+	handleError(err)
+	err = stackassembly.SortStacksByExecOrder(stacks)
 	handleError(err)
 
 	logger := log.New(os.Stderr, "", log.LstdFlags)
 
-	for _, stack := range ordered {
+	for _, stack := range stacks {
 		stack := stack // pin
 		print := func(msg string, args ...interface{}) {
 			logger.Print(fmt.Sprintf(fmt.Sprintf("[%s] %s", stack.Name, msg), args...))

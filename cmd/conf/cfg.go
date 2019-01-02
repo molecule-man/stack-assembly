@@ -20,7 +20,36 @@ import (
 	yaml "gopkg.in/yaml.v2"
 )
 
-func Aws(cfg stackassembly.Config) *awsprov.AwsProvider {
+// Config is a struct holding stacks configurations
+type Config struct {
+	Settings struct {
+		Aws struct {
+			Region   string
+			Profile  string
+			Endpoint string
+		}
+	}
+
+	Parameters map[string]string
+	Stacks     map[string]stackassembly.StackConfig
+}
+
+func (cfg Config) GetStacks() ([]stackassembly.Stack, error) {
+	stacks := make([]stackassembly.Stack, 0, len(cfg.Stacks))
+
+	for id, stackCfg := range cfg.Stacks {
+		stack, err := stackassembly.NewStack(id, stackCfg, cfg.Parameters)
+		if err != nil {
+			return stacks, err
+		}
+
+		stacks = append(stacks, stack)
+	}
+
+	return stacks, nil
+}
+
+func Aws(cfg Config) *awsprov.AwsProvider {
 	opts := session.Options{}
 
 	if cfg.Settings.Aws.Profile != "" {
@@ -46,8 +75,8 @@ func Aws(cfg stackassembly.Config) *awsprov.AwsProvider {
 	return awsprov.New(sess)
 }
 
-func LoadConfig(cfgFiles []string) (stackassembly.Config, error) {
-	mainConfig := stackassembly.Config{}
+func LoadConfig(cfgFiles []string) (Config, error) {
+	mainConfig := Config{}
 
 	if len(cfgFiles) == 0 {
 		if _, err := os.Stat("Stack-assembly.toml"); err == nil {

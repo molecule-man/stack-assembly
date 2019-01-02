@@ -13,7 +13,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var expectedParsedConfig = stackassembly.Config{
+var expectedParsedConfig = Config{
 	Parameters: map[string]string{
 		"Param1": "val1",
 		"param2": "val2",
@@ -155,7 +155,7 @@ stacks:
     blocked:
       - sns2`
 
-	expected := stackassembly.Config{
+	expected := Config{
 		Parameters: map[string]string{
 			"Param1": "overwriten_val1",
 		},

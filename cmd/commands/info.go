@@ -33,7 +33,7 @@ func infoCmd() *cobra.Command {
 					continue
 				}
 
-				stack, err := stackassembly.NewStack(stackCfg, cfg.Parameters)
+				stack, err := stackassembly.NewStack("", stackCfg, cfg.Parameters)
 				handleError(err)
 
 				printer.printStackName(stack.Name)

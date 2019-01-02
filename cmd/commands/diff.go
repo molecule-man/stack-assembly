@@ -27,7 +27,7 @@ func diffCmd() *cobra.Command {
 				handleError(err)
 				stackCfg.Body = string(tplBody)
 
-				stack, err := stackassembly.NewStack(stackCfg, cfg.Parameters)
+				stack, err := stackassembly.NewStack("", stackCfg, cfg.Parameters)
 				handleError(err)
 
 				diffS := stackassembly.DiffService{
