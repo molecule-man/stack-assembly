@@ -10,17 +10,21 @@ import (
 	"github.com/molecule-man/stack-assembly/stackassembly"
 )
 
-func sprintEvent(e stackassembly.StackEvent) string {
+func sprintStackStatus(status string) string {
 	col := noColor
 
 	switch {
-	case strings.Contains(e.Status, "COMPLETE"):
+	case strings.Contains(status, "COMPLETE"):
 		col = green
-	case strings.Contains(e.Status, "ROLLBACK"),
-		strings.Contains(e.Status, "FAILED"):
+	case strings.Contains(status, "ROLLBACK"),
+		strings.Contains(status, "FAILED"):
 		col = boldRed
 	}
-	return fmt.Sprintf("\t%s\t%s\t%s\t%s", e.ResourceType, col.Sprint(e.Status), e.LogicalResourceID, e.StatusReason)
+
+	return col.Sprint(status)
+}
+func sprintEvent(e stackassembly.StackEvent) string {
+	return fmt.Sprintf("\t%s\t%s\t%s\t%s", e.ResourceType, sprintStackStatus(e.Status), e.LogicalResourceID, e.StatusReason)
 }
 
 type infoPrinter struct {
@@ -36,7 +40,10 @@ func newInfoPrinter(w io.Writer, aws *awsprov.AwsProvider) infoPrinter {
 }
 
 func (p infoPrinter) print(stack stackassembly.Stack) {
-	p.printStackName(stack.Name)
+	details, err := p.aws.StackDetails(stack.Name)
+	handleError(err)
+
+	p.printStackDetails(details)
 
 	resources, err := p.aws.StackResources(stack.Name)
 	handleError(err)
@@ -56,17 +63,17 @@ func (p infoPrinter) print(stack stackassembly.Stack) {
 	fmt.Println("")
 }
 
-func (p infoPrinter) printStackName(name string) {
-	fmt.Println("===================")
-	fmt.Printf("STACK: %s\n", name)
-	fmt.Println("===================")
+func (p infoPrinter) printStackDetails(details stackassembly.StackDetails) {
+	fmt.Println("######################################")
+	fmt.Printf("STACK:\t%s\n", details.Name)
+	fmt.Printf("STATUS:\t%s %s\n", sprintStackStatus(details.Status), details.StatusDescription)
 	fmt.Println("")
 }
 
 func (p infoPrinter) printResources(resources []stackassembly.StackResource) {
 	fmt.Println("==== RESOURCES ====")
 	for _, res := range resources {
-		fmt.Fprintf(p.w, "%s\t%s\t%s\n", res.LogicalID, res.PhysicalID, res.Status)
+		fmt.Fprintf(p.w, "%s\t%s\t%s\n", res.LogicalID, res.PhysicalID, sprintStackStatus(res.Status))
 	}
 	p.w.Flush()
 	fmt.Println("")

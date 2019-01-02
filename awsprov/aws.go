@@ -99,19 +99,24 @@ func (ap *AwsProvider) StackDetails(stackName string) (stackassembly.StackDetail
 	if err != nil {
 		return details, err
 	}
+	stack := out.Stacks[0]
 
-	details.Parameters = make([]stackassembly.KeyVal, 0, len(out.Stacks[0].Parameters))
+	details.Name = aws.StringValue(stack.StackName)
+	details.Status = aws.StringValue(stack.StackStatus)
+	details.StatusDescription = aws.StringValue(stack.StackStatusReason)
 
-	for _, p := range out.Stacks[0].Parameters {
+	details.Parameters = make([]stackassembly.KeyVal, 0, len(stack.Parameters))
+
+	for _, p := range stack.Parameters {
 		details.Parameters = append(details.Parameters, stackassembly.KeyVal{
 			Key: aws.StringValue(p.ParameterKey),
 			Val: aws.StringValue(p.ParameterValue),
 		})
 	}
 
-	details.Tags = make([]stackassembly.KeyVal, 0, len(out.Stacks[0].Tags))
+	details.Tags = make([]stackassembly.KeyVal, 0, len(stack.Tags))
 
-	for _, t := range out.Stacks[0].Tags {
+	for _, t := range stack.Tags {
 		details.Tags = append(details.Tags, stackassembly.KeyVal{
 			Key: aws.StringValue(t.Key),
 			Val: aws.StringValue(t.Value),

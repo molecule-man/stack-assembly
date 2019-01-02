@@ -56,9 +56,12 @@ type StackResource struct {
 }
 
 type StackDetails struct {
-	Body       string
-	Parameters []KeyVal
-	Tags       []KeyVal
+	Name              string
+	Body              string
+	Parameters        []KeyVal
+	Tags              []KeyVal
+	Status            string
+	StatusDescription string
 }
 
 type KeyVal struct {
