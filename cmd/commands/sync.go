@@ -8,7 +8,6 @@ import (
 	"os"
 	"strings"
 
-	"github.com/fatih/color"
 	"github.com/molecule-man/stack-assembly/cli"
 	"github.com/molecule-man/stack-assembly/cmd/conf"
 	"github.com/molecule-man/stack-assembly/stackassembly"
@@ -75,7 +74,7 @@ func sync(cfg conf.Config, nonInteractive bool) {
 
 		chSet, err := stackassembly.New(aws, stack,
 			stackassembly.WithEventSubscriber(func(e stackassembly.StackEvent) {
-				print("[%s] [%s] [%s] %s", e.ResourceType, e.Status, e.LogicalResourceID, e.StatusReason)
+				print(sprintEvent(e))
 			}),
 		)
 
@@ -144,10 +143,6 @@ func showChanges(changes []stackassembly.Change) {
 	if len(changes) > 0 {
 		t := cli.NewTable()
 		t.Header().Cell("Action").Cell("ResourceType").Cell("Resource ID").Cell("Replacement needed")
-
-		green := color.New(color.FgGreen)
-		cyan := color.New(color.FgCyan)
-		boldRed := color.New(color.FgRed, color.Bold)
 
 		for _, c := range changes {
 			t.Row()
