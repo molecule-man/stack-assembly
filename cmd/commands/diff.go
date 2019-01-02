@@ -2,7 +2,6 @@ package commands
 
 import (
 	"fmt"
-	"io/ioutil"
 
 	"github.com/molecule-man/stack-assembly/cmd/conf"
 	"github.com/molecule-man/stack-assembly/stackassembly"
@@ -20,20 +19,14 @@ func diffCmd() *cobra.Command {
 			cfg, err := conf.LoadConfig(cfgFiles)
 			handleError(err)
 
-			for _, stackCfg := range cfg.Stacks {
+			diffS := stackassembly.DiffService{
+				Dp: conf.Aws(cfg),
+			}
 
-				// TODO this doesnt belong here
-				tplBody, err := ioutil.ReadFile(stackCfg.Path)
-				handleError(err)
-				stackCfg.Body = string(tplBody)
+			stacks, err := cfg.GetStacks()
+			handleError(err)
 
-				stack, err := stackassembly.NewStack("", stackCfg, cfg.Parameters)
-				handleError(err)
-
-				diffS := stackassembly.DiffService{
-					Dp: conf.Aws(cfg),
-				}
-
+			for _, stack := range stacks {
 				diff, err := diffS.Diff(stack)
 				handleError(err)
 

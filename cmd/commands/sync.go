@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
 	"strings"
@@ -58,14 +57,6 @@ func execSyncOneTpl(stackName, tpl string, nonInteractive bool) {
 
 func sync(cfg conf.Config, nonInteractive bool) {
 	aws := conf.Aws(cfg)
-
-	for i, stack := range cfg.Stacks {
-		tplBody, err := ioutil.ReadFile(stack.Path)
-		handleError(err)
-
-		stack.Body = string(tplBody)
-		cfg.Stacks[i] = stack
-	}
 
 	stacks, err := cfg.GetStacks()
 	handleError(err)

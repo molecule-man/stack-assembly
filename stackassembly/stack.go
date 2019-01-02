@@ -2,6 +2,7 @@ package stackassembly
 
 import (
 	"bytes"
+	"io/ioutil"
 	"text/template"
 
 	"github.com/molecule-man/stack-assembly/depgraph"
@@ -25,14 +26,14 @@ type Stack struct {
 	DependsOn  []string
 	Blocked    []string
 
-	rawBody string
+	body string
+	path string
 }
 
 func NewStack(id string, stackCfg StackConfig, globalParameters map[string]string) (Stack, error) {
 	stack := Stack{}
 
-	// TODO this doesn't belong here
-	stack.rawBody = stackCfg.Body
+	stack.path = stackCfg.Path
 
 	stack.ID = id
 	stack.DependsOn = stackCfg.DependsOn
@@ -75,11 +76,18 @@ func NewStack(id string, stackCfg StackConfig, globalParameters map[string]strin
 }
 
 func (t *Stack) Body() (string, error) {
-	var body string
+	if t.body != "" {
+		return t.body, nil
+	}
+	tplBody, err := ioutil.ReadFile(t.path)
+	if err != nil {
+		return "", err
+	}
+
 	data := struct{ Params map[string]string }{}
 	data.Params = t.Parameters
-	err := applyTemplating(&body, t.rawBody, data)
-	return body, err
+	err = applyTemplating(&t.body, string(tplBody), data)
+	return t.body, err
 }
 
 func applyTemplating(parsed *string, tpl string, data interface{}) error {

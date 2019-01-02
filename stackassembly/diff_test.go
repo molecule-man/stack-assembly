@@ -22,8 +22,8 @@ parameters:
 		Dp: &dpMock{exists: true, body: oldTplBody},
 	}
 	st := Stack{
-		Name:    "teststack",
-		rawBody: newTplBody,
+		Name: "teststack",
+		body: newTplBody,
 	}
 
 	diff, err := ds.Diff(st)
@@ -49,8 +49,8 @@ parameters:
 
 	ds := DiffService{Dp: &dpMock{}}
 	st := Stack{
-		Name:    "teststack",
-		rawBody: newTplBody,
+		Name: "teststack",
+		body: newTplBody,
 	}
 
 	diff, err := ds.Diff(st)

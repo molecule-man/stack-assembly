@@ -27,14 +27,13 @@ func infoCmd() *cobra.Command {
 
 			printer := newInfoPrinter(os.Stdout)
 
-			for k, stackCfg := range cfg.Stacks {
+			stacks, err := cfg.GetStacks()
+			handleError(err)
 
-				if len(args) > 0 && args[0] != stackCfg.Name && args[0] != k {
+			for _, stack := range stacks {
+				if len(args) > 0 && args[0] != stack.Name && args[0] != stack.ID {
 					continue
 				}
-
-				stack, err := stackassembly.NewStack("", stackCfg, cfg.Parameters)
-				handleError(err)
 
 				printer.printStackName(stack.Name)
 
@@ -98,7 +97,11 @@ func (p infoPrinter) printOutputs(outputs []stackassembly.StackOutput) {
 
 func (p infoPrinter) printEvents(events []stackassembly.StackEvent) {
 	fmt.Println("==== EVENTS ====")
-	for _, e := range events[:10] {
+	limit := 10
+	if len(events) < limit {
+		limit = len(events)
+	}
+	for _, e := range events[:limit] {
 		fmt.Fprintf(p.w, "[%v]\t%s\t%s\t%s\t%s\n", e.Timestamp, e.ResourceType, e.LogicalResourceID, e.Status, e.StatusReason)
 	}
 	p.w.Flush()
