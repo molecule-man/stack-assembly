@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
 
@@ -18,6 +19,7 @@ type Table struct {
 	colSizes   []int
 	data       [][]cell
 	hasHeader  bool
+	noBorder   bool
 }
 
 var noColor = color.New()
@@ -32,6 +34,11 @@ func NewTable() *Table {
 // Header adds a header to table
 func (t *Table) Header() *Table {
 	t.hasHeader = true
+	return t.Row()
+}
+
+func (t *Table) NoBorder() *Table {
+	t.noBorder = true
 	return t.Row()
 }
 
@@ -67,12 +74,24 @@ func (t *Table) ColorizedCell(s string, colorDef *color.Color) *Table {
 // Render renders the table
 func (t *Table) Render() string {
 	renderedRows := make([]string, 0)
-	borderParts := make([]string, len(t.colSizes))
 
-	for i, size := range t.colSizes {
-		borderParts[i] = strings.Repeat("-", size)
+	leftBorder := ""
+	inbetweenBorder := " "
+	rightBorder := ""
+	border := ""
+
+	if !t.noBorder {
+		leftBorder = "| "
+		inbetweenBorder = " | "
+		rightBorder = " |"
+
+		borderParts := make([]string, len(t.colSizes))
+
+		for i, size := range t.colSizes {
+			borderParts[i] = strings.Repeat("-", size)
+		}
+		border = "+-" + strings.Join(borderParts, "-+-") + "-+\n"
 	}
-	border := "+-" + strings.Join(borderParts, "-+-") + "-+"
 
 	renderedRows = append(renderedRows, border)
 
@@ -86,9 +105,15 @@ func (t *Table) Render() string {
 				nextCell = row[c]
 			}
 
-			renderedCells[c] = nextCell.colorDef.Sprintf("%-"+strconv.Itoa(size)+"s", nextCell.content)
+			format := "%-" + strconv.Itoa(size) + "s"
+			cellContent := fmt.Sprintf(format, nextCell.content)
+			if nextCell.colorDef != noColor {
+				cellContent = nextCell.colorDef.Sprintf(format, nextCell.content)
+			}
+			renderedCells[c] = cellContent
 		}
-		renderedRows = append(renderedRows, "| "+strings.Join(renderedCells, " | ")+" |")
+		row := leftBorder + strings.Join(renderedCells, inbetweenBorder) + rightBorder
+		renderedRows = append(renderedRows, strings.TrimSpace(row)+"\n")
 
 		if r == 0 && t.hasHeader {
 			renderedRows = append(renderedRows, border)
@@ -97,5 +122,5 @@ func (t *Table) Render() string {
 
 	renderedRows = append(renderedRows, border)
 
-	return strings.Join(renderedRows, "\n") + "\n"
+	return strings.Join(renderedRows, "")
 }
