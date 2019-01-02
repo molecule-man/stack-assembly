@@ -1,8 +1,6 @@
 package commands
 
 import (
-	"os"
-
 	"github.com/molecule-man/stack-assembly/cmd/conf"
 	"github.com/spf13/cobra"
 )
@@ -19,7 +17,7 @@ func infoCmd() *cobra.Command {
 			cfg, err := conf.LoadConfig(cfgFiles)
 			handleError(err)
 
-			printer := newInfoPrinter(os.Stdout, conf.Aws(cfg))
+			printer := newInfoPrinter(conf.Aws(cfg))
 
 			stacks, err := cfg.GetStacks()
 			handleError(err)

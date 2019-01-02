@@ -2,9 +2,7 @@ package commands
 
 import (
 	"fmt"
-	"io"
 	"strings"
-	"text/tabwriter"
 
 	"github.com/fatih/color"
 	"github.com/molecule-man/stack-assembly/awsprov"
@@ -35,13 +33,11 @@ func sprintEvent(e stackassembly.StackEvent) string {
 }
 
 type infoPrinter struct {
-	w   *tabwriter.Writer
 	aws *awsprov.AwsProvider
 }
 
-func newInfoPrinter(w io.Writer, aws *awsprov.AwsProvider) infoPrinter {
+func newInfoPrinter(aws *awsprov.AwsProvider) infoPrinter {
 	return infoPrinter{
-		w:   tabwriter.NewWriter(w, 0, 0, 1, ' ', 0),
 		aws: aws,
 	}
 }
@@ -92,12 +88,13 @@ func (p infoPrinter) printResources(resources []stackassembly.StackResource) {
 }
 
 func (p infoPrinter) printOutputs(outputs []stackassembly.StackOutput) {
+	t := cli.NewTable()
+	t.NoBorder()
 	fmt.Println("==== OUTPUTS ====")
 	for _, out := range outputs {
-		fmt.Fprintf(p.w, "%s\t%s\t%s\n", out.Key, out.Value, out.ExportName)
+		t.Row().Cell(out.Key).Cell(out.Value).Cell(out.ExportName)
 	}
-	p.w.Flush()
-	fmt.Println("")
+	fmt.Println(t.Render())
 }
 
 func (p infoPrinter) printEvents(events []stackassembly.StackEvent) {
