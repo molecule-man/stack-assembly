@@ -4,15 +4,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"net/http"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/aws/client"
 	"github.com/aws/aws-sdk-go/aws/request"
-	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/molecule-man/stack-assembly/stackassembly"
 )
@@ -32,27 +31,9 @@ type Config struct {
 }
 
 // New creates a new AwsProvider
-func New(c Config) *AwsProvider {
-	opts := session.Options{
-		Profile: c.Profile,
-	}
-
-	cfg := aws.Config{}
-	if c.Region != "" {
-		cfg.Region = aws.String(c.Region)
-	}
-	httpClient := http.Client{
-		Timeout: 2 * time.Second,
-	}
-	cfg.HTTPClient = &httpClient
-
-	opts.Config = cfg
-
-	sess := session.Must(session.NewSessionWithOptions(opts))
-	cf := cloudformation.New(sess)
-
+func New(sess client.ConfigProvider) *AwsProvider {
 	return &AwsProvider{
-		cf: cf,
+		cf: cloudformation.New(sess),
 	}
 }
 

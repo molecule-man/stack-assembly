@@ -1,79 +1,49 @@
 package conf
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/BurntSushi/toml"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/mitchellh/mapstructure"
 	"github.com/molecule-man/stack-assembly/awsprov"
 	"github.com/molecule-man/stack-assembly/stackassembly"
+	"github.com/spf13/viper"
 	yaml "gopkg.in/yaml.v2"
 )
 
-// merge merges otherConfig into this config
-func merge(c *stackassembly.Config, otherConfig stackassembly.Config) {
-	if c.Parameters == nil {
-		c.Parameters = make(map[string]string)
-	}
-	for k, v := range otherConfig.Parameters {
-		c.Parameters[k] = v
-	}
-
-	if c.Stacks == nil {
-		c.Stacks = make(map[string]stackassembly.StackConfig)
-	}
-	for k, otherStack := range otherConfig.Stacks {
-		// TODO what if k is not in c.Stacks
-		thisStack := c.Stacks[k]
-		mergeStacks(&thisStack, otherStack)
-		c.Stacks[k] = thisStack
-	}
-}
-
-func mergeStacks(s *stackassembly.StackConfig, otherStack stackassembly.StackConfig) {
-	if otherStack.Path != "" {
-		s.Path = otherStack.Path
-	}
-
-	if otherStack.Name != "" {
-		s.Name = otherStack.Name
-	}
-
-	if otherStack.DependsOn != nil {
-		s.DependsOn = otherStack.DependsOn
-	}
-
-	if otherStack.Blocked != nil {
-		s.Blocked = otherStack.Blocked
-	}
-
-	if otherStack.Tags != nil {
-		s.Tags = otherStack.Tags
-	}
-
-	if s.Parameters == nil {
-		s.Parameters = make(map[string]string)
-	}
-	for k, v := range otherStack.Parameters {
-		s.Parameters[k] = v
-	}
-}
-
 func Aws(cfg stackassembly.Config) *awsprov.AwsProvider {
-	awsConfig := awsprov.Config{}
+	opts := session.Options{}
 
-	if profile, ok := cfg.Parameters["profile"]; ok && profile != "" {
-		awsConfig.Profile = profile
+	if cfg.Settings.Aws.Profile != "" {
+		opts.Profile = cfg.Settings.Aws.Profile
 	}
 
-	if region, ok := cfg.Parameters["region"]; ok && region != "" {
-		awsConfig.Region = region
+	awsCfg := aws.Config{}
+	if cfg.Settings.Aws.Region != "" {
+		awsCfg.Region = aws.String(cfg.Settings.Aws.Region)
 	}
 
-	return awsprov.New(awsConfig)
+	awsCfg.Endpoint = aws.String(cfg.Settings.Aws.Endpoint)
+
+	httpClient := http.Client{
+		Timeout: 2 * time.Second,
+	}
+	awsCfg.HTTPClient = &httpClient
+
+	opts.Config = awsCfg
+
+	sess := session.Must(session.NewSessionWithOptions(opts))
+
+	return awsprov.New(sess)
 }
 
 func LoadConfig(cfgFiles []string) (stackassembly.Config, error) {
@@ -85,18 +55,56 @@ func LoadConfig(cfgFiles []string) (stackassembly.Config, error) {
 		}
 	}
 
+	mainRawCfg := make(map[string]interface{})
 	for _, cf := range cfgFiles {
-		extraCfg := stackassembly.Config{}
-		if err := parseFile(cf, &extraCfg); err != nil {
+		extraRawCfg := make(map[string]interface{})
+		if err := parseFile(cf, &extraRawCfg); err != nil {
 			return mainConfig, fmt.Errorf("error occured while parsing config file %s: %v", cf, err)
 		}
-		merge(&mainConfig, extraCfg)
+		merged := merge(mainRawCfg, extraRawCfg)
+		mainRawCfg = merged.(map[string]interface{})
+	}
+
+	config := mapstructure.DecoderConfig{
+		ErrorUnused: true,
+		Result:      &mainConfig,
+	}
+
+	decoder, err := mapstructure.NewDecoder(&config)
+	if err != nil {
+		return mainConfig, err
+	}
+
+	err = decoder.Decode(mainRawCfg)
+	if err != nil {
+		return mainConfig, err
+	}
+
+	viper.SetEnvPrefix("STAS")
+	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
+	viper.AutomaticEnv()
+
+	viper.SetConfigType("json")
+	buf := bytes.Buffer{}
+	enc := json.NewEncoder(&buf)
+	err = enc.Encode(mainConfig.Settings)
+	if err != nil {
+		return mainConfig, err
+	}
+
+	err = viper.ReadConfig(&buf)
+	if err != nil {
+		return mainConfig, err
+	}
+
+	if err := viper.Unmarshal(&mainConfig.Settings); err != nil {
+		return mainConfig, err
 	}
 
 	return mainConfig, nil
 }
 
-func parseFile(filename string, cfg *stackassembly.Config) error {
+func parseFile(filename string, cfg *map[string]interface{}) error {
 	f, err := os.Open(filename)
 	if err != nil {
 		return err
@@ -107,24 +115,63 @@ func parseFile(filename string, cfg *stackassembly.Config) error {
 	switch ext {
 	case ".yaml", ".yml":
 		d := yaml.NewDecoder(f)
-		d.SetStrict(true)
 		return d.Decode(cfg)
 	case ".json":
 		d := json.NewDecoder(f)
-		d.DisallowUnknownFields()
 		return d.Decode(cfg)
 	case ".toml":
-		m, err := toml.DecodeReader(f, cfg)
-		if err != nil {
-			return err
-		}
-
-		unknownFields := m.Undecoded()
-		if len(unknownFields) > 0 {
-			return fmt.Errorf("the config contains unknown fields %v", unknownFields)
-		}
-		return nil
+		_, err := toml.DecodeReader(f, cfg)
+		return err
 	}
 
 	return fmt.Errorf("extension %s is not supported", ext)
+}
+
+func merge(x1, x2 interface{}) interface{} {
+	x1 = normalizeRawCfgEntry(x1)
+	x2 = normalizeRawCfgEntry(x2)
+	switch x1 := x1.(type) {
+	case map[string]interface{}:
+		x2, ok := x2.(map[string]interface{})
+		if !ok {
+			return x1
+		}
+		for k, v2 := range x2 {
+			if v1, ok := x1[k]; ok {
+				x1[k] = merge(v1, v2)
+			} else {
+				x1[k] = v2
+			}
+		}
+		return x1
+	case []interface{}:
+		x2, ok := x2.([]interface{})
+		if !ok {
+			return x1
+		}
+		// for i := range x2 {
+		// 	x1 = append(x1, x2[i])
+		// }
+		// return x1
+		return x2
+	case nil:
+		x2, ok := x2.(map[string]interface{})
+		if ok {
+			return x2
+		}
+		return x1
+	}
+	return x2
+}
+
+func normalizeRawCfgEntry(src interface{}) interface{} {
+	x, ok := src.(map[interface{}]interface{})
+	if !ok {
+		return src
+	}
+	trg := map[string]interface{}{}
+	for k, v := range x {
+		trg[fmt.Sprintf("%v", k)] = v
+	}
+	return trg
 }

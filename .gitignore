@@ -1,3 +1,5 @@
 vendor
 bin
-.tmp
+**/.tmp
+tpls
+Stack-assembly.toml

@@ -1,8 +1,0 @@
-[parameters]
-Topic = "hohoho2"
-Topic2 = "world"
-#Sns2 = "foo"
-
-#[level2]
-#foo = "bar"
-#buz = 2

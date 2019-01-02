@@ -27,10 +27,8 @@ var expectedParsedConfig = stackassembly.Config{
 			},
 		},
 		"Tpl2": {
-			Name:       "name1",
-			Parameters: map[string]string{},
-			DependsOn:  []string{"sns1"},
-			Blocked:    []string{},
+			Name:      "name1",
+			DependsOn: []string{"sns1"},
 		},
 	},
 }
@@ -174,10 +172,9 @@ stacks:
 				Blocked:   []string{"sns"},
 			},
 			"tpl2": {
-				Name:       "name2",
-				Path:       "path2",
-				Parameters: map[string]string{},
-				Blocked:    []string{"sns2"},
+				Name:    "name2",
+				Path:    "path2",
+				Blocked: []string{"sns2"},
 			},
 		},
 	}

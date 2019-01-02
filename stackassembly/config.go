@@ -19,6 +19,14 @@ type StackConfig struct {
 
 // Config is a struct holding stacks configurations
 type Config struct {
+	Settings struct {
+		Aws struct {
+			Region   string
+			Profile  string
+			Endpoint string
+		}
+	}
+
 	Parameters map[string]string
 	Stacks     map[string]StackConfig
 }
