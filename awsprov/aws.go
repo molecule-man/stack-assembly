@@ -269,6 +269,10 @@ func (ap *AwsProvider) WaitChangeSetCreated(ID string) error {
 				return fmt.Errorf("error while retrieving more info about change set failure: %v", derr)
 			}
 
+			if aws.StringValue(setInfo.StatusReason) == "No updates are to be performed." {
+				return stackassembly.ErrNoChange
+			}
+
 			return fmt.Errorf("[%s] %s. Status: %s, StatusReason: %s", *setInfo.ChangeSetId, err.Error(), *setInfo.Status, *setInfo.StatusReason)
 		}
 	}
