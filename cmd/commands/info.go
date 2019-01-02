@@ -6,6 +6,7 @@ import (
 	"os"
 	"text/tabwriter"
 
+	"github.com/molecule-man/stack-assembly/awsprov"
 	"github.com/molecule-man/stack-assembly/cmd/conf"
 	"github.com/molecule-man/stack-assembly/stackassembly"
 	"github.com/spf13/cobra"
@@ -23,9 +24,7 @@ func infoCmd() *cobra.Command {
 			cfg, err := conf.LoadConfig(cfgFiles)
 			handleError(err)
 
-			aws := conf.Aws(cfg)
-
-			printer := newInfoPrinter(os.Stdout)
+			printer := newInfoPrinter(os.Stdout, conf.Aws(cfg))
 
 			stacks, err := cfg.GetStacks()
 			handleError(err)
@@ -35,24 +34,7 @@ func infoCmd() *cobra.Command {
 					continue
 				}
 
-				printer.printStackName(stack.Name)
-
-				resources, err := aws.StackResources(stack.Name)
-				handleError(err)
-
-				printer.printResources(resources)
-
-				outputs, err := aws.StackOutputs(stack.Name)
-				handleError(err)
-
-				printer.printOutputs(outputs)
-
-				events, err := aws.StackEvents(stack.Name)
-				handleError(err)
-
-				printer.printEvents(events)
-
-				fmt.Println("")
+				printer.print(stack)
 			}
 		},
 	}
@@ -61,13 +43,36 @@ func infoCmd() *cobra.Command {
 }
 
 type infoPrinter struct {
-	w *tabwriter.Writer
+	w   *tabwriter.Writer
+	aws *awsprov.AwsProvider
 }
 
-func newInfoPrinter(w io.Writer) infoPrinter {
+func newInfoPrinter(w io.Writer, aws *awsprov.AwsProvider) infoPrinter {
 	return infoPrinter{
-		w: tabwriter.NewWriter(w, 0, 0, 1, ' ', 0),
+		w:   tabwriter.NewWriter(w, 0, 0, 1, ' ', 0),
+		aws: aws,
 	}
+}
+
+func (p infoPrinter) print(stack stackassembly.Stack) {
+	p.printStackName(stack.Name)
+
+	resources, err := p.aws.StackResources(stack.Name)
+	handleError(err)
+
+	p.printResources(resources)
+
+	outputs, err := p.aws.StackOutputs(stack.Name)
+	handleError(err)
+
+	p.printOutputs(outputs)
+
+	events, err := p.aws.StackEvents(stack.Name)
+	handleError(err)
+
+	p.printEvents(events)
+
+	fmt.Println("")
 }
 
 func (p infoPrinter) printStackName(name string) {
