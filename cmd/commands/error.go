@@ -8,7 +8,7 @@ import (
 
 func handleError(err error) {
 	if err != nil {
-		boldRed := color.New(color.FgRed, color.Bold)
-		log.Fatal(boldRed.Sprint(err))
+		c := color.New(color.FgRed, color.Bold)
+		log.Fatal(c.Sprint(err))
 	}
 }

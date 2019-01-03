@@ -20,15 +20,17 @@ import (
 	yaml "gopkg.in/yaml.v2"
 )
 
+type settingsConfig struct {
+	Aws struct {
+		Region   string
+		Profile  string
+		Endpoint string
+	}
+}
+
 // Config is a struct holding stacks configurations
 type Config struct {
-	Settings struct {
-		Aws struct {
-			Region   string
-			Profile  string
-			Endpoint string
-		}
-	}
+	Settings settingsConfig
 
 	Parameters map[string]string
 	Stacks     map[string]stackassembly.StackConfig
@@ -109,6 +111,10 @@ func LoadConfig(cfgFiles []string) (Config, error) {
 		return mainConfig, err
 	}
 
+	return mainConfig, initEnvSettings(&mainConfig.Settings)
+}
+
+func initEnvSettings(settings *settingsConfig) error {
 	viper.SetEnvPrefix("STAS")
 	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 	viper.AutomaticEnv()
@@ -116,21 +122,16 @@ func LoadConfig(cfgFiles []string) (Config, error) {
 	viper.SetConfigType("json")
 	buf := bytes.Buffer{}
 	enc := json.NewEncoder(&buf)
-	err = enc.Encode(mainConfig.Settings)
-	if err != nil {
-		return mainConfig, err
+
+	if err := enc.Encode(settings); err != nil {
+		return err
 	}
 
-	err = viper.ReadConfig(&buf)
-	if err != nil {
-		return mainConfig, err
+	if err := viper.ReadConfig(&buf); err != nil {
+		return err
 	}
 
-	if err := viper.Unmarshal(&mainConfig.Settings); err != nil {
-		return mainConfig, err
-	}
-
-	return mainConfig, nil
+	return viper.Unmarshal(settings)
 }
 
 func parseFile(filename string, cfg *map[string]interface{}) error {
@@ -161,27 +162,12 @@ func merge(x1, x2 interface{}) interface{} {
 	x2 = normalizeRawCfgEntry(x2)
 	switch x1 := x1.(type) {
 	case map[string]interface{}:
-		x2, ok := x2.(map[string]interface{})
-		if !ok {
-			return x1
-		}
-		for k, v2 := range x2 {
-			if v1, ok := x1[k]; ok {
-				x1[k] = merge(v1, v2)
-			} else {
-				x1[k] = v2
-			}
-		}
-		return x1
+		return mergeMaps(x1, x2)
 	case []interface{}:
 		x2, ok := x2.([]interface{})
 		if !ok {
 			return x1
 		}
-		// for i := range x2 {
-		// 	x1 = append(x1, x2[i])
-		// }
-		// return x1
 		return x2
 	case nil:
 		x2, ok := x2.(map[string]interface{})
@@ -191,6 +177,21 @@ func merge(x1, x2 interface{}) interface{} {
 		return x1
 	}
 	return x2
+}
+
+func mergeMaps(x1 map[string]interface{}, i2 interface{}) interface{} {
+	x2, ok := i2.(map[string]interface{})
+	if !ok {
+		return x1
+	}
+	for k, v2 := range x2 {
+		if v1, ok := x1[k]; ok {
+			x1[k] = merge(v1, v2)
+		} else {
+			x1[k] = v2
+		}
+	}
+	return x1
 }
 
 func normalizeRawCfgEntry(src interface{}) interface{} {
