@@ -72,7 +72,7 @@ func sync(cfg conf.Config, nonInteractive bool) {
 
 		print("Syncing template")
 
-		chSet, err := stackassembly.New(aws, stack,
+		chSet, err := stackassembly.NewChangeSet(aws, stack,
 			stackassembly.WithEventSubscriber(func(e stackassembly.StackEvent) {
 				print(sprintEvent(e))
 			}),

@@ -24,7 +24,7 @@ func TestEventLog(t *testing.T) {
 
 	var logs []string
 
-	cs, _ := New(
+	cs, _ := NewChangeSet(
 		cp,
 		Stack{Name: "stack", body: "body", Parameters: map[string]string{}},
 		WithEventSleep(6*time.Millisecond),
@@ -54,7 +54,7 @@ func TestEventLog(t *testing.T) {
 func TestOnlyRequiredParametersAreSubmitted(t *testing.T) {
 	cp := &cpMock{}
 	cp.requiredParams = []string{"foo", "bar"}
-	_, err := New(cp, Stack{body: "body", Parameters: map[string]string{
+	_, err := NewChangeSet(cp, Stack{body: "body", Parameters: map[string]string{
 		"foo": "fooval",
 		"bar": "barval",
 		"buz": "buzval",
@@ -79,7 +79,7 @@ func TestChangeSetCreationErrors(t *testing.T) {
 		cp := &cpMock{}
 		tc.errProv(cp, tc.err)
 
-		_, err := New(cp, Stack{body: "body"})
+		_, err := NewChangeSet(cp, Stack{body: "body"})
 
 		assert.EqualError(t, err, tc.err.Error())
 	}
@@ -97,7 +97,7 @@ func TestChangeSetExecutionErrors(t *testing.T) {
 		cp := &cpMock{}
 		tc.errProv(cp, tc.err)
 
-		cs, _ := New(cp, Stack{body: "body"})
+		cs, _ := NewChangeSet(cp, Stack{body: "body"})
 		err := cs.Exec()
 
 		assert.EqualError(t, err, tc.err.Error())

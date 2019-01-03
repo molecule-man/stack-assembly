@@ -19,8 +19,8 @@ type ChangeSet struct {
 // Option is function that can be used to configure new change set
 type Option func(cs *ChangeSet)
 
-// New creates a new ChangeSet
-func New(cp CloudProvider, stack Stack, opts ...Option) (*ChangeSet, error) {
+// NewChangeSet creates a new ChangeSet
+func NewChangeSet(cp CloudProvider, stack Stack, opts ...Option) (*ChangeSet, error) {
 	body, err := stack.Body()
 	if err != nil {
 		return nil, err
