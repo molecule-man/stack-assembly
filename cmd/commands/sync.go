@@ -56,6 +56,7 @@ func execSyncOneTpl(stackName, tpl string, nonInteractive bool) {
 
 func sync(cfg conf.Config, nonInteractive bool) {
 	aws := conf.Aws(cfg)
+	cf := conf.Cf(cfg)
 
 	stacks, err := cfg.GetStacks()
 	handleError(err)
@@ -72,11 +73,8 @@ func sync(cfg conf.Config, nonInteractive bool) {
 
 		print("Syncing template")
 
-		chSet, err := stackassembly.NewChangeSet(aws, stack,
-			stackassembly.WithEventSubscriber(func(e stackassembly.StackEvent) {
-				print(sprintEvent(e))
-			}),
-		)
+		stack.Cf = cf
+		chSet, err := stack.ChangeSet()
 
 		if err == stackassembly.ErrNoChange {
 			print("No changes to be synced")
@@ -123,6 +121,17 @@ func sync(cfg conf.Config, nonInteractive bool) {
 					})
 				}
 			}
+
+			et := stackassembly.EventsTracker{}
+
+			events, stopTracking := et.StartTracking(&stack)
+			defer stopTracking()
+
+			go func() {
+				for e := range events {
+					print(sprintEvent(e))
+				}
+			}()
 
 			err = chSet.Exec()
 			handleError(err)

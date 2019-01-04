@@ -10,9 +10,9 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/aws/aws-sdk-go/aws/client"
 	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
+	"github.com/aws/aws-sdk-go/service/cloudformation/cloudformationiface"
 	"github.com/molecule-man/stack-assembly/stackassembly"
 )
 
@@ -21,7 +21,7 @@ const noChangeStatus = "The submitted information didn't contain changes. " +
 
 // AwsProvider is wrapper over aws sdk
 type AwsProvider struct {
-	cf *cloudformation.CloudFormation
+	cf cloudformationiface.CloudFormationAPI
 }
 
 // Config of AwsProvider
@@ -31,9 +31,9 @@ type Config struct {
 }
 
 // New creates a new AwsProvider
-func New(sess client.ConfigProvider) *AwsProvider {
+func New(cf cloudformationiface.CloudFormationAPI) *AwsProvider {
 	return &AwsProvider{
-		cf: cloudformation.New(sess),
+		cf: cf,
 	}
 }
 

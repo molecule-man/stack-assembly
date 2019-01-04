@@ -13,6 +13,7 @@ import (
 	"github.com/BurntSushi/toml"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/mitchellh/mapstructure"
 	"github.com/molecule-man/stack-assembly/awsprov"
 	"github.com/molecule-man/stack-assembly/stackassembly"
@@ -52,6 +53,10 @@ func (cfg Config) GetStacks() ([]stackassembly.Stack, error) {
 }
 
 func Aws(cfg Config) *awsprov.AwsProvider {
+	return awsprov.New(Cf(cfg))
+}
+
+func Cf(cfg Config) *cloudformation.CloudFormation {
 	opts := session.Options{}
 
 	if cfg.Settings.Aws.Profile != "" {
@@ -74,7 +79,7 @@ func Aws(cfg Config) *awsprov.AwsProvider {
 
 	sess := session.Must(session.NewSessionWithOptions(opts))
 
-	return awsprov.New(sess)
+	return cloudformation.New(sess)
 }
 
 func LoadConfig(cfgFiles []string) (Config, error) {

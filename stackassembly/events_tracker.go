@@ -4,62 +4,50 @@ import (
 	"time"
 )
 
-// EventsTracker tracks stack events
 type EventsTracker struct {
-	stackName     string
-	cp            CloudProvider
-	stopCh        chan bool
-	latestEventID string
-	sleep         time.Duration
+	sleep time.Duration
 }
 
 // StartTracking starts event tracking
-func (et *EventsTracker) StartTracking() chan StackEvent {
+func (et *EventsTracker) StartTracking(stack *Stack) (chan StackEvent, func()) {
 	eventsCh := make(chan StackEvent)
-	et.stopCh = make(chan bool)
+	stopCh := make(chan bool)
 
-	// @TODO using empty string here is ugly
-	et.latestEventID = ""
-	events := et.eventsSince(et.latestEventID)
+	latestEventID := ""
+	events, _ := stack.Events()
 
 	if len(events) > 0 {
-		et.latestEventID = events[0].ID
+		latestEventID = events[0].ID
 	}
 
+	sleep := et.sleep
+
+	if sleep == 0 {
+		sleep = 2 * time.Second
+	}
 	go func() {
 		for {
-			et.publishEvents(eventsCh)
+			latestEventID = et.publishEvents(stack, eventsCh, latestEventID)
 
 			select {
-			case <-et.stopCh:
-				et.publishEvents(eventsCh)
+			case <-stopCh:
+				et.publishEvents(stack, eventsCh, latestEventID)
 				close(eventsCh)
 				return
 			default:
 			}
-			time.Sleep(et.sleep)
+
+			time.Sleep(sleep)
 		}
 	}()
 
-	return eventsCh
+	return eventsCh, func() {
+		close(stopCh)
+	}
 }
 
-// StopTracking stops event tracking
-func (et *EventsTracker) StopTracking() {
-	close(et.stopCh)
-}
-
-func (et *EventsTracker) eventsSince(sinceEventID string) []StackEvent {
-	events, err := et.cp.StackEvents(et.stackName)
-
-	if err != nil {
-		return []StackEvent{}
-	}
-
-	// @TODO come up with better name than sinceEventID
-	if sinceEventID == "" {
-		return events
-	}
+func (et *EventsTracker) publishEvents(stack *Stack, eventsCh chan StackEvent, sinceEventID string) string {
+	events, _ := stack.Events()
 
 	lastEventIndex := 0
 
@@ -70,19 +58,17 @@ func (et *EventsTracker) eventsSince(sinceEventID string) []StackEvent {
 		}
 	}
 
-	return events[:lastEventIndex]
-}
-
-func (et *EventsTracker) publishEvents(eventsCh chan StackEvent) {
-	events := et.eventsSince(et.latestEventID)
+	events = events[:lastEventIndex]
 
 	if len(events) > 0 {
-		et.latestEventID = events[0].ID
+		sinceEventID = events[0].ID
 
 		for _, e := range reverse(events) {
 			eventsCh <- e
 		}
 	}
+
+	return sinceEventID
 }
 
 func reverse(s []StackEvent) []StackEvent {

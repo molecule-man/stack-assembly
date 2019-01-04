@@ -32,7 +32,7 @@ var opt = godog.Options{
 	Output: colors.Colored(os.Stdout),
 	// Format: "pretty",
 	Format:      "progress",
-	Concurrency: 6,
+	Concurrency: 8,
 	Randomize:   time.Now().UTC().UnixNano(),
 }
 
