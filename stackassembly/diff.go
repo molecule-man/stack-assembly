@@ -52,7 +52,7 @@ func diffBody(info StackInfo, stack Stack) (string, error) {
 
 	var err error
 
-	if info.Exists() {
+	if info.Exists() && !info.InReviewState() {
 		oldBody, err = info.Body()
 		if err != nil {
 			return "", err
@@ -115,7 +115,7 @@ func diffParameters(info StackInfo, stack Stack) (string, error) {
 	oldName := defaultDiffName
 	oldParams := []string{}
 
-	if info.Exists() {
+	if info.Exists() && !info.InReviewState() {
 		parameters := info.Parameters()
 		oldName = "old-parameters/" + stack.Name
 		oldParams = make([]string, 0, len(parameters))
@@ -146,7 +146,7 @@ func diffTags(info StackInfo, stack Stack) (string, error) {
 	oldName := defaultDiffName
 	oldTags := []string{}
 
-	if info.Exists() {
+	if info.Exists() && !info.InReviewState() {
 		oldName = "old-tags/" + stack.Name
 		oldTags = make([]string, 0, len(info.Tags()))
 

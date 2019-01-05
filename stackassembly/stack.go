@@ -49,8 +49,6 @@ type Stack struct {
 	body       string
 	path       string
 
-	exists bool
-
 	cf cloudformationiface.CloudFormationAPI
 }
 
@@ -143,15 +141,22 @@ func (s *Stack) ChangeSet() (ChangeSetHandle, error) {
 		return chSet, err
 	}
 
-	exists, err := s.Exists()
-	if err != nil {
+	isUpdate := true
+
+	info, err := s.Info()
+	switch {
+	case err == ErrStackDoesntExist:
+		isUpdate = false
+	case err != nil:
 		return chSet, err
+	case info.InReviewState():
+		isUpdate = false
 	}
 
-	chSet.exists = exists
+	chSet.isUpdate = isUpdate
 
 	operation := cloudformation.ChangeSetTypeCreate
-	if exists {
+	if isUpdate {
 		operation = cloudformation.ChangeSetTypeUpdate
 	}
 
@@ -203,12 +208,6 @@ func (s *Stack) describe() (*cloudformation.Stack, error) {
 			return nil, ErrStackDoesntExist
 		}
 		return nil, err
-	}
-
-	for _, stack := range info.Stacks {
-		if aws.StringValue(stack.StackStatus) == cloudformation.StackStatusReviewInProgress {
-			return nil, ErrStackDoesntExist
-		}
 	}
 
 	return info.Stacks[0], nil
@@ -312,25 +311,6 @@ func (s *Stack) Events() ([]StackEvent, error) {
 	}
 
 	return events, nil
-}
-
-func (s *Stack) Exists() (bool, error) {
-	if s.exists {
-		return true, nil
-	}
-
-	_, err := s.describe()
-
-	if err == ErrStackDoesntExist {
-		return false, nil
-	}
-
-	if err != nil {
-		return false, err
-	}
-
-	s.exists = true
-	return true, nil
 }
 
 func (s *Stack) ChangeSetChanges(ID *string) ([]Change, error) {

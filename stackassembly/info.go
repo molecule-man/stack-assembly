@@ -41,6 +41,10 @@ func (si StackInfo) Exists() bool {
 	return si.exists
 }
 
+func (si StackInfo) InReviewState() bool {
+	return aws.StringValue(si.awsStack.StackStatus) == cloudformation.StackStatusReviewInProgress
+}
+
 func (si StackInfo) Status() string {
 	return aws.StringValue(si.awsStack.StackStatus)
 }
