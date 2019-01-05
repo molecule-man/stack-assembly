@@ -207,7 +207,7 @@ func (s *Stack) ChangeSet() (ChangeSetHandle, error) {
 		return chSet, err
 	}
 
-	awsParams, err := s.buildAwsParams()
+	awsParams, err := s.awsParameters()
 	if err != nil {
 		return chSet, err
 	}
@@ -230,7 +230,7 @@ func (s *Stack) ChangeSet() (ChangeSetHandle, error) {
 		TemplateBody:  aws.String(body),
 		StackName:     aws.String(s.Name),
 		Parameters:    awsParams,
-		Tags:          s.buildAwsTags(),
+		Tags:          s.awsTags(),
 		Capabilities:  []*string{aws.String("CAPABILITY_IAM")},
 	})
 
@@ -274,7 +274,7 @@ func (s *Stack) describe() (*cloudformation.Stack, error) {
 	return info.Stacks[0], nil
 }
 
-func (s *Stack) buildAwsParams() ([]*cloudformation.Parameter, error) {
+func (s *Stack) awsParameters() ([]*cloudformation.Parameter, error) {
 	body, err := s.Body()
 	if err != nil {
 		return []*cloudformation.Parameter{}, err
@@ -301,7 +301,8 @@ func (s *Stack) buildAwsParams() ([]*cloudformation.Parameter, error) {
 
 	return awsParams, nil
 }
-func (s *Stack) buildAwsTags() []*cloudformation.Tag {
+
+func (s *Stack) awsTags() []*cloudformation.Tag {
 	awsTags := make([]*cloudformation.Tag, 0, len(s.tags))
 
 	for k, v := range s.tags {
@@ -399,25 +400,6 @@ func (s *Stack) Details() (StackDetails, error) {
 	}
 
 	return details, nil
-}
-
-func (s *Stack) ValidateTemplate(tplBody string) ([]string, error) {
-	v := &cloudformation.ValidateTemplateInput{
-		TemplateBody: aws.String(tplBody),
-	}
-	out, err := s.cf.ValidateTemplate(v)
-
-	if err != nil {
-		return []string{}, err
-	}
-
-	params := make([]string, 0, len(out.Parameters))
-
-	for _, p := range out.Parameters {
-		params = append(params, *p.ParameterKey)
-	}
-
-	return params, nil
 }
 
 func (s *Stack) Events() ([]StackEvent, error) {

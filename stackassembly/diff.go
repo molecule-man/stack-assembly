@@ -4,6 +4,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/aws/aws-sdk-go/aws"
 	"github.com/fatih/color"
 	"github.com/pmezard/go-difflib/difflib"
 )
@@ -108,23 +109,14 @@ func diffParameters(details *StackDetails, stack Stack) (string, error) {
 		return "", nil
 	}
 
-	body, err := stack.Body()
+	awsParams, err := stack.awsParameters()
 	if err != nil {
 		return "", err
 	}
 
-	// TODO it looks strange to use ValidateTemplate only to get parameters
-	requiredParams, err := stack.ValidateTemplate(body)
-	if err != nil {
-		return "", err
-	}
-
-	newParams := make([]string, 0, len(requiredParams))
-
-	for _, p := range requiredParams {
-		if v, ok := stack.parameters[p]; ok {
-			newParams = append(newParams, p+": "+v+"\n")
-		}
+	newParams := make([]string, 0, len(awsParams))
+	for _, p := range awsParams {
+		newParams = append(newParams, aws.StringValue(p.ParameterKey)+": "+aws.StringValue(p.ParameterValue)+"\n")
 	}
 
 	oldName := defaultDiffName
