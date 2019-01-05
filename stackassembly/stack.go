@@ -79,23 +79,6 @@ type StackResource struct {
 	Timestamp    time.Time
 }
 
-type StackDetails struct {
-	Name       string
-	Body       string
-	Parameters []KeyVal
-	Tags       []KeyVal
-}
-
-type StackStatus struct {
-	Status            string
-	StatusDescription string
-}
-
-type KeyVal struct {
-	Key string
-	Val string
-}
-
 //ErrNoChange is error that indicate that there are no changes to apply
 var ErrNoChange = errors.New("no changes")
 
@@ -253,6 +236,26 @@ func (s *Stack) ChangeSet() (ChangeSetHandle, error) {
 	return chSet, err
 }
 
+func (s *Stack) Info() (StackInfo, error) {
+	stack, err := s.describe()
+	info := StackInfo{}
+	info.awsStack = stack
+	info.exists = err != ErrStackDoesntExist
+	return info, err
+}
+
+func (s *Stack) RemoteBody() (string, error) {
+	tpl, err := s.cf.GetTemplate(&cloudformation.GetTemplateInput{
+		StackName: aws.String(s.Name),
+	})
+
+	if err != nil {
+		return "", err
+	}
+
+	return aws.StringValue(tpl.TemplateBody), nil
+}
+
 func (s *Stack) describe() (*cloudformation.Stack, error) {
 	info, err := s.cf.DescribeStacks(&cloudformation.DescribeStacksInput{
 		StackName: aws.String(s.Name),
@@ -347,59 +350,6 @@ func (s *Stack) waitChangeSet(id *string) error {
 		}
 	}
 	return err
-}
-
-func (s *Stack) Status() (StackStatus, error) {
-	status := StackStatus{}
-	stack, err := s.describe()
-	if err != nil {
-		return status, err
-	}
-
-	status.Status = aws.StringValue(stack.StackStatus)
-	status.StatusDescription = aws.StringValue(stack.StackStatusReason)
-	return status, nil
-}
-
-func (s *Stack) Details() (StackDetails, error) {
-	details := StackDetails{}
-
-	tpl, err := s.cf.GetTemplate(&cloudformation.GetTemplateInput{
-		StackName: aws.String(s.Name),
-	})
-
-	if err != nil {
-		return details, err
-	}
-
-	details.Body = *tpl.TemplateBody
-
-	stack, err := s.describe()
-	if err != nil {
-		return details, err
-	}
-
-	details.Name = aws.StringValue(stack.StackName)
-
-	details.Parameters = make([]KeyVal, 0, len(stack.Parameters))
-
-	for _, p := range stack.Parameters {
-		details.Parameters = append(details.Parameters, KeyVal{
-			Key: aws.StringValue(p.ParameterKey),
-			Val: aws.StringValue(p.ParameterValue),
-		})
-	}
-
-	details.Tags = make([]KeyVal, 0, len(stack.Tags))
-
-	for _, t := range stack.Tags {
-		details.Tags = append(details.Tags, KeyVal{
-			Key: aws.StringValue(t.Key),
-			Val: aws.StringValue(t.Value),
-		})
-	}
-
-	return details, nil
 }
 
 func (s *Stack) Events() ([]StackEvent, error) {
@@ -521,41 +471,6 @@ func (s *Stack) Resources() ([]StackResource, error) {
 	}
 
 	return resources, nil
-}
-
-// Outputs returns the "outputs" of a stack
-func (s *Stack) Outputs() ([]StackOutput, error) {
-	outputs := make([]StackOutput, 0)
-
-	resp, err := s.cf.DescribeStacks(&cloudformation.DescribeStacksInput{
-		StackName: aws.String(s.Name),
-	})
-
-	if err != nil {
-		return outputs, err
-	}
-
-	for _, s := range resp.Stacks {
-		outputs = make([]StackOutput, len(s.Outputs))
-		for i, o := range s.Outputs {
-			out := StackOutput{
-				Key:   *o.OutputKey,
-				Value: *o.OutputValue,
-			}
-
-			if o.Description != nil {
-				out.Description = *o.Description
-			}
-
-			if o.ExportName != nil {
-				out.ExportName = *o.ExportName
-			}
-
-			outputs[i] = out
-		}
-	}
-
-	return outputs, nil
 }
 
 func (s *Stack) changes(ID *string, store *[]Change, nextToken *string) error {

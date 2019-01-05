@@ -12,23 +12,14 @@ import (
 const defaultDiffName = "/dev/null"
 
 func Diff(stack Stack) (string, error) {
-	exists, err := stack.Exists()
-	if err != nil {
+	info, err := stack.Info()
+	if err != nil && err != ErrStackDoesntExist {
 		return "", err
-	}
-
-	var details *StackDetails
-	if exists {
-		d, derr := stack.Details()
-		if derr != nil {
-			return "", derr
-		}
-		details = &d
 	}
 
 	diffs := []string{}
 
-	paramsDiff, err := diffParameters(details, stack)
+	paramsDiff, err := diffParameters(info, stack)
 	if err != nil {
 		return "", err
 	}
@@ -36,7 +27,7 @@ func Diff(stack Stack) (string, error) {
 		diffs = append(diffs, colorizeDiff(paramsDiff))
 	}
 
-	tagsDiff, err := diffTags(details, stack)
+	tagsDiff, err := diffTags(info, stack)
 	if err != nil {
 		return "", err
 	}
@@ -44,7 +35,7 @@ func Diff(stack Stack) (string, error) {
 		diffs = append(diffs, colorizeDiff(tagsDiff))
 	}
 
-	bodyDiff, err := diffBody(details, stack)
+	bodyDiff, err := diffBody(info.Exists(), stack)
 	if err != nil {
 		return "", err
 	}
@@ -55,12 +46,17 @@ func Diff(stack Stack) (string, error) {
 	return strings.Join(diffs, "\n"), nil
 }
 
-func diffBody(details *StackDetails, stack Stack) (string, error) {
+func diffBody(stackExists bool, stack Stack) (string, error) {
 	oldBody := ""
 	oldName := defaultDiffName
 
-	if details != nil {
-		oldBody = details.Body
+	var err error
+
+	if stackExists {
+		oldBody, err = stack.RemoteBody()
+		if err != nil {
+			return "", err
+		}
 		oldName = "old/" + stack.Name
 	}
 
@@ -104,11 +100,7 @@ func colorizeDiff(diff string) string {
 	return strings.Join(colorized, "\n")
 }
 
-func diffParameters(details *StackDetails, stack Stack) (string, error) {
-	if (details == nil || len(details.Parameters) == 0) && len(stack.parameters) == 0 {
-		return "", nil
-	}
-
+func diffParameters(info StackInfo, stack Stack) (string, error) {
 	awsParams, err := stack.awsParameters()
 	if err != nil {
 		return "", err
@@ -116,17 +108,19 @@ func diffParameters(details *StackDetails, stack Stack) (string, error) {
 
 	newParams := make([]string, 0, len(awsParams))
 	for _, p := range awsParams {
-		newParams = append(newParams, aws.StringValue(p.ParameterKey)+": "+aws.StringValue(p.ParameterValue)+"\n")
+		line := aws.StringValue(p.ParameterKey) + ": " + aws.StringValue(p.ParameterValue) + "\n"
+		newParams = append(newParams, line)
 	}
 
 	oldName := defaultDiffName
 	oldParams := []string{}
 
-	if details != nil {
+	if info.Exists() {
+		parameters := info.Parameters()
 		oldName = "old-parameters/" + stack.Name
-		oldParams = make([]string, 0, len(details.Parameters))
+		oldParams = make([]string, 0, len(parameters))
 
-		for _, p := range details.Parameters {
+		for _, p := range parameters {
 			oldParams = append(oldParams, p.Key+": "+p.Val+"\n")
 		}
 	}
@@ -142,11 +136,7 @@ func diffParameters(details *StackDetails, stack Stack) (string, error) {
 	})
 }
 
-func diffTags(details *StackDetails, stack Stack) (string, error) {
-	if (details == nil || len(details.Tags) == 0) && len(stack.tags) == 0 {
-		return "", nil
-	}
-
+func diffTags(info StackInfo, stack Stack) (string, error) {
 	newTags := make([]string, 0, len(stack.tags))
 
 	for k, v := range stack.tags {
@@ -156,11 +146,11 @@ func diffTags(details *StackDetails, stack Stack) (string, error) {
 	oldName := defaultDiffName
 	oldTags := []string{}
 
-	if details != nil {
+	if info.Exists() {
 		oldName = "old-tags/" + stack.Name
-		oldTags = make([]string, 0, len(details.Tags))
+		oldTags = make([]string, 0, len(info.Tags()))
 
-		for _, t := range details.Tags {
+		for _, t := range info.Tags() {
 			oldTags = append(oldTags, t.Key+": "+t.Val+"\n")
 		}
 	}

@@ -32,20 +32,21 @@ func sprintEvent(e stackassembly.StackEvent) string {
 }
 
 func printStackInfo(stack stackassembly.Stack) {
-	printStackDetails(&stack)
+	info, err := stack.Info()
+	handleError(err)
+
+	printStackDetails(stack.Name, info)
 	printResources(&stack)
-	printOutputs(&stack)
+	printOutputs(info)
 	printEvents(&stack)
 
 	fmt.Println("")
 }
 
-func printStackDetails(stack *stackassembly.Stack) {
-	status, err := stack.Status()
-	handleError(err)
+func printStackDetails(name string, info stackassembly.StackInfo) {
 	fmt.Println("######################################")
-	fmt.Printf("STACK:\t%s\n", stack.Name)
-	fmt.Printf("STATUS:\t%s %s\n", sprintStackStatus(status.Status), status.StatusDescription)
+	fmt.Printf("STACK:\t%s\n", name)
+	fmt.Printf("STATUS:\t%s %s\n", sprintStackStatus(info.Status()), info.StatusDescription())
 	fmt.Println("")
 }
 
@@ -66,14 +67,11 @@ func printResources(stack *stackassembly.Stack) {
 	fmt.Println(t.Render())
 }
 
-func printOutputs(stack *stackassembly.Stack) {
-	outputs, err := stack.Outputs()
-	handleError(err)
-
+func printOutputs(info stackassembly.StackInfo) {
 	t := cli.NewTable()
 	t.NoBorder()
 	fmt.Println("==== OUTPUTS ====")
-	for _, out := range outputs {
+	for _, out := range info.Outputs() {
 		t.Row().Cell(out.Key).Cell(out.Value).Cell(out.ExportName)
 	}
 	fmt.Println(t.Render())
