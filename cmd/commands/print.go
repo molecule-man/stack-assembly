@@ -5,7 +5,6 @@ import (
 	"strings"
 
 	"github.com/fatih/color"
-	"github.com/molecule-man/stack-assembly/awsprov"
 	"github.com/molecule-man/stack-assembly/cli"
 	"github.com/molecule-man/stack-assembly/stackassembly"
 )
@@ -32,48 +31,28 @@ func sprintEvent(e stackassembly.StackEvent) string {
 	return fmt.Sprintf("\t%s\t%s\t%s\t%s", e.ResourceType, sprintStackStatus(e.Status), e.LogicalResourceID, e.StatusReason)
 }
 
-type infoPrinter struct {
-	aws *awsprov.AwsProvider
-}
-
-func newInfoPrinter(aws *awsprov.AwsProvider) infoPrinter {
-	return infoPrinter{
-		aws: aws,
-	}
-}
-
-func (p infoPrinter) print(stack stackassembly.Stack) {
-	details, err := p.aws.StackDetails(stack.Name)
-	handleError(err)
-
-	p.printStackDetails(details)
-
-	resources, err := p.aws.StackResources(stack.Name)
-	handleError(err)
-
-	p.printResources(resources)
-
-	outputs, err := p.aws.StackOutputs(stack.Name)
-	handleError(err)
-
-	p.printOutputs(outputs)
-
-	events, err := p.aws.StackEvents(stack.Name)
-	handleError(err)
-
-	p.printEvents(events)
+func printStackInfo(stack stackassembly.Stack) {
+	printStackDetails(&stack)
+	printResources(&stack)
+	printOutputs(&stack)
+	printEvents(&stack)
 
 	fmt.Println("")
 }
 
-func (p infoPrinter) printStackDetails(details stackassembly.StackDetails) {
+func printStackDetails(stack *stackassembly.Stack) {
+	status, err := stack.Status()
+	handleError(err)
 	fmt.Println("######################################")
-	fmt.Printf("STACK:\t%s\n", details.Name)
-	fmt.Printf("STATUS:\t%s %s\n", sprintStackStatus(details.Status), details.StatusDescription)
+	fmt.Printf("STACK:\t%s\n", stack.Name)
+	fmt.Printf("STATUS:\t%s %s\n", sprintStackStatus(status.Status), status.StatusDescription)
 	fmt.Println("")
 }
 
-func (p infoPrinter) printResources(resources []stackassembly.StackResource) {
+func printResources(stack *stackassembly.Stack) {
+	resources, err := stack.Resources()
+	handleError(err)
+
 	t := cli.NewTable()
 	t.NoBorder()
 	fmt.Println("==== RESOURCES ====")
@@ -87,7 +66,10 @@ func (p infoPrinter) printResources(resources []stackassembly.StackResource) {
 	fmt.Println(t.Render())
 }
 
-func (p infoPrinter) printOutputs(outputs []stackassembly.StackOutput) {
+func printOutputs(stack *stackassembly.Stack) {
+	outputs, err := stack.Outputs()
+	handleError(err)
+
 	t := cli.NewTable()
 	t.NoBorder()
 	fmt.Println("==== OUTPUTS ====")
@@ -97,7 +79,10 @@ func (p infoPrinter) printOutputs(outputs []stackassembly.StackOutput) {
 	fmt.Println(t.Render())
 }
 
-func (p infoPrinter) printEvents(events []stackassembly.StackEvent) {
+func printEvents(stack *stackassembly.Stack) {
+	events, err := stack.Events()
+	handleError(err)
+
 	t := cli.NewTable()
 	t.NoBorder()
 	fmt.Println("==== EVENTS ====")

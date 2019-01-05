@@ -10,25 +10,15 @@ import (
 
 const defaultDiffName = "/dev/null"
 
-type detailsProvider interface {
-	StackDetails(stackName string) (StackDetails, error)
-	StackExists(stackName string) (bool, error)
-	ValidateTemplate(tplBody string) ([]string, error)
-}
-
-type DiffService struct {
-	Dp detailsProvider
-}
-
-func (ds DiffService) Diff(stack Stack) (string, error) {
-	exists, err := ds.Dp.StackExists(stack.Name)
+func Diff(stack Stack) (string, error) {
+	exists, err := stack.Exists()
 	if err != nil {
 		return "", err
 	}
 
 	var details *StackDetails
 	if exists {
-		d, derr := ds.Dp.StackDetails(stack.Name)
+		d, derr := stack.Details()
 		if derr != nil {
 			return "", derr
 		}
@@ -37,7 +27,7 @@ func (ds DiffService) Diff(stack Stack) (string, error) {
 
 	diffs := []string{}
 
-	paramsDiff, err := ds.diffParameters(details, stack)
+	paramsDiff, err := diffParameters(details, stack)
 	if err != nil {
 		return "", err
 	}
@@ -45,7 +35,7 @@ func (ds DiffService) Diff(stack Stack) (string, error) {
 		diffs = append(diffs, colorizeDiff(paramsDiff))
 	}
 
-	tagsDiff, err := ds.diffTags(details, stack)
+	tagsDiff, err := diffTags(details, stack)
 	if err != nil {
 		return "", err
 	}
@@ -53,7 +43,7 @@ func (ds DiffService) Diff(stack Stack) (string, error) {
 		diffs = append(diffs, colorizeDiff(tagsDiff))
 	}
 
-	bodyDiff, err := ds.diffBody(details, stack)
+	bodyDiff, err := diffBody(details, stack)
 	if err != nil {
 		return "", err
 	}
@@ -64,7 +54,7 @@ func (ds DiffService) Diff(stack Stack) (string, error) {
 	return strings.Join(diffs, "\n"), nil
 }
 
-func (ds DiffService) diffBody(details *StackDetails, stack Stack) (string, error) {
+func diffBody(details *StackDetails, stack Stack) (string, error) {
 	oldBody := ""
 	oldName := defaultDiffName
 
@@ -113,8 +103,8 @@ func colorizeDiff(diff string) string {
 	return strings.Join(colorized, "\n")
 }
 
-func (ds DiffService) diffParameters(details *StackDetails, stack Stack) (string, error) {
-	if (details == nil || len(details.Parameters) == 0) && len(stack.Parameters) == 0 {
+func diffParameters(details *StackDetails, stack Stack) (string, error) {
+	if (details == nil || len(details.Parameters) == 0) && len(stack.parameters) == 0 {
 		return "", nil
 	}
 
@@ -124,7 +114,7 @@ func (ds DiffService) diffParameters(details *StackDetails, stack Stack) (string
 	}
 
 	// TODO it looks strange to use ValidateTemplate only to get parameters
-	requiredParams, err := ds.Dp.ValidateTemplate(body)
+	requiredParams, err := stack.ValidateTemplate(body)
 	if err != nil {
 		return "", err
 	}
@@ -132,7 +122,7 @@ func (ds DiffService) diffParameters(details *StackDetails, stack Stack) (string
 	newParams := make([]string, 0, len(requiredParams))
 
 	for _, p := range requiredParams {
-		if v, ok := stack.Parameters[p]; ok {
+		if v, ok := stack.parameters[p]; ok {
 			newParams = append(newParams, p+": "+v+"\n")
 		}
 	}
@@ -160,14 +150,14 @@ func (ds DiffService) diffParameters(details *StackDetails, stack Stack) (string
 	})
 }
 
-func (ds DiffService) diffTags(details *StackDetails, stack Stack) (string, error) {
-	if (details == nil || len(details.Tags) == 0) && len(stack.Tags) == 0 {
+func diffTags(details *StackDetails, stack Stack) (string, error) {
+	if (details == nil || len(details.Tags) == 0) && len(stack.tags) == 0 {
 		return "", nil
 	}
 
-	newTags := make([]string, 0, len(stack.Tags))
+	newTags := make([]string, 0, len(stack.tags))
 
-	for k, v := range stack.Tags {
+	for k, v := range stack.tags {
 		newTags = append(newTags, k+": "+v+"\n")
 	}
 

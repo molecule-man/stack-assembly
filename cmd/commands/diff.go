@@ -19,15 +19,11 @@ func diffCmd() *cobra.Command {
 			cfg, err := conf.LoadConfig(cfgFiles)
 			handleError(err)
 
-			diffS := stackassembly.DiffService{
-				Dp: conf.Aws(cfg),
-			}
-
 			stacks, err := cfg.GetStacks()
 			handleError(err)
 
 			for _, stack := range stacks {
-				diff, err := diffS.Diff(stack)
+				diff, err := stackassembly.Diff(stack)
 				handleError(err)
 
 				fmt.Println(diff)

@@ -17,17 +17,15 @@ func infoCmd() *cobra.Command {
 			cfg, err := conf.LoadConfig(cfgFiles)
 			handleError(err)
 
-			printer := newInfoPrinter(conf.Aws(cfg))
-
 			stacks, err := cfg.GetStacks()
 			handleError(err)
 
 			for _, stack := range stacks {
-				if len(args) > 0 && args[0] != stack.Name && args[0] != stack.ID {
+				if len(args) > 0 && args[0] != stack.Name {
 					continue
 				}
 
-				printer.print(stack)
+				printStackInfo(stack)
 			}
 		},
 	}

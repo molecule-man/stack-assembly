@@ -15,7 +15,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/mitchellh/mapstructure"
-	"github.com/molecule-man/stack-assembly/awsprov"
+	"github.com/molecule-man/stack-assembly/depgraph"
 	"github.com/molecule-man/stack-assembly/stackassembly"
 	"github.com/spf13/viper"
 	yaml "gopkg.in/yaml.v2"
@@ -38,22 +38,30 @@ type Config struct {
 }
 
 func (cfg Config) GetStacks() ([]stackassembly.Stack, error) {
-	stacks := make([]stackassembly.Stack, 0, len(cfg.Stacks))
+	stacks := make([]stackassembly.Stack, len(cfg.Stacks))
+	dg := depgraph.DepGraph{}
 
+	stacksMap := make(map[string]stackassembly.Stack, len(stacks))
+
+	cf := Cf(cfg)
 	for id, stackCfg := range cfg.Stacks {
-		stack, err := stackassembly.NewStack(id, stackCfg, cfg.Parameters)
+		dg.Add(id, stackCfg.DependsOn)
+		stack, err := stackassembly.NewStack(cf, stackCfg, cfg.Parameters)
 		if err != nil {
 			return stacks, err
 		}
-
-		stacks = append(stacks, stack)
+		stacksMap[id] = stack
 	}
 
-	return stacks, nil
-}
+	orderedIds, err := dg.Resolve()
+	if err != nil {
+		return stacks, err
+	}
 
-func Aws(cfg Config) *awsprov.AwsProvider {
-	return awsprov.New(Cf(cfg))
+	for i, id := range orderedIds {
+		stacks[i] = stacksMap[id]
+	}
+	return stacks, nil
 }
 
 func Cf(cfg Config) *cloudformation.CloudFormation {

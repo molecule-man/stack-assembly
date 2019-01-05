@@ -1,6 +1,7 @@
 package stackassembly
 
 import (
+	"errors"
 	"strings"
 	"testing"
 
@@ -18,15 +19,15 @@ parameters:
   param1: new_val1
   param2: old_val2`
 
-	ds := DiffService{
-		Dp: &dpMock{exists: true, body: oldTplBody},
-	}
+	cf := &cfMock{}
+	cf.body = oldTplBody
 	st := Stack{
 		Name: "teststack",
 		body: newTplBody,
+		cf:   cf,
 	}
 
-	diff, err := ds.Diff(st)
+	diff, err := Diff(st)
 	require.NoError(t, err)
 
 	expected := `
@@ -47,13 +48,15 @@ parameters:
   param1: val1
   param2: val2`
 
-	ds := DiffService{Dp: &dpMock{}}
+	cf := &cfMock{}
+	cf.describeErr = errors.New("stack does not exist")
 	st := Stack{
 		Name: "teststack",
 		body: newTplBody,
+		cf:   cf,
 	}
 
-	diff, err := ds.Diff(st)
+	diff, err := Diff(st)
 	require.NoError(t, err)
 
 	expected := `
@@ -66,22 +69,4 @@ parameters:
 +  param2: val2
 `
 	assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(diff))
-}
-
-type dpMock struct {
-	exists bool
-	body   string
-	err    error
-}
-
-func (dpm *dpMock) StackDetails(name string) (StackDetails, error) {
-	return StackDetails{Body: dpm.body}, dpm.err
-}
-
-func (dpm *dpMock) StackExists(name string) (bool, error) {
-	return dpm.exists, dpm.err
-}
-
-func (dpm *dpMock) ValidateTemplate(tplBody string) ([]string, error) {
-	return []string{}, nil
 }

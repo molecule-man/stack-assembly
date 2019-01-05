@@ -55,12 +55,7 @@ func execSyncOneTpl(stackName, tpl string, nonInteractive bool) {
 }
 
 func sync(cfg conf.Config, nonInteractive bool) {
-	aws := conf.Aws(cfg)
-	cf := conf.Cf(cfg)
-
 	stacks, err := cfg.GetStacks()
-	handleError(err)
-	err = stackassembly.SortStacksByExecOrder(stacks)
 	handleError(err)
 
 	logger := log.New(os.Stderr, "", log.LstdFlags)
@@ -73,7 +68,6 @@ func sync(cfg conf.Config, nonInteractive bool) {
 
 		print("Syncing template")
 
-		stack.Cf = cf
 		chSet, err := stack.ChangeSet()
 
 		if err == stackassembly.ErrNoChange {
@@ -100,11 +94,7 @@ func sync(cfg conf.Config, nonInteractive bool) {
 							description:   "[d]iff",
 							triggerInputs: []string{"d", "diff"},
 							action: func() {
-								diffS := stackassembly.DiffService{
-									Dp: aws,
-								}
-
-								diff, derr := diffS.Diff(stack)
+								diff, derr := stackassembly.Diff(stack)
 								handleError(derr)
 
 								fmt.Println(diff)
@@ -141,7 +131,7 @@ func sync(cfg conf.Config, nonInteractive bool) {
 
 		for _, r := range stack.Blocked {
 			print("Blocking resource %s", r)
-			err := aws.BlockResource(stack.Name, r)
+			err := stack.BlockResource(r)
 
 			handleError(err)
 		}

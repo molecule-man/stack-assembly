@@ -23,7 +23,7 @@ func (et *EventsTracker) StartTracking(stack *Stack) (chan StackEvent, func()) {
 	sleep := et.sleep
 
 	if sleep == 0 {
-		sleep = 2 * time.Second
+		sleep = 3 * time.Second
 	}
 	go func() {
 		for {

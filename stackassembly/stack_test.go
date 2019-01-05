@@ -20,7 +20,7 @@ func TestOnlyRequiredParametersAreSubmitted2(t *testing.T) {
 		{ParameterKey: aws.String("foo")},
 		{ParameterKey: aws.String("bar")},
 	}
-	stack := Stack{Cf: cf, body: "body", Parameters: map[string]string{
+	stack := Stack{cf: cf, body: "body", parameters: map[string]string{
 		"foo": "fooval",
 		"bar": "barval",
 		"buz": "buzval",
@@ -50,7 +50,7 @@ func TestChangeSetCreationErrors2(t *testing.T) {
 		cf := &cfMock{}
 		tc.errProv(cf, tc.err)
 
-		stack := Stack{Cf: cf, body: "body"}
+		stack := Stack{cf: cf, body: "body"}
 		_, err := stack.ChangeSet()
 
 		assert.EqualError(t, err, tc.err.Error())
@@ -82,7 +82,7 @@ func TestEventTracking(t *testing.T) {
 	et := EventsTracker{
 		sleep: 6 * time.Millisecond,
 	}
-	stack := Stack{Cf: cf, body: "body"}
+	stack := Stack{cf: cf, body: "body"}
 	cs, err := stack.ChangeSet()
 	require.NoError(t, err)
 
@@ -122,6 +122,9 @@ type cfMock struct {
 	createErr     error
 	changesErr    error
 	waitChSetErr  error
+	describeErr   error
+
+	body string
 
 	waitStackFunc           func() error
 	describeStackEventsFunc func() (*cloudformation.DescribeStackEventsOutput, error)
@@ -135,8 +138,15 @@ func (cf *cfMock) ValidateTemplate(*cloudformation.ValidateTemplateInput) (*clou
 }
 
 func (cf *cfMock) DescribeStacks(*cloudformation.DescribeStacksInput) (*cloudformation.DescribeStacksOutput, error) {
-	out := cloudformation.DescribeStacksOutput{}
+	out := cloudformation.DescribeStacksOutput{
+		Stacks: []*cloudformation.Stack{{}},
+	}
 
+	return &out, cf.describeErr
+}
+func (cf *cfMock) GetTemplate(*cloudformation.GetTemplateInput) (*cloudformation.GetTemplateOutput, error) {
+	out := cloudformation.GetTemplateOutput{}
+	out.TemplateBody = aws.String(cf.body)
 	return &out, cf.err
 }
 
