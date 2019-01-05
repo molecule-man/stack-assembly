@@ -1,8 +1,11 @@
 package stackassembly
 
 import (
+	"time"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
+	"github.com/aws/aws-sdk-go/service/cloudformation/cloudformationiface"
 )
 
 type KeyVal struct {
@@ -10,9 +13,28 @@ type KeyVal struct {
 	Val string
 }
 
+// StackOutput contains info about stack output variables
+type StackOutput struct {
+	Key         string
+	Value       string
+	Description string
+	ExportName  string
+}
+
+type StackResource struct {
+	LogicalID    string
+	PhysicalID   string
+	Status       string
+	StatusReason string
+	Type         string
+	Timestamp    time.Time
+}
+
 type StackInfo struct {
 	awsStack *cloudformation.Stack
 	exists   bool
+
+	cf cloudformationiface.CloudFormationAPI
 }
 
 func (si StackInfo) Exists() bool {
@@ -68,4 +90,49 @@ func (si StackInfo) Outputs() []StackOutput {
 	}
 
 	return outputs
+}
+
+func (si StackInfo) Body() (string, error) {
+	tpl, err := si.cf.GetTemplate(&cloudformation.GetTemplateInput{
+		StackName: si.awsStack.StackName,
+	})
+
+	if err != nil {
+		return "", err
+	}
+
+	return aws.StringValue(tpl.TemplateBody), nil
+}
+
+// Resources returns info about stack resources
+func (si StackInfo) Resources() ([]StackResource, error) {
+	resp, err := si.cf.DescribeStackResources(&cloudformation.DescribeStackResourcesInput{
+		StackName: si.awsStack.StackName,
+	})
+
+	if err != nil {
+		return []StackResource{}, err
+	}
+
+	resources := make([]StackResource, len(resp.StackResources))
+
+	for i, r := range resp.StackResources {
+		resource := StackResource{
+			LogicalID: *r.LogicalResourceId,
+			Status:    *r.ResourceStatus,
+			Type:      *r.ResourceType,
+			Timestamp: *r.Timestamp,
+		}
+
+		if r.PhysicalResourceId != nil {
+			resource.PhysicalID = *r.PhysicalResourceId
+		}
+		if r.ResourceStatusReason != nil {
+			resource.StatusReason = *r.ResourceStatusReason
+		}
+
+		resources[i] = resource
+	}
+
+	return resources, nil
 }

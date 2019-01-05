@@ -14,7 +14,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestOnlyRequiredParametersAreSubmitted2(t *testing.T) {
+func TestOnlyRequiredParametersAreSubmitted(t *testing.T) {
 	cf := &cfMock{}
 	cf.templateParameters = []*cloudformation.TemplateParameter{
 		{ParameterKey: aws.String("foo")},
@@ -36,7 +36,7 @@ func TestOnlyRequiredParametersAreSubmitted2(t *testing.T) {
 	assert.Equal(t, expected, cf.createChangeSetInput.Parameters)
 }
 
-func TestChangeSetCreationErrors2(t *testing.T) {
+func TestChangeSetCreationErrors(t *testing.T) {
 	cases := []struct {
 		errProv func(*cfMock, error)
 		err     error

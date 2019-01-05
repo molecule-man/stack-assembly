@@ -35,7 +35,7 @@ func Diff(stack Stack) (string, error) {
 		diffs = append(diffs, colorizeDiff(tagsDiff))
 	}
 
-	bodyDiff, err := diffBody(info.Exists(), stack)
+	bodyDiff, err := diffBody(info, stack)
 	if err != nil {
 		return "", err
 	}
@@ -46,14 +46,14 @@ func Diff(stack Stack) (string, error) {
 	return strings.Join(diffs, "\n"), nil
 }
 
-func diffBody(stackExists bool, stack Stack) (string, error) {
+func diffBody(info StackInfo, stack Stack) (string, error) {
 	oldBody := ""
 	oldName := defaultDiffName
 
 	var err error
 
-	if stackExists {
-		oldBody, err = stack.RemoteBody()
+	if info.Exists() {
+		oldBody, err = info.Body()
 		if err != nil {
 			return "", err
 		}

@@ -20,6 +20,16 @@ import (
 const noChangeStatus = "The submitted information didn't contain changes. " +
 	"Submit different information to create a change set."
 
+// StackEvent is a stack event
+type StackEvent struct {
+	ID                string
+	ResourceType      string
+	Status            string
+	LogicalResourceID string
+	StatusReason      string
+	Timestamp         time.Time
+}
+
 type StackConfig struct {
 	Name       string
 	Path       string
@@ -50,33 +60,6 @@ type Change struct {
 	ResourceType      string
 	LogicalResourceID string
 	ReplacementNeeded bool
-}
-
-// StackEvent is a stack event
-type StackEvent struct {
-	ID                string
-	ResourceType      string
-	Status            string
-	LogicalResourceID string
-	StatusReason      string
-	Timestamp         time.Time
-}
-
-// StackOutput contains info about stack output variables
-type StackOutput struct {
-	Key         string
-	Value       string
-	Description string
-	ExportName  string
-}
-
-type StackResource struct {
-	LogicalID    string
-	PhysicalID   string
-	Status       string
-	StatusReason string
-	Type         string
-	Timestamp    time.Time
 }
 
 //ErrNoChange is error that indicate that there are no changes to apply
@@ -206,19 +189,8 @@ func (s *Stack) Info() (StackInfo, error) {
 	info := StackInfo{}
 	info.awsStack = stack
 	info.exists = err != ErrStackDoesntExist
+	info.cf = s.cf
 	return info, err
-}
-
-func (s *Stack) RemoteBody() (string, error) {
-	tpl, err := s.cf.GetTemplate(&cloudformation.GetTemplateInput{
-		StackName: aws.String(s.Name),
-	})
-
-	if err != nil {
-		return "", err
-	}
-
-	return aws.StringValue(tpl.TemplateBody), nil
 }
 
 func (s *Stack) describe() (*cloudformation.Stack, error) {
@@ -366,78 +338,6 @@ func (s *Stack) ChangeSetChanges(ID *string) ([]Change, error) {
 	return changes, s.changes(ID, &changes, nil)
 }
 
-// BlockResource prevents a stack resource from deletion and replacement
-func (s *Stack) BlockResource(resource string) error {
-	policy := `{
-		"Statement" : [{
-			"Effect" : "Deny",
-			"Action" : [
-				"Update:Replace",
-				"Update:Delete"
-			],
-			"Principal": "*",
-			"Resource" : "LogicalResourceId/%s"
-		}]
-	}`
-
-	return s.applyPolicy(fmt.Sprintf(policy, resource))
-}
-
-// UnblockResource discards the blocking from the resource
-func (s *Stack) UnblockResource(resource string) error {
-	policy := `{
-		"Statement" : [{
-			"Effect" : "Allow",
-			"Action" : "Update:*",
-			"Principal": "*",
-			"Resource" : "LogicalResourceId/%s"
-		}]
-	}`
-
-	return s.applyPolicy(fmt.Sprintf(policy, resource))
-}
-
-func (s *Stack) applyPolicy(policy string) error {
-	_, err := s.cf.SetStackPolicy(&cloudformation.SetStackPolicyInput{
-		StackName:       aws.String(s.Name),
-		StackPolicyBody: aws.String(policy),
-	})
-	return err
-}
-
-// Resources returns info about stack resources
-func (s *Stack) Resources() ([]StackResource, error) {
-	resp, err := s.cf.DescribeStackResources(&cloudformation.DescribeStackResourcesInput{
-		StackName: aws.String(s.Name),
-	})
-
-	if err != nil {
-		return []StackResource{}, err
-	}
-
-	resources := make([]StackResource, len(resp.StackResources))
-
-	for i, r := range resp.StackResources {
-		resource := StackResource{
-			LogicalID: *r.LogicalResourceId,
-			Status:    *r.ResourceStatus,
-			Type:      *r.ResourceType,
-			Timestamp: *r.Timestamp,
-		}
-
-		if r.PhysicalResourceId != nil {
-			resource.PhysicalID = *r.PhysicalResourceId
-		}
-		if r.ResourceStatusReason != nil {
-			resource.StatusReason = *r.ResourceStatusReason
-		}
-
-		resources[i] = resource
-	}
-
-	return resources, nil
-}
-
 func (s *Stack) changes(ID *string, store *[]Change, nextToken *string) error {
 	setInfo, err := s.cf.DescribeChangeSet(&cloudformation.DescribeChangeSetInput{
 		ChangeSetName: ID,
@@ -475,6 +375,45 @@ func (s *Stack) changes(ID *string, store *[]Change, nextToken *string) error {
 	}
 
 	return nil
+}
+
+// BlockResource prevents a stack resource from deletion and replacement
+func (s *Stack) BlockResource(resource string) error {
+	policy := `{
+		"Statement" : [{
+			"Effect" : "Deny",
+			"Action" : [
+				"Update:Replace",
+				"Update:Delete"
+			],
+			"Principal": "*",
+			"Resource" : "LogicalResourceId/%s"
+		}]
+	}`
+
+	return s.applyPolicy(fmt.Sprintf(policy, resource))
+}
+
+// UnblockResource discards the blocking from the resource
+func (s *Stack) UnblockResource(resource string) error {
+	policy := `{
+		"Statement" : [{
+			"Effect" : "Allow",
+			"Action" : "Update:*",
+			"Principal": "*",
+			"Resource" : "LogicalResourceId/%s"
+		}]
+	}`
+
+	return s.applyPolicy(fmt.Sprintf(policy, resource))
+}
+
+func (s *Stack) applyPolicy(policy string) error {
+	_, err := s.cf.SetStackPolicy(&cloudformation.SetStackPolicyInput{
+		StackName:       aws.String(s.Name),
+		StackPolicyBody: aws.String(policy),
+	})
+	return err
 }
 
 func applyTemplating(parsed *string, tpl string, data interface{}) error {

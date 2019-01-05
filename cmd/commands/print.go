@@ -36,7 +36,7 @@ func printStackInfo(stack stackassembly.Stack) {
 	handleError(err)
 
 	printStackDetails(stack.Name, info)
-	printResources(&stack)
+	printResources(info)
 	printOutputs(info)
 	printEvents(&stack)
 
@@ -50,8 +50,8 @@ func printStackDetails(name string, info stackassembly.StackInfo) {
 	fmt.Println("")
 }
 
-func printResources(stack *stackassembly.Stack) {
-	resources, err := stack.Resources()
+func printResources(info stackassembly.StackInfo) {
+	resources, err := info.Resources()
 	handleError(err)
 
 	t := cli.NewTable()
