@@ -230,12 +230,13 @@ func (s *Stack) awsParameters() ([]*cloudformation.Parameter, error) {
 
 	for _, p := range out.Parameters {
 		k := aws.StringValue(p.ParameterKey)
+		awsParam := cloudformation.Parameter{ParameterKey: aws.String(k)}
 		if v, ok := s.parameters[k]; ok {
-			awsParams = append(awsParams, &cloudformation.Parameter{
-				ParameterKey:   aws.String(k),
-				ParameterValue: aws.String(v),
-			})
+			awsParam.ParameterValue = aws.String(v)
+		} else {
+			awsParam.UsePreviousValue = aws.Bool(true)
 		}
+		awsParams = append(awsParams, &awsParam)
 	}
 
 	return awsParams, nil
