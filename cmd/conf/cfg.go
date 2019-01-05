@@ -72,6 +72,8 @@ func Cf(cfg Config) *cloudformation.CloudFormation {
 	}
 
 	awsCfg := aws.Config{}
+	awsCfg.MaxRetries = aws.Int(5)
+
 	if cfg.Settings.Aws.Region != "" {
 		awsCfg.Region = aws.String(cfg.Settings.Aws.Region)
 	}

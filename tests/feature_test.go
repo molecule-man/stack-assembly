@@ -32,7 +32,7 @@ var opt = godog.Options{
 	Output: colors.Colored(os.Stdout),
 	// Format: "pretty",
 	Format:      "progress",
-	Concurrency: 7,
+	Concurrency: 8,
 	Randomize:   time.Now().UTC().UnixNano(),
 }
 
@@ -300,7 +300,7 @@ func FeatureContext(s *godog.Suite) {
 	f := feature{}
 
 	sess := session.Must(session.NewSession())
-	cf := cloudformation.New(sess)
+	cf := cloudformation.New(sess, (&aws.Config{}).WithMaxRetries(8))
 
 	f.cf = cf
 

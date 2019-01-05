@@ -34,12 +34,12 @@ func (csh ChangeSetHandle) Exec() error {
 	if csh.isUpdate {
 		return csh.cf.WaitUntilStackUpdateCompleteWithContext(ctx, &stackInput, func(w *request.Waiter) {
 			w.MaxAttempts = 900
-			w.Delay = request.ConstantWaiterDelay(3 * time.Second)
+			w.Delay = request.ConstantWaiterDelay(2 * time.Second)
 		})
 	}
 
 	return csh.cf.WaitUntilStackCreateCompleteWithContext(ctx, &stackInput, func(w *request.Waiter) {
 		w.MaxAttempts = 900
-		w.Delay = request.ConstantWaiterDelay(3 * time.Second)
+		w.Delay = request.ConstantWaiterDelay(2 * time.Second)
 	})
 }

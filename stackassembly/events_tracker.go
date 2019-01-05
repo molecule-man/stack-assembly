@@ -41,9 +41,7 @@ func (et *EventsTracker) StartTracking(stack *Stack) (chan StackEvent, func()) {
 		}
 	}()
 
-	return eventsCh, func() {
-		close(stopCh)
-	}
+	return eventsCh, func() { close(stopCh) }
 }
 
 func (et *EventsTracker) publishEvents(stack *Stack, eventsCh chan StackEvent, sinceEventID string) string {

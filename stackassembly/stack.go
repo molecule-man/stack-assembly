@@ -260,7 +260,7 @@ func (s *Stack) waitChangeSet(id *string) error {
 			ChangeSetName: id,
 		},
 		func(w *request.Waiter) {
-			w.Delay = request.ConstantWaiterDelay(3 * time.Second)
+			w.Delay = request.ConstantWaiterDelay(1 * time.Second)
 		},
 	)
 
