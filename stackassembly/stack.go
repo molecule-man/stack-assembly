@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"os/exec"
 	"strconv"
 	"strings"
 	"text/template"
@@ -422,7 +423,16 @@ func (s *Stack) applyPolicy(policy string) error {
 }
 
 func applyTemplating(parsed *string, tpl string, data interface{}) error {
-	t, err := template.New(tpl).Parse(tpl)
+	t, err := template.New(tpl).Funcs(template.FuncMap{
+		"Exec": func(cmd string, args ...string) (string, error) {
+			out, err := exec.Command(cmd, args...).CombinedOutput()
+			if err != nil {
+				return "", err
+			}
+
+			return strings.TrimSpace(string(out)), nil
+		},
+	}).Parse(tpl)
 	if err != nil {
 		return err
 	}

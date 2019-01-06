@@ -36,3 +36,25 @@ Feature: stas sync with templating
             tags:
                 NAME: stastest-dev-%scenarioid%
             """
+
+    @short @wip
+    Scenario: use `Exec` function in a template
+        Given file "cfg.yaml" exists:
+            """
+            stacks:
+                stack1:
+                    name: "{{ Exec \"echo\" \"stastest\" }}-tplexec-%scenarioid%"
+                    path: "tpls/stack1.yml"
+                    tags:
+                        STAS_TEST: "%featureid%"
+            """
+        And file "tpls/stack1.yml" exists:
+            """
+            Resources:
+                Cluster:
+                    Type: AWS::ECS::Cluster
+                    Properties:
+                        ClusterName: !Ref AWS::StackName
+            """
+        When I successfully run "sync -c cfg.yaml --no-interaction"
+        Then stack "stastest-tplexec-%scenarioid%" should have status "CREATE_COMPLETE"
