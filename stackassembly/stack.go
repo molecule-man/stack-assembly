@@ -60,6 +60,17 @@ type Change struct {
 	ReplacementNeeded bool
 }
 
+type ParametersMissingError struct {
+	MissingParameters []string
+}
+
+func (e *ParametersMissingError) Error() string {
+	return fmt.Sprintf(
+		"the following parameters are required but not provided: %s",
+		strings.Join(e.MissingParameters, ", "),
+	)
+}
+
 //ErrNoChange is error that indicate that there are no changes to apply
 var ErrNoChange = errors.New("no changes")
 
@@ -110,6 +121,10 @@ func NewStack(cf cloudformationiface.CloudFormationAPI, stackCfg StackConfig, gl
 	return stack, err
 }
 
+func (s *Stack) AddParameter(k, v string) {
+	s.parameters[k] = v
+}
+
 func (s *Stack) Body() (string, error) {
 	if s.body != "" {
 		return s.body, nil
@@ -136,27 +151,20 @@ func (s *Stack) ChangeSet() (ChangeSetHandle, error) {
 		return chSet, err
 	}
 
-	awsParams, err := s.awsParameters()
+	info := s.Info()
+	if err = info.Error(); err != nil {
+		return chSet, err
+	}
+
+	awsParams, err := s.awsParameters(info)
 	if err != nil {
 		return chSet, err
 	}
 
-	isUpdate := true
-
-	info, err := s.Info()
-	switch {
-	case err == ErrStackDoesntExist:
-		isUpdate = false
-	case err != nil:
-		return chSet, err
-	case info.InReviewState():
-		isUpdate = false
-	}
-
-	chSet.isUpdate = isUpdate
+	chSet.isUpdate = info.AlreadyDeployed()
 
 	operation := cloudformation.ChangeSetTypeCreate
-	if isUpdate {
+	if chSet.isUpdate {
 		operation = cloudformation.ChangeSetTypeUpdate
 	}
 
@@ -189,13 +197,13 @@ func (s *Stack) ChangeSet() (ChangeSetHandle, error) {
 	return chSet, err
 }
 
-func (s *Stack) Info() (StackInfo, error) {
+func (s *Stack) Info() StackInfo {
 	stack, err := s.describe()
 	info := StackInfo{}
 	info.awsStack = stack
-	info.exists = err != ErrStackDoesntExist
+	info.err = err
 	info.cf = s.cf
-	return info, err
+	return info
 }
 
 func (s *Stack) describe() (*cloudformation.Stack, error) {
@@ -213,7 +221,7 @@ func (s *Stack) describe() (*cloudformation.Stack, error) {
 	return info.Stacks[0], nil
 }
 
-func (s *Stack) awsParameters() ([]*cloudformation.Parameter, error) {
+func (s *Stack) awsParameters(info StackInfo) ([]*cloudformation.Parameter, error) {
 	body, err := s.Body()
 	if err != nil {
 		return []*cloudformation.Parameter{}, err
@@ -227,16 +235,32 @@ func (s *Stack) awsParameters() ([]*cloudformation.Parameter, error) {
 	}
 
 	awsParams := make([]*cloudformation.Parameter, 0, len(out.Parameters))
+	missingParameters := []string{}
 
 	for _, p := range out.Parameters {
 		k := aws.StringValue(p.ParameterKey)
-		awsParam := cloudformation.Parameter{ParameterKey: aws.String(k)}
-		if v, ok := s.parameters[k]; ok {
-			awsParam.ParameterValue = aws.String(v)
-		} else {
-			awsParam.UsePreviousValue = aws.Bool(true)
+		v, ok := s.parameters[k]
+
+		switch {
+		case ok:
+			awsParams = append(awsParams, &cloudformation.Parameter{
+				ParameterKey:   aws.String(k),
+				ParameterValue: aws.String(v),
+			})
+		case info.AlreadyDeployed():
+			awsParams = append(awsParams, &cloudformation.Parameter{
+				ParameterKey:     aws.String(k),
+				UsePreviousValue: aws.Bool(true),
+			})
+		default:
+			missingParameters = append(missingParameters, k)
 		}
-		awsParams = append(awsParams, &awsParam)
+	}
+
+	if len(missingParameters) > 0 {
+		err := &ParametersMissingError{}
+		err.MissingParameters = missingParameters
+		return awsParams, err
 	}
 
 	return awsParams, nil

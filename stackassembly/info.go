@@ -32,13 +32,25 @@ type StackResource struct {
 
 type StackInfo struct {
 	awsStack *cloudformation.Stack
-	exists   bool
+	err      error
 
 	cf cloudformationiface.CloudFormationAPI
 }
 
 func (si StackInfo) Exists() bool {
-	return si.exists
+	return si.err == nil
+}
+
+func (si StackInfo) AlreadyDeployed() bool {
+	return si.Exists() && !si.InReviewState()
+}
+
+func (si StackInfo) Error() error {
+	if si.err != nil && si.err != ErrStackDoesntExist {
+		return si.err
+	}
+
+	return nil
 }
 
 func (si StackInfo) InReviewState() bool {

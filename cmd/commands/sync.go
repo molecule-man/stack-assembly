@@ -8,6 +8,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/fatih/color"
 	"github.com/molecule-man/stack-assembly/cli"
 	"github.com/molecule-man/stack-assembly/cmd/conf"
 	"github.com/molecule-man/stack-assembly/stackassembly"
@@ -69,6 +70,25 @@ func sync(cfg conf.Config, nonInteractive bool) {
 		print("Syncing template")
 
 		chSet, err := stack.ChangeSet()
+
+		if paramerr, ok := err.(*stackassembly.ParametersMissingError); ok {
+			c := color.New(color.FgYellow, color.Bold)
+			print(c.Sprint(paramerr.Error()))
+			reader := bufio.NewReader(os.Stdin)
+			for _, p := range paramerr.MissingParameters {
+				fmt.Printf("Enter %s: ", p)
+
+				response, rerr := reader.ReadString('\n')
+
+				if rerr != nil {
+					handleError(fmt.Errorf("reading user input failed with err: %v", rerr))
+				}
+
+				stack.AddParameter(p, strings.TrimSpace(response))
+			}
+
+			chSet, err = stack.ChangeSet()
+		}
 
 		if err == stackassembly.ErrNoChange {
 			print("No changes to be synced")

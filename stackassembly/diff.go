@@ -12,8 +12,8 @@ import (
 const defaultDiffName = "/dev/null"
 
 func Diff(stack Stack) (string, error) {
-	info, err := stack.Info()
-	if err != nil && err != ErrStackDoesntExist {
+	info := stack.Info()
+	if err := info.Error(); err != nil {
 		return "", err
 	}
 
@@ -52,7 +52,7 @@ func diffBody(info StackInfo, stack Stack) (string, error) {
 
 	var err error
 
-	if info.Exists() && !info.InReviewState() {
+	if info.AlreadyDeployed() {
 		oldBody, err = info.Body()
 		if err != nil {
 			return "", err
@@ -101,7 +101,7 @@ func colorizeDiff(diff string) string {
 }
 
 func diffParameters(info StackInfo, stack Stack) (string, error) {
-	awsParams, err := stack.awsParameters()
+	awsParams, err := stack.awsParameters(info)
 	if err != nil {
 		return "", err
 	}
@@ -115,7 +115,7 @@ func diffParameters(info StackInfo, stack Stack) (string, error) {
 	oldName := defaultDiffName
 	oldParams := []string{}
 
-	if info.Exists() && !info.InReviewState() {
+	if info.AlreadyDeployed() {
 		parameters := info.Parameters()
 		oldName = "old-parameters/" + stack.Name
 		oldParams = make([]string, 0, len(parameters))
@@ -146,7 +146,7 @@ func diffTags(info StackInfo, stack Stack) (string, error) {
 	oldName := defaultDiffName
 	oldTags := []string{}
 
-	if info.Exists() && !info.InReviewState() {
+	if info.AlreadyDeployed() {
 		oldName = "old-tags/" + stack.Name
 		oldTags = make([]string, 0, len(info.Tags()))
 

@@ -38,7 +38,6 @@ Feature: stas sync with parameters
         When I successfully run "sync -c cfg.yaml --no-interaction"
         Then stack "stastest-param-%scenarioid%" should have status "CREATE_COMPLETE"
 
-    @wip
     Scenario: sync doesn't fail when I remove parameter from config. Old parameter value is used
         Given file "cfg.yaml" exists:
             """
@@ -82,3 +81,50 @@ Feature: stas sync with parameters
             """
         And I successfully run "sync -c cfg.yaml --no-interaction"
         Then stack "stastest-rmparam-%scenarioid%" should have status "UPDATE_COMPLETE"
+
+    @short
+    Scenario: sync prompts me to enter parameter value if it's not present in config
+        Given file "cfg.yaml" exists:
+            """
+            stacks:
+              stack1:
+                name: stastest-promptparam-%scenarioid%
+                path: tpls/stack1.yml
+                tags:
+                  STAS_TEST: '%featureid%'
+            """
+        And file "tpls/stack1.yml" exists:
+            """
+            Parameters:
+              User:
+                Type: String
+              Password:
+                Type: String
+                NoEcho: true
+
+            Resources:
+              MyeSecret:
+                Type: 'AWS::SecretsManager::Secret'
+                Properties:
+                  Name: !Sub "${AWS::StackName}-secret"
+                  SecretString: !Sub '{"user": "${User}", "password":"${Password}"}'
+            """
+        Given I launched "sync -c cfg.yaml"
+        And terminal shows:
+            """
+            the following parameters are required but not provided: User, Password
+            Enter User:
+            """
+        When I enter "myuser"
+        Then terminal shows:
+            """
+            Enter Password:
+            """
+        When I enter "mysecret"
+        Then terminal shows:
+            """
+            What now>
+            """
+        When I enter "s"
+        Then launched program should exit with zero status
+        And stack "stastest-promptparam-%scenarioid%" should have status "CREATE_COMPLETE"

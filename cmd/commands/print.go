@@ -32,8 +32,12 @@ func sprintEvent(e stackassembly.StackEvent) string {
 }
 
 func printStackInfo(stack stackassembly.Stack) {
-	info, err := stack.Info()
-	handleError(err)
+	info := stack.Info()
+	handleError(info.Error())
+
+	if !info.Exists() {
+		return
+	}
 
 	printStackDetails(stack.Name, info)
 	printResources(info)
