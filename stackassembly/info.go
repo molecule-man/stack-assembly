@@ -78,6 +78,15 @@ func (si StackInfo) Parameters() []KeyVal {
 	return parameters
 }
 
+func (si StackInfo) HasParameter(k string) bool {
+	for _, p := range si.awsStack.Parameters {
+		if aws.StringValue(p.ParameterKey) == k {
+			return true
+		}
+	}
+	return false
+}
+
 func (si StackInfo) Tags() []KeyVal {
 	tags := make([]KeyVal, 0, len(si.awsStack.Tags))
 

@@ -1,6 +1,5 @@
 Feature: stas sync with hooks
 
-    @wip
     Scenario: sync executes all the possible hooks
         Given file "cfg.yaml" exists:
             """

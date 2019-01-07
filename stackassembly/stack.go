@@ -252,7 +252,7 @@ func (s *Stack) awsParameters(info StackInfo) ([]*cloudformation.Parameter, erro
 				ParameterKey:   aws.String(k),
 				ParameterValue: aws.String(v),
 			})
-		case info.AlreadyDeployed():
+		case info.AlreadyDeployed() && info.HasParameter(k):
 			awsParams = append(awsParams, &cloudformation.Parameter{
 				ParameterKey:     aws.String(k),
 				UsePreviousValue: aws.Bool(true),

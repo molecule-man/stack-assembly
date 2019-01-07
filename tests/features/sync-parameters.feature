@@ -83,7 +83,7 @@ Feature: stas sync with parameters
         Then stack "stastest-rmparam-%scenarioid%" should have status "UPDATE_COMPLETE"
 
     @short
-    Scenario: sync prompts me to enter parameter value if it's not present in config
+    Scenario: sync prompts me to enter parameter value if it's not present in config when I create stack
         Given file "cfg.yaml" exists:
             """
             stacks:
@@ -128,3 +128,41 @@ Feature: stas sync with parameters
         When I enter "s"
         Then launched program should exit with zero status
         And stack "stastest-promptparam-%scenarioid%" should have status "CREATE_COMPLETE"
+
+    @wip
+    Scenario: sync prompts me to enter parameter value if it's not present in config when I update stack
+        Given file "cfg.yaml" exists:
+            """
+            stacks:
+              stack1:
+                name: stastest-promptparamup-%scenarioid%
+                path: tpls/stack1.yml
+                tags:
+                  STAS_TEST: '%featureid%'
+            """
+        And file "tpls/stack1.yml" exists:
+            """
+            Resources:
+              EcsCluster:
+                Type: AWS::ECS::Cluster
+                Properties:
+                  ClusterName: !Sub "${AWS::StackName}"
+            """
+        And I successfully run "sync -c cfg.yaml --no-interaction"
+        When I modify file "tpls/stack1.yml":
+            """
+            Parameters:
+              Env:
+                Type: String
+            Resources:
+              EcsCluster:
+                Type: AWS::ECS::Cluster
+                Properties:
+                  ClusterName: !Sub "${AWS::StackName}"
+            """
+        And I launched "sync -c cfg.yaml"
+        Then terminal shows:
+            """
+            the following parameters are required but not provided: Env
+            Enter Env:
+            """
