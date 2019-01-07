@@ -35,36 +35,67 @@ type Config struct {
 
 	Parameters map[string]string
 	Stacks     map[string]stackassembly.StackConfig
+
+	Hooks struct {
+		Pre        stackassembly.HookCmds
+		Post       stackassembly.HookCmds
+		PreSync    stackassembly.HookCmds
+		PostSync   stackassembly.HookCmds
+		PreCreate  stackassembly.HookCmds
+		PostCreate stackassembly.HookCmds
+		PreUpdate  stackassembly.HookCmds
+		PostUpdate stackassembly.HookCmds
+	}
 }
 
-func (cfg Config) GetStacks() ([]stackassembly.Stack, error) {
-	stacks := make([]stackassembly.Stack, len(cfg.Stacks))
+func (cfg Config) StackConfigsSortedByExecOrder() ([]stackassembly.StackConfig, error) {
+	stackCfgs := make([]stackassembly.StackConfig, len(cfg.Stacks))
 	dg := depgraph.DepGraph{}
 
-	stacksMap := make(map[string]stackassembly.Stack, len(stacks))
-
-	cf := Cf(cfg)
 	for id, stackCfg := range cfg.Stacks {
 		dg.Add(id, stackCfg.DependsOn)
-		stack, err := stackassembly.NewStack(cf, stackCfg, cfg.Parameters)
-		if err != nil {
-			return stacks, err
-		}
-		stacksMap[id] = stack
 	}
 
 	orderedIds, err := dg.Resolve()
 	if err != nil {
-		return stacks, err
+		return stackCfgs, err
 	}
 
 	for i, id := range orderedIds {
-		stacks[i] = stacksMap[id]
+		stackCfgs[i] = cfg.Stacks[id]
 	}
+	return stackCfgs, nil
+}
+
+func (cfg Config) NewStack(stackCfg stackassembly.StackConfig) (stackassembly.Stack, error) {
+	return stackassembly.NewStack(Cf(cfg), stackCfg, cfg.Parameters)
+}
+
+func (cfg Config) GetStacks() ([]stackassembly.Stack, error) {
+	stacks := make([]stackassembly.Stack, len(cfg.Stacks))
+
+	stackCfgs, err := cfg.StackConfigsSortedByExecOrder()
+	if err != nil {
+		return stacks, err
+	}
+
+	for i, stackCfg := range stackCfgs {
+		stacks[i], err = cfg.NewStack(stackCfg)
+		if err != nil {
+			return stacks, err
+		}
+	}
+
 	return stacks, nil
 }
 
+var cf *cloudformation.CloudFormation
+
 func Cf(cfg Config) *cloudformation.CloudFormation {
+	if cf != nil {
+		return cf
+	}
+
 	opts := session.Options{}
 
 	if cfg.Settings.Aws.Profile != "" {

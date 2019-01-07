@@ -1,7 +1,6 @@
 package commands
 
 import (
-	"bufio"
 	"errors"
 	"fmt"
 	"log"
@@ -56,35 +55,32 @@ func execSyncOneTpl(stackName, tpl string, nonInteractive bool) {
 }
 
 func sync(cfg conf.Config, nonInteractive bool) {
-	stacks, err := cfg.GetStacks()
+	stackCfgs, err := cfg.StackConfigsSortedByExecOrder()
 	handleError(err)
 
 	logger := log.New(os.Stderr, "", log.LstdFlags)
 
-	for _, stack := range stacks {
-		stack := stack // pin
+	handleError(cfg.Hooks.Pre.Exec())
+
+	for _, stackCfg := range stackCfgs {
+		stack, err := cfg.NewStack(stackCfg)
+		handleError(err)
+
 		print := func(msg string, args ...interface{}) {
 			logger.Print(fmt.Sprintf(fmt.Sprintf("[%s] %s", stack.Name, msg), args...))
 		}
 
-		print("Syncing template")
+		print("Synchronizing template")
 
 		chSet, err := stack.ChangeSet()
 
 		if paramerr, ok := err.(*stackassembly.ParametersMissingError); ok {
 			c := color.New(color.FgYellow, color.Bold)
 			print(c.Sprint(paramerr.Error()))
-			reader := bufio.NewReader(os.Stdin)
 			for _, p := range paramerr.MissingParameters {
-				fmt.Printf("Enter %s: ", p)
-
-				response, rerr := reader.ReadString('\n')
-
-				if rerr != nil {
-					handleError(fmt.Errorf("reading user input failed with err: %v", rerr))
-				}
-
-				stack.AddParameter(p, strings.TrimSpace(response))
+				response, rerr := cli.Ask("Enter %s: ", p)
+				handleError(rerr)
+				stack.AddParameter(p, response)
 			}
 
 			chSet, err = stack.ChangeSet()
@@ -100,36 +96,18 @@ func sync(cfg conf.Config, nonInteractive bool) {
 			showChanges(chSet.Changes)
 
 			if !nonInteractive {
-				continueSync := false
-				for !continueSync {
-					prompt([]promptCmd{
-						{
-							description:   "[s]ync",
-							triggerInputs: []string{"s", "sync"},
-							action: func() {
-								continueSync = true
-							},
-						},
-						{
-							description:   "[d]iff",
-							triggerInputs: []string{"d", "diff"},
-							action: func() {
-								diff, derr := stackassembly.Diff(stack)
-								handleError(derr)
+				letUserChooseNextAction(stack)
+			}
 
-								fmt.Println(diff)
-							},
-						},
-						{
-							description:   "[q]uit",
-							triggerInputs: []string{"q", "quit"},
-							action: func() {
-								print("Interrupted by user")
-								handleError(errors.New("sync is cancelled"))
-							},
-						},
-					})
-				}
+			handleError(cfg.Hooks.PreSync.Exec())
+			handleError(stackCfg.Hooks.PreSync.Exec())
+
+			if chSet.IsUpdate {
+				handleError(cfg.Hooks.PreUpdate.Exec())
+				handleError(stackCfg.Hooks.PreUpdate.Exec())
+			} else {
+				handleError(cfg.Hooks.PreCreate.Exec())
+				handleError(stackCfg.Hooks.PreCreate.Exec())
 			}
 
 			et := stackassembly.EventsTracker{}
@@ -146,16 +124,28 @@ func sync(cfg conf.Config, nonInteractive bool) {
 			err = chSet.Exec()
 			handleError(err)
 
-			print("Sync is finished")
+			handleError(cfg.Hooks.PostSync.Exec())
+			handleError(stackCfg.Hooks.PostSync.Exec())
+
+			if chSet.IsUpdate {
+				handleError(cfg.Hooks.PostUpdate.Exec())
+				handleError(stackCfg.Hooks.PostUpdate.Exec())
+			} else {
+				handleError(cfg.Hooks.PostCreate.Exec())
+				handleError(stackCfg.Hooks.PostCreate.Exec())
+			}
+			print("Synchronization is finished")
 		}
 
-		for _, r := range stack.Blocked {
+		for _, r := range stackCfg.Blocked {
 			print("Blocking resource %s", r)
 			err := stack.BlockResource(r)
 
 			handleError(err)
 		}
 	}
+
+	handleError(cfg.Hooks.Post.Exec())
 }
 
 func showChanges(changes []stackassembly.Change) {
@@ -189,36 +179,38 @@ func showChanges(changes []stackassembly.Change) {
 	}
 }
 
-type promptCmd struct {
-	triggerInputs []string
-	description   string
-	action        func()
-}
+func letUserChooseNextAction(stack stackassembly.Stack) {
+	continueSync := false
+	for !continueSync {
+		err := cli.Prompt([]cli.PromptCmd{
+			{
+				Description:   "[s]ync",
+				TriggerInputs: []string{"s", "sync"},
+				Action: func() {
+					continueSync = true
+				},
+			},
+			{
+				Description:   "[d]iff",
+				TriggerInputs: []string{"d", "diff"},
+				Action: func() {
+					diff, derr := stackassembly.Diff(stack)
+					handleError(derr)
 
-func prompt(commands []promptCmd) {
-	fmt.Println("*** Commands ***")
-	for _, c := range commands {
-		fmt.Println("  " + c.description)
-	}
-	fmt.Print("What now> ")
-
-	reader := bufio.NewReader(os.Stdin)
-	response, err := reader.ReadString('\n')
-
-	if err != nil {
-		handleError(fmt.Errorf("reading user input failed with err: %v", err))
-	}
-
-	response = strings.TrimSpace(response)
-
-	for _, c := range commands {
-		for _, inp := range c.triggerInputs {
-			if inp == response {
-				c.action()
-				return
-			}
+					fmt.Println(diff)
+				},
+			},
+			{
+				Description:   "[q]uit",
+				TriggerInputs: []string{"q", "quit"},
+				Action: func() {
+					print("Interrupted by user")
+					handleError(errors.New("sync is cancelled"))
+				},
+			},
+		})
+		if err != cli.ErrPromptCommandIsNotKnown {
+			handleError(err)
 		}
 	}
-
-	fmt.Printf("Command %s is not known\n", response)
 }

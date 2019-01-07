@@ -37,7 +37,7 @@ Feature: stas sync with templating
                 NAME: stastest-dev-%scenarioid%
             """
 
-    @short @wip
+    @short
     Scenario: use `Exec` function in a template
         Given file "cfg.yaml" exists:
             """

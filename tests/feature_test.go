@@ -32,7 +32,7 @@ var opt = godog.Options{
 	Output: colors.Colored(os.Stdout),
 	// Format: "pretty",
 	Format:      "progress",
-	Concurrency: 8,
+	Concurrency: 6,
 	Randomize:   time.Now().UTC().UnixNano(),
 }
 
@@ -295,6 +295,21 @@ func (f *feature) replaceParameters(s string) string {
 	return s
 }
 
+func (f *feature) fileShouldContainExactly(fname string, content *gherkin.DocString) error {
+	fpath := filepath.Join(f.testDir, fname)
+	c := f.replaceParameters(content.Content)
+
+	buf, err := ioutil.ReadFile(fpath)
+	if err != nil {
+		return err
+	}
+
+	if strings.TrimSpace(string(buf)) != strings.TrimSpace(c) {
+		return fmt.Errorf("file content is not equal to the expected string. File contents:\n%s", string(buf))
+	}
+	return nil
+}
+
 func FeatureContext(s *godog.Suite) {
 	testDir := "./.tmp"
 	f := feature{}
@@ -318,6 +333,7 @@ func FeatureContext(s *godog.Suite) {
 	s.Step(`^I enter "([^"]*)"$`, f.iEnter)
 	s.Step(`^launched program should exit with zero status$`, f.launchedProgramShouldExitWithZeroStatus)
 	s.Step(`^launched program should exit with non zero status$`, f.launchedProgramShouldExitWithNonZeroStatus)
+	s.Step(`^file "([^"]*)" should contain exactly:$`, f.fileShouldContainExactly)
 
 	s.BeforeScenario(func(interface{}) {
 		f.scenarioID = strconv.FormatInt(rand.Int63(), 10)

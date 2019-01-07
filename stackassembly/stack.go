@@ -34,16 +34,22 @@ type StackEvent struct {
 type StackConfig struct {
 	Name       string
 	Path       string
-	Body       string
 	Parameters map[string]string
 	Tags       map[string]string
 	DependsOn  []string
 	Blocked    []string
+	Hooks      struct {
+		PreSync    HookCmds
+		PostSync   HookCmds
+		PreCreate  HookCmds
+		PostCreate HookCmds
+		PreUpdate  HookCmds
+		PostUpdate HookCmds
+	}
 }
 
 type Stack struct {
-	Name    string
-	Blocked []string
+	Name string
 
 	parameters map[string]string
 	tags       map[string]string
@@ -83,8 +89,6 @@ func NewStack(cf cloudformationiface.CloudFormationAPI, stackCfg StackConfig, gl
 	stack.cf = cf
 
 	stack.path = stackCfg.Path
-
-	stack.Blocked = stackCfg.Blocked
 	stack.tags = stackCfg.Tags
 
 	stack.parameters = make(map[string]string, len(globalParameters)+len(stackCfg.Parameters))
@@ -162,10 +166,10 @@ func (s *Stack) ChangeSet() (ChangeSetHandle, error) {
 		return chSet, err
 	}
 
-	chSet.isUpdate = info.AlreadyDeployed()
+	chSet.IsUpdate = info.AlreadyDeployed()
 
 	operation := cloudformation.ChangeSetTypeCreate
-	if chSet.isUpdate {
+	if chSet.IsUpdate {
 		operation = cloudformation.ChangeSetTypeUpdate
 	}
 

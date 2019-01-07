@@ -12,8 +12,8 @@ import (
 type ChangeSetHandle struct {
 	ID        string
 	Changes   []Change
+	IsUpdate  bool
 	stackName string
-	isUpdate  bool
 	cf        cloudformationiface.CloudFormationAPI
 }
 
@@ -31,7 +31,7 @@ func (csh ChangeSetHandle) Exec() error {
 
 	ctx := aws.BackgroundContext()
 
-	if csh.isUpdate {
+	if csh.IsUpdate {
 		return csh.cf.WaitUntilStackUpdateCompleteWithContext(ctx, &stackInput, func(w *request.Waiter) {
 			w.MaxAttempts = 900
 			w.Delay = request.ConstantWaiterDelay(2 * time.Second)
