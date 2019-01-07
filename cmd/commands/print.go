@@ -10,17 +10,15 @@ import (
 )
 
 func colorForStatus(status string) *color.Color {
-	col := noColor
-
 	switch {
 	case strings.Contains(status, "COMPLETE"):
-		col = green
+		return cli.SuccessColor
 	case strings.Contains(status, "ROLLBACK"),
 		strings.Contains(status, "FAILED"):
-		col = boldRed
+		return cli.FailureColor
 	}
 
-	return col
+	return cli.NoColor
 }
 
 func sprintStackStatus(status string) string {
@@ -44,14 +42,14 @@ func printStackInfo(stack stackassembly.Stack) {
 	printOutputs(info)
 	printEvents(&stack)
 
-	fmt.Println("")
+	cli.Print("")
 }
 
 func printStackDetails(name string, info stackassembly.StackInfo) {
-	fmt.Println("######################################")
-	fmt.Printf("STACK:\t%s\n", name)
-	fmt.Printf("STATUS:\t%s %s\n", sprintStackStatus(info.Status()), info.StatusDescription())
-	fmt.Println("")
+	cli.Print("######################################")
+	cli.Print(fmt.Sprintf("STACK:\t%s", name))
+	cli.Print(fmt.Sprintf("STATUS:\t%s %s", sprintStackStatus(info.Status()), info.StatusDescription()))
+	cli.Print("")
 }
 
 func printResources(info stackassembly.StackInfo) {
@@ -60,7 +58,7 @@ func printResources(info stackassembly.StackInfo) {
 
 	t := cli.NewTable()
 	t.NoBorder()
-	fmt.Println("==== RESOURCES ====")
+	cli.Print("==== RESOURCES ====")
 	for _, res := range resources {
 		t.Row()
 
@@ -68,17 +66,17 @@ func printResources(info stackassembly.StackInfo) {
 		t.ColorizedCell(res.Status, colorForStatus(res.Status))
 		t.Cell(res.PhysicalID)
 	}
-	fmt.Println(t.Render())
+	cli.Print(t.Render())
 }
 
 func printOutputs(info stackassembly.StackInfo) {
 	t := cli.NewTable()
 	t.NoBorder()
-	fmt.Println("==== OUTPUTS ====")
+	cli.Print("==== OUTPUTS ====")
 	for _, out := range info.Outputs() {
 		t.Row().Cell(out.Key).Cell(out.Value).Cell(out.ExportName)
 	}
-	fmt.Println(t.Render())
+	cli.Print(t.Render())
 }
 
 func printEvents(stack *stackassembly.Stack) {
@@ -87,7 +85,7 @@ func printEvents(stack *stackassembly.Stack) {
 
 	t := cli.NewTable()
 	t.NoBorder()
-	fmt.Println("==== EVENTS ====")
+	cli.Print("==== EVENTS ====")
 	limit := 10
 	if len(events) < limit {
 		limit = len(events)
@@ -101,5 +99,5 @@ func printEvents(stack *stackassembly.Stack) {
 		t.Cell(e.LogicalResourceID)
 		t.Cell(e.StatusReason)
 	}
-	fmt.Println(t.Render())
+	cli.Print(t.Render())
 }

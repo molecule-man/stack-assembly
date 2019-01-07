@@ -33,7 +33,7 @@ Feature: stas sync block stack when there are no changes
         And I successfully run "sync -c cfg.yaml --no-interaction"
         Then output should contain:
             """
-            No changes to be synced
+            No changes to be synchronized
             """
         And output should contain:
             """

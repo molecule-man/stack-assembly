@@ -22,8 +22,6 @@ type Table struct {
 	noBorder   bool
 }
 
-var noColor = color.New()
-
 // NewTable creates a new table
 func NewTable() *Table {
 	return &Table{
@@ -52,7 +50,7 @@ func (t *Table) Row() *Table {
 
 // Cell adds cell
 func (t *Table) Cell(s string) *Table {
-	return t.ColorizedCell(s, noColor)
+	return t.ColorizedCell(s, NoColor)
 }
 
 func (t *Table) ColorizedCell(s string, colorDef *color.Color) *Table {
@@ -99,7 +97,7 @@ func (t *Table) Render() string {
 		renderedCells := make([]string, len(t.colSizes))
 
 		for c, size := range t.colSizes {
-			nextCell := cell{colorDef: noColor}
+			nextCell := cell{colorDef: NoColor}
 
 			if c < len(row) {
 				nextCell = row[c]
@@ -107,7 +105,7 @@ func (t *Table) Render() string {
 
 			format := "%-" + strconv.Itoa(size) + "s"
 			cellContent := fmt.Sprintf(format, nextCell.content)
-			if nextCell.colorDef != noColor {
+			if nextCell.colorDef != NoColor {
 				cellContent = nextCell.colorDef.Sprintf(format, nextCell.content)
 			}
 			renderedCells[c] = cellContent

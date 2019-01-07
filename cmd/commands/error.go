@@ -1,14 +1,14 @@
 package commands
 
 import (
-	"log"
+	"os"
 
-	"github.com/fatih/color"
+	"github.com/molecule-man/stack-assembly/cli"
 )
 
 func handleError(err error) {
 	if err != nil {
-		c := color.New(color.FgRed, color.Bold)
-		log.Fatal(c.Sprint(err))
+		cli.Errorf("%s", err)
+		os.Exit(1)
 	}
 }

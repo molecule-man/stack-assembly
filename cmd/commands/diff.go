@@ -1,8 +1,7 @@
 package commands
 
 import (
-	"fmt"
-
+	"github.com/molecule-man/stack-assembly/cli"
 	"github.com/molecule-man/stack-assembly/cmd/conf"
 	"github.com/molecule-man/stack-assembly/stackassembly"
 	"github.com/spf13/cobra"
@@ -26,7 +25,7 @@ func diffCmd() *cobra.Command {
 				diff, err := stackassembly.Diff(stack)
 				handleError(err)
 
-				fmt.Println(diff)
+				cli.Print(diff)
 			}
 		},
 	}

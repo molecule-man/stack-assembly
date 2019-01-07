@@ -30,5 +30,5 @@ Feature: stas sync
         When I successfully run "sync -c cfg.yaml"
         Then output should contain:
             """
-            No changes to be synced
+            No changes to be synchronized
             """

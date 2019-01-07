@@ -30,9 +30,9 @@ import (
 var opt = godog.Options{
 	Paths:  []string{"."},
 	Output: colors.Colored(os.Stdout),
-	// Format: "pretty",
+	// Format:      "pretty",
 	Format:      "progress",
-	Concurrency: 6,
+	Concurrency: 5,
 	Randomize:   time.Now().UTC().UnixNano(),
 }
 

@@ -25,7 +25,7 @@ Feature: stas sync in interactive mode
         And terminal shows:
             """
             +--------+-------------------+-------------+--------------------+
-            | Action | ResourceType      | Resource ID | Replacement needed |
+            | Action | Resource Type     | Resource ID | Replacement needed |
             +--------+-------------------+-------------+--------------------+
             | Add    | AWS::ECS::Cluster | Cluster     | false              |
             +--------+-------------------+-------------+--------------------+

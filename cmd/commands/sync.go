@@ -3,11 +3,8 @@ package commands
 import (
 	"errors"
 	"fmt"
-	"log"
-	"os"
 	"strings"
 
-	"github.com/fatih/color"
 	"github.com/molecule-man/stack-assembly/cli"
 	"github.com/molecule-man/stack-assembly/cmd/conf"
 	"github.com/molecule-man/stack-assembly/stackassembly"
@@ -27,7 +24,16 @@ func syncCmd() *cobra.Command {
 			handleError(err)
 
 			if len(args) > 0 {
-				execSyncOneTpl(stackName, args[0], nonInteractive)
+				cfg := conf.Config{}
+
+				cfg.Stacks = map[string]stackassembly.StackConfig{
+					stackName: {
+						Path: args[0],
+						Name: stackName,
+					},
+				}
+
+				sync(cfg, nonInteractive)
 			} else {
 				cfg, err := conf.LoadConfig(cfgFiles)
 				handleError(err)
@@ -41,24 +47,9 @@ func syncCmd() *cobra.Command {
 	return syncCmd
 }
 
-func execSyncOneTpl(stackName, tpl string, nonInteractive bool) {
-	cfg := conf.Config{}
-
-	cfg.Stacks = map[string]stackassembly.StackConfig{
-		stackName: {
-			Path: tpl,
-			Name: stackName,
-		},
-	}
-
-	sync(cfg, nonInteractive)
-}
-
 func sync(cfg conf.Config, nonInteractive bool) {
 	stackCfgs, err := cfg.StackConfigsSortedByExecOrder()
 	handleError(err)
-
-	logger := log.New(os.Stderr, "", log.LstdFlags)
 
 	handleError(cfg.Hooks.Pre.Exec())
 
@@ -66,17 +57,14 @@ func sync(cfg conf.Config, nonInteractive bool) {
 		stack, err := cfg.NewStack(stackCfg)
 		handleError(err)
 
-		print := func(msg string, args ...interface{}) {
-			logger.Print(fmt.Sprintf(fmt.Sprintf("[%s] %s", stack.Name, msg), args...))
-		}
+		logger := cli.PrefixedLogger(fmt.Sprintf("[%s] ", stack.Name))
 
-		print("Synchronizing template")
+		logger.Info("Synchronizing template")
 
 		chSet, err := stack.ChangeSet()
 
 		if paramerr, ok := err.(*stackassembly.ParametersMissingError); ok {
-			c := color.New(color.FgYellow, color.Bold)
-			print(c.Sprint(paramerr.Error()))
+			logger.Warn(paramerr.Error())
 			for _, p := range paramerr.MissingParameters {
 				response, rerr := cli.Ask("Enter %s: ", p)
 				handleError(rerr)
@@ -87,11 +75,11 @@ func sync(cfg conf.Config, nonInteractive bool) {
 		}
 
 		if err == stackassembly.ErrNoChange {
-			print("No changes to be synced")
+			logger.Info("No changes to be synchronized")
 		} else {
 			handleError(err)
 
-			print("Change set is created: %s", chSet.ID)
+			logger.Infof("Change set is created: %s", chSet.ID)
 
 			showChanges(chSet.Changes)
 
@@ -117,7 +105,7 @@ func sync(cfg conf.Config, nonInteractive bool) {
 
 			go func() {
 				for e := range events {
-					print(sprintEvent(e))
+					logger.Info(sprintEvent(e))
 				}
 			}()
 
@@ -134,11 +122,11 @@ func sync(cfg conf.Config, nonInteractive bool) {
 				handleError(cfg.Hooks.PostCreate.Exec())
 				handleError(stackCfg.Hooks.PostCreate.Exec())
 			}
-			print("Synchronization is finished")
+			logger.ColorPrint(cli.SuccessColor, "Synchronization is complete")
 		}
 
 		for _, r := range stackCfg.Blocked {
-			print("Blocking resource %s", r)
+			logger.Infof("Blocking resource %s", r)
 			err := stack.BlockResource(r)
 
 			handleError(err)
@@ -151,31 +139,31 @@ func sync(cfg conf.Config, nonInteractive bool) {
 func showChanges(changes []stackassembly.Change) {
 	if len(changes) > 0 {
 		t := cli.NewTable()
-		t.Header().Cell("Action").Cell("ResourceType").Cell("Resource ID").Cell("Replacement needed")
+		t.Header().Cell("Action").Cell("Resource Type").Cell("Resource ID").Cell("Replacement needed")
 
 		for _, c := range changes {
 			t.Row()
 
 			switch strings.ToLower(c.Action) {
 			case "add":
-				t.ColorizedCell(c.Action, green)
+				t.ColorizedCell(c.Action, cli.SuccessColor)
 			case "remove":
-				t.ColorizedCell(c.Action, boldRed)
+				t.ColorizedCell(c.Action, cli.FailureColor)
 			default:
-				t.ColorizedCell(c.Action, cyan)
+				t.ColorizedCell(c.Action, cli.NeutralColor)
 			}
 
 			t.Cell(c.ResourceType)
 			t.Cell(c.LogicalResourceID)
 
-			col := green
+			col := cli.SuccessColor
 			if c.ReplacementNeeded {
-				col = boldRed
+				col = cli.FailureColor
 			}
 			t.ColorizedCell(fmt.Sprintf("%t", c.ReplacementNeeded), col)
 		}
 
-		fmt.Println(t.Render())
+		cli.Print(t.Render())
 	}
 }
 
@@ -197,14 +185,14 @@ func letUserChooseNextAction(stack stackassembly.Stack) {
 					diff, derr := stackassembly.Diff(stack)
 					handleError(derr)
 
-					fmt.Println(diff)
+					cli.Print(diff)
 				},
 			},
 			{
 				Description:   "[q]uit",
 				TriggerInputs: []string{"q", "quit"},
 				Action: func() {
-					print("Interrupted by user")
+					cli.Error("Interrupted by user")
 					handleError(errors.New("sync is cancelled"))
 				},
 			},
