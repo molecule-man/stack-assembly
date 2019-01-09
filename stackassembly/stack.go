@@ -257,7 +257,7 @@ func (s *Stack) awsParameters(info StackInfo) ([]*cloudformation.Parameter, erro
 				ParameterKey:     aws.String(k),
 				UsePreviousValue: aws.Bool(true),
 			})
-		default:
+		case aws.StringValue(p.DefaultValue) == "":
 			missingParameters = append(missingParameters, k)
 		}
 	}

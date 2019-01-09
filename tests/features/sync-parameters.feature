@@ -129,7 +129,6 @@ Feature: stas sync with parameters
         Then launched program should exit with zero status
         And stack "stastest-promptparam-%scenarioid%" should have status "CREATE_COMPLETE"
 
-    @wip
     Scenario: sync prompts me to enter parameter value if it's not present in config when I update stack
         Given file "cfg.yaml" exists:
             """
@@ -166,3 +165,30 @@ Feature: stas sync with parameters
             the following parameters are required but not provided: Env
             Enter Env:
             """
+
+    @wip
+    Scenario: sync doesn't promt when parameter with default value is missing
+        Given file "cfg.yaml" exists:
+            """
+            stacks:
+              stack1:
+                name: stastest-defaultparam-%scenarioid%
+                path: tpls/stack1.yml
+                tags:
+                  STAS_TEST: '%featureid%'
+            """
+        And file "tpls/stack1.yml" exists:
+            """
+            Parameters:
+              Env:
+                Type: String
+                Default: dev
+
+            Resources:
+              EcsCluster:
+                Type: AWS::ECS::Cluster
+                Properties:
+                  ClusterName: !Sub "${AWS::StackName}-${Env}"
+            """
+        Then I successfully run "sync -c cfg.yaml --no-interaction"
+        And stack "stastest-defaultparam-%scenarioid%" should have status "CREATE_COMPLETE"
