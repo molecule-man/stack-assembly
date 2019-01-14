@@ -166,7 +166,7 @@ Feature: stas sync with parameters
             Enter Env:
             """
 
-    @wip
+    @short
     Scenario: sync doesn't promt when parameter with default value is missing
         Given file "cfg.yaml" exists:
             """

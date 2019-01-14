@@ -26,7 +26,7 @@ func syncCmd() *cobra.Command {
 			if len(args) > 0 {
 				cfg := conf.Config{}
 
-				cfg.Stacks = map[string]stackassembly.StackConfig{
+				cfg.Stacks = map[string]conf.StackConfig{
 					stackName: {
 						Path: args[0],
 						Name: stackName,
@@ -54,24 +54,24 @@ func sync(cfg conf.Config, nonInteractive bool) {
 	handleError(cfg.Hooks.Pre.Exec())
 
 	for _, stackCfg := range stackCfgs {
-		stack, err := cfg.NewStack(stackCfg)
-		handleError(err)
-
-		logger := cli.PrefixedLogger(fmt.Sprintf("[%s] ", stack.Name))
+		logger := cli.PrefixedLogger(fmt.Sprintf("[%s] ", stackCfg.Name))
 
 		logger.Info("Synchronizing template")
 
-		chSet, err := stack.ChangeSet()
+		cs, err := cfg.ChangeSetFromStackConfig(stackCfg)
+		handleError(err)
+
+		chSet, err := cs.Register()
 
 		if paramerr, ok := err.(*stackassembly.ParametersMissingError); ok {
 			logger.Warn(paramerr.Error())
 			for _, p := range paramerr.MissingParameters {
 				response, rerr := cli.Ask("Enter %s: ", p)
 				handleError(rerr)
-				stack.AddParameter(p, response)
+				cs.WithParameter(p, response)
 			}
 
-			chSet, err = stack.ChangeSet()
+			chSet, err = cs.Register()
 		}
 
 		if err == stackassembly.ErrNoChange {
@@ -84,7 +84,7 @@ func sync(cfg conf.Config, nonInteractive bool) {
 			showChanges(chSet.Changes)
 
 			if !nonInteractive {
-				letUserChooseNextAction(stack)
+				letUserChooseNextAction(cs)
 			}
 
 			handleError(cfg.Hooks.PreSync.Exec())
@@ -100,7 +100,7 @@ func sync(cfg conf.Config, nonInteractive bool) {
 
 			et := stackassembly.EventsTracker{}
 
-			events, stopTracking := et.StartTracking(&stack)
+			events, stopTracking := et.StartTracking(cs.Stack())
 			defer stopTracking()
 
 			go func() {
@@ -127,7 +127,7 @@ func sync(cfg conf.Config, nonInteractive bool) {
 
 		for _, r := range stackCfg.Blocked {
 			logger.Infof("Blocking resource %s", r)
-			err := stack.BlockResource(r)
+			err := cs.Stack().BlockResource(r)
 
 			handleError(err)
 		}
@@ -167,7 +167,7 @@ func showChanges(changes []stackassembly.Change) {
 	}
 }
 
-func letUserChooseNextAction(stack stackassembly.Stack) {
+func letUserChooseNextAction(chSet *stackassembly.ChangeSet) {
 	continueSync := false
 	for !continueSync {
 		err := cli.Prompt([]cli.PromptCmd{
@@ -182,7 +182,7 @@ func letUserChooseNextAction(stack stackassembly.Stack) {
 				Description:   "[d]iff",
 				TriggerInputs: []string{"d", "diff"},
 				Action: func() {
-					diff, derr := stackassembly.Diff(stack)
+					diff, derr := stackassembly.Diff(chSet)
 					handleError(derr)
 
 					cli.Print(diff)

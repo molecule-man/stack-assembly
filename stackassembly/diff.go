@@ -11,15 +11,10 @@ import (
 
 const defaultDiffName = "/dev/null"
 
-func Diff(stack Stack) (string, error) {
-	info := stack.Info()
-	if err := info.Error(); err != nil {
-		return "", err
-	}
-
+func Diff(chSet *ChangeSet) (string, error) {
 	diffs := []string{}
 
-	paramsDiff, err := diffParameters(info, stack)
+	paramsDiff, err := diffParameters(chSet)
 	if err != nil {
 		return "", err
 	}
@@ -27,7 +22,7 @@ func Diff(stack Stack) (string, error) {
 		diffs = append(diffs, colorizeDiff(paramsDiff))
 	}
 
-	tagsDiff, err := diffTags(info, stack)
+	tagsDiff, err := diffTags(chSet)
 	if err != nil {
 		return "", err
 	}
@@ -35,7 +30,7 @@ func Diff(stack Stack) (string, error) {
 		diffs = append(diffs, colorizeDiff(tagsDiff))
 	}
 
-	bodyDiff, err := diffBody(info, stack)
+	bodyDiff, err := diffBody(chSet)
 	if err != nil {
 		return "", err
 	}
@@ -46,31 +41,117 @@ func Diff(stack Stack) (string, error) {
 	return strings.Join(diffs, "\n"), nil
 }
 
-func diffBody(info StackInfo, stack Stack) (string, error) {
+func diffBody(chSet *ChangeSet) (string, error) {
 	oldBody := ""
 	oldName := defaultDiffName
 
-	var err error
-
-	if info.AlreadyDeployed() {
-		oldBody, err = info.Body()
-		if err != nil {
-			return "", err
-		}
-		oldName = "old/" + stack.Name
-	}
-
-	newBody, err := stack.Body()
+	deployed, err := chSet.Stack().AlreadyDeployed()
 	if err != nil {
 		return "", err
 	}
 
+	if deployed {
+		oldBody, err = chSet.Stack().Body()
+		if err != nil {
+			return "", err
+		}
+		oldName = "old/" + chSet.Stack().Name
+	}
+
 	return difflib.GetUnifiedDiffString(difflib.UnifiedDiff{
 		A:        difflib.SplitLines(strings.TrimSpace(oldBody)),
-		B:        difflib.SplitLines(strings.TrimSpace(newBody)),
+		B:        difflib.SplitLines(strings.TrimSpace(chSet.body)),
 		FromFile: oldName,
 		FromDate: "",
-		ToFile:   "new/" + stack.Name,
+		ToFile:   "new/" + chSet.Stack().Name,
+		ToDate:   "",
+		Context:  5,
+	})
+}
+
+func diffParameters(chSet *ChangeSet) (string, error) {
+	awsParams, err := chSet.awsParameters()
+	if err != nil {
+		return "", err
+	}
+
+	newParams := make([]string, 0, len(awsParams))
+	for _, p := range awsParams {
+		line := aws.StringValue(p.ParameterKey) + ": " + aws.StringValue(p.ParameterValue) + "\n"
+		newParams = append(newParams, line)
+	}
+
+	oldName := defaultDiffName
+	oldParams := []string{}
+
+	deployed, err := chSet.Stack().AlreadyDeployed()
+	if err != nil {
+		return "", err
+	}
+
+	if deployed {
+		info, err := chSet.Stack().Info()
+		if err != nil {
+			return "", err
+		}
+
+		oldName = "old-parameters/" + chSet.Stack().Name
+		oldParams = make([]string, 0, len(info.Parameters()))
+
+		for _, p := range info.Parameters() {
+			oldParams = append(oldParams, p.Key+": "+p.Val+"\n")
+		}
+	}
+
+	return difflib.GetUnifiedDiffString(difflib.UnifiedDiff{
+		A:        oldParams,
+		B:        newParams,
+		FromFile: oldName,
+		FromDate: "",
+		ToFile:   "new-parameters/" + chSet.Stack().Name,
+		ToDate:   "",
+		Context:  5,
+	})
+}
+
+func diffTags(chSet *ChangeSet) (string, error) {
+	newTags := make([]string, 0, len(chSet.tags))
+
+	for k, v := range chSet.tags {
+		newTags = append(newTags, k+": "+v+"\n")
+	}
+
+	oldName := defaultDiffName
+	oldTags := []string{}
+
+	deployed, err := chSet.Stack().AlreadyDeployed()
+	if err != nil {
+		return "", err
+	}
+
+	if deployed {
+		info, err := chSet.Stack().Info()
+		if err != nil {
+			return "", err
+		}
+
+		oldName = "old-tags/" + chSet.Stack().Name
+		oldTags = make([]string, 0, len(info.Tags()))
+
+		for _, t := range info.Tags() {
+			oldTags = append(oldTags, t.Key+": "+t.Val+"\n")
+		}
+	}
+
+	sort.Strings(oldTags)
+	sort.Strings(newTags)
+
+	return difflib.GetUnifiedDiffString(difflib.UnifiedDiff{
+		A:        oldTags,
+		B:        newTags,
+		FromFile: oldName,
+		FromDate: "",
+		ToFile:   "new-tags/" + chSet.Stack().Name,
 		ToDate:   "",
 		Context:  5,
 	})
@@ -98,73 +179,4 @@ func colorizeDiff(diff string) string {
 	}
 
 	return strings.Join(colorized, "\n")
-}
-
-func diffParameters(info StackInfo, stack Stack) (string, error) {
-	awsParams, err := stack.awsParameters(info)
-	if err != nil {
-		return "", err
-	}
-
-	newParams := make([]string, 0, len(awsParams))
-	for _, p := range awsParams {
-		line := aws.StringValue(p.ParameterKey) + ": " + aws.StringValue(p.ParameterValue) + "\n"
-		newParams = append(newParams, line)
-	}
-
-	oldName := defaultDiffName
-	oldParams := []string{}
-
-	if info.AlreadyDeployed() {
-		parameters := info.Parameters()
-		oldName = "old-parameters/" + stack.Name
-		oldParams = make([]string, 0, len(parameters))
-
-		for _, p := range parameters {
-			oldParams = append(oldParams, p.Key+": "+p.Val+"\n")
-		}
-	}
-
-	return difflib.GetUnifiedDiffString(difflib.UnifiedDiff{
-		A:        oldParams,
-		B:        newParams,
-		FromFile: oldName,
-		FromDate: "",
-		ToFile:   "new-parameters/" + stack.Name,
-		ToDate:   "",
-		Context:  5,
-	})
-}
-
-func diffTags(info StackInfo, stack Stack) (string, error) {
-	newTags := make([]string, 0, len(stack.tags))
-
-	for k, v := range stack.tags {
-		newTags = append(newTags, k+": "+v+"\n")
-	}
-
-	oldName := defaultDiffName
-	oldTags := []string{}
-
-	if info.AlreadyDeployed() {
-		oldName = "old-tags/" + stack.Name
-		oldTags = make([]string, 0, len(info.Tags()))
-
-		for _, t := range info.Tags() {
-			oldTags = append(oldTags, t.Key+": "+t.Val+"\n")
-		}
-	}
-
-	sort.Strings(oldTags)
-	sort.Strings(newTags)
-
-	return difflib.GetUnifiedDiffString(difflib.UnifiedDiff{
-		A:        oldTags,
-		B:        newTags,
-		FromFile: oldName,
-		FromDate: "",
-		ToFile:   "new-tags/" + stack.Name,
-		ToDate:   "",
-		Context:  5,
-	})
 }

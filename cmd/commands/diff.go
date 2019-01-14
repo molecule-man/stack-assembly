@@ -18,11 +18,11 @@ func diffCmd() *cobra.Command {
 			cfg, err := conf.LoadConfig(cfgFiles)
 			handleError(err)
 
-			stacks, err := cfg.GetStacks()
+			cc, err := cfg.ChangeSets()
 			handleError(err)
 
-			for _, stack := range stacks {
-				diff, err := stackassembly.Diff(stack)
+			for _, c := range cc {
+				diff, err := stackassembly.Diff(c)
 				handleError(err)
 
 				cli.Print(diff)

@@ -8,7 +8,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/molecule-man/stack-assembly/stackassembly"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -18,16 +17,24 @@ var expectedParsedConfig = Config{
 		"Param1": "val1",
 		"param2": "val2",
 	},
-	Stacks: map[string]stackassembly.StackConfig{
+	Stacks: map[string]StackConfig{
 		"tpl1": {
 			Path: "path",
 			Parameters: map[string]string{
+				"Param1": "val1",
+				"param2": "val2",
 				"Param3": "val3",
 				"param4": "val4",
 			},
+			Tags: map[string]string{},
 		},
 		"Tpl2": {
-			Name:      "name1",
+			Name: "name1",
+			Parameters: map[string]string{
+				"Param1": "val1",
+				"param2": "val2",
+			},
+			Tags:      map[string]string{},
 			DependsOn: []string{"sns1"},
 		},
 	},
@@ -159,22 +166,28 @@ stacks:
 		Parameters: map[string]string{
 			"Param1": "overwriten_val1",
 		},
-		Stacks: map[string]stackassembly.StackConfig{
+		Stacks: map[string]StackConfig{
 			"tpl1": {
 				Name: "name1",
 				Path: "overwriten_path1",
 				Parameters: map[string]string{
+					"Param1": "overwriten_val1",
 					"Param3": "val3",
 					"param4": "overwriten_val4",
 					"param5": "overwriten_val5",
 				},
 				DependsOn: []string{"overwriten_tpl1"},
 				Blocked:   []string{"sns"},
+				Tags:      map[string]string{},
 			},
 			"tpl2": {
 				Name:    "name2",
 				Path:    "path2",
 				Blocked: []string{"sns2"},
+				Parameters: map[string]string{
+					"Param1": "overwriten_val1",
+				},
+				Tags: map[string]string{},
 			},
 		},
 	}

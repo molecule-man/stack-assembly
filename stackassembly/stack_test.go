@@ -20,12 +20,13 @@ func TestOnlyRequiredParametersAreSubmitted(t *testing.T) {
 		{ParameterKey: aws.String("foo")},
 		{ParameterKey: aws.String("bar")},
 	}
-	stack := Stack{cf: cf, body: "body", parameters: map[string]string{
-		"foo": "fooval",
-		"bar": "barval",
-		"buz": "buzval",
-	}}
-	_, err := stack.ChangeSet()
+	chSet := NewStack(cf, "mystack").
+		ChangeSet("body").
+		WithParameter("foo", "fooval").
+		WithParameter("bar", "barval").
+		WithParameter("buz", "buzval")
+
+	_, err := chSet.Register()
 	require.NoError(t, err)
 
 	expected := []*cloudformation.Parameter{
@@ -50,8 +51,9 @@ func TestChangeSetCreationErrors(t *testing.T) {
 		cf := &cfMock{}
 		tc.errProv(cf, tc.err)
 
-		stack := Stack{cf: cf, body: "body"}
-		_, err := stack.ChangeSet()
+		_, err := NewStack(cf, "mystack").
+			ChangeSet("body").
+			Register()
 
 		assert.EqualError(t, err, tc.err.Error())
 	}
@@ -82,11 +84,11 @@ func TestEventTracking(t *testing.T) {
 	et := EventsTracker{
 		sleep: 6 * time.Millisecond,
 	}
-	stack := Stack{cf: cf, body: "body"}
-	cs, err := stack.ChangeSet()
+	stack := NewStack(cf, "mystack")
+	cs, err := stack.ChangeSet("body").Register()
 	require.NoError(t, err)
 
-	events, stop := et.StartTracking(&stack)
+	events, stop := et.StartTracking(stack)
 
 	wg.Add(1)
 	go func() {

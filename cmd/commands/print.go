@@ -29,18 +29,21 @@ func sprintEvent(e stackassembly.StackEvent) string {
 	return fmt.Sprintf("\t%s\t%s\t%s\t%s", e.ResourceType, sprintStackStatus(e.Status), e.LogicalResourceID, e.StatusReason)
 }
 
-func printStackInfo(stack stackassembly.Stack) {
-	info := stack.Info()
-	handleError(info.Error())
+func printStackInfo(stack *stackassembly.Stack) {
+	exists, err := stack.Exists()
+	handleError(err)
 
-	if !info.Exists() {
+	if !exists {
 		return
 	}
 
+	info, err := stack.Info()
+	handleError(err)
+
 	printStackDetails(stack.Name, info)
-	printResources(info)
+	printResources(stack)
 	printOutputs(info)
-	printEvents(&stack)
+	printEvents(stack)
 
 	cli.Print("")
 }
@@ -52,8 +55,8 @@ func printStackDetails(name string, info stackassembly.StackInfo) {
 	cli.Print("")
 }
 
-func printResources(info stackassembly.StackInfo) {
-	resources, err := info.Resources()
+func printResources(stack *stackassembly.Stack) {
+	resources, err := stack.Resources()
 	handleError(err)
 
 	t := cli.NewTable()

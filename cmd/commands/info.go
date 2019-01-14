@@ -2,6 +2,7 @@ package commands
 
 import (
 	"github.com/molecule-man/stack-assembly/cmd/conf"
+	"github.com/molecule-man/stack-assembly/stackassembly"
 	"github.com/spf13/cobra"
 )
 
@@ -17,15 +18,18 @@ func infoCmd() *cobra.Command {
 			cfg, err := conf.LoadConfig(cfgFiles)
 			handleError(err)
 
-			stacks, err := cfg.GetStacks()
+			// stacks, err := cfg.GetStacks()
+			ss, err := cfg.StackConfigsSortedByExecOrder()
 			handleError(err)
 
-			for _, stack := range stacks {
-				if len(args) > 0 && args[0] != stack.Name {
+			cf := conf.Cf(cfg)
+
+			for _, s := range ss {
+				if len(args) > 0 && args[0] != s.Name {
 					continue
 				}
 
-				printStackInfo(stack)
+				printStackInfo(stackassembly.NewStack(cf, s.Name))
 			}
 		},
 	}

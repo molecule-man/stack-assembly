@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -34,7 +35,7 @@ type Config struct {
 	Settings settingsConfig
 
 	Parameters map[string]string
-	Stacks     map[string]stackassembly.StackConfig
+	Stacks     map[string]StackConfig
 
 	Hooks struct {
 		Pre        stackassembly.HookCmds
@@ -48,8 +49,25 @@ type Config struct {
 	}
 }
 
-func (cfg Config) StackConfigsSortedByExecOrder() ([]stackassembly.StackConfig, error) {
-	stackCfgs := make([]stackassembly.StackConfig, len(cfg.Stacks))
+type StackConfig struct {
+	Name       string
+	Path       string
+	Parameters map[string]string
+	Tags       map[string]string
+	DependsOn  []string
+	Blocked    []string
+	Hooks      struct {
+		PreSync    stackassembly.HookCmds
+		PostSync   stackassembly.HookCmds
+		PreCreate  stackassembly.HookCmds
+		PostCreate stackassembly.HookCmds
+		PreUpdate  stackassembly.HookCmds
+		PostUpdate stackassembly.HookCmds
+	}
+}
+
+func (cfg Config) StackConfigsSortedByExecOrder() ([]StackConfig, error) {
+	stackCfgs := make([]StackConfig, len(cfg.Stacks))
 	dg := depgraph.DepGraph{}
 
 	for id, stackCfg := range cfg.Stacks {
@@ -67,26 +85,39 @@ func (cfg Config) StackConfigsSortedByExecOrder() ([]stackassembly.StackConfig, 
 	return stackCfgs, nil
 }
 
-func (cfg Config) NewStack(stackCfg stackassembly.StackConfig) (stackassembly.Stack, error) {
-	return stackassembly.NewStack(Cf(cfg), stackCfg, cfg.Parameters)
-}
+func (cfg Config) ChangeSets() ([]*stackassembly.ChangeSet, error) {
+	chSets := make([]*stackassembly.ChangeSet, len(cfg.Stacks))
 
-func (cfg Config) GetStacks() ([]stackassembly.Stack, error) {
-	stacks := make([]stackassembly.Stack, len(cfg.Stacks))
-
-	stackCfgs, err := cfg.StackConfigsSortedByExecOrder()
+	ss, err := cfg.StackConfigsSortedByExecOrder()
 	if err != nil {
-		return stacks, err
+		return chSets, err
 	}
 
-	for i, stackCfg := range stackCfgs {
-		stacks[i], err = cfg.NewStack(stackCfg)
+	for i, s := range ss {
+		chSets[i], err = cfg.ChangeSetFromStackConfig(s)
 		if err != nil {
-			return stacks, err
+			return chSets, err
 		}
 	}
 
-	return stacks, nil
+	return chSets, nil
+}
+
+func (cfg Config) ChangeSetFromStackConfig(stackCfg StackConfig) (*stackassembly.ChangeSet, error) {
+	bodyBytes, err := ioutil.ReadFile(stackCfg.Path)
+	if err != nil {
+		return nil, err
+	}
+
+	body := ""
+	data := struct{ Params map[string]string }{}
+	data.Params = stackCfg.Parameters
+	err = parseTpl(&body, string(bodyBytes), data)
+
+	return stackassembly.NewStack(Cf(cfg), stackCfg.Name).
+		ChangeSet(body).
+		WithParameters(stackCfg.Parameters).
+		WithTags(stackCfg.Tags), err
 }
 
 var cf *cloudformation.CloudFormation
@@ -153,6 +184,11 @@ func LoadConfig(cfgFiles []string) (Config, error) {
 	}
 
 	err = decoder.Decode(mainRawCfg)
+	if err != nil {
+		return mainConfig, err
+	}
+
+	err = applyTemplating(&mainConfig)
 	if err != nil {
 		return mainConfig, err
 	}

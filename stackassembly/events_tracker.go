@@ -4,12 +4,16 @@ import (
 	"time"
 )
 
+type eventProvider interface {
+	Events() ([]StackEvent, error)
+}
+
 type EventsTracker struct {
 	sleep time.Duration
 }
 
 // StartTracking starts event tracking
-func (et *EventsTracker) StartTracking(stack *Stack) (chan StackEvent, func()) {
+func (et *EventsTracker) StartTracking(stack eventProvider) (chan StackEvent, func()) {
 	eventsCh := make(chan StackEvent)
 	stopCh := make(chan bool)
 
@@ -44,7 +48,7 @@ func (et *EventsTracker) StartTracking(stack *Stack) (chan StackEvent, func()) {
 	return eventsCh, func() { close(stopCh) }
 }
 
-func (et *EventsTracker) publishEvents(stack *Stack, eventsCh chan StackEvent, sinceEventID string) string {
+func (et *EventsTracker) publishEvents(stack eventProvider, eventsCh chan StackEvent, sinceEventID string) string {
 	events, _ := stack.Events()
 
 	lastEventIndex := 0

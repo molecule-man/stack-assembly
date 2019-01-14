@@ -5,7 +5,6 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
-	"github.com/aws/aws-sdk-go/service/cloudformation/cloudformationiface"
 )
 
 type KeyVal struct {
@@ -32,25 +31,10 @@ type StackResource struct {
 
 type StackInfo struct {
 	awsStack *cloudformation.Stack
-	err      error
-
-	cf cloudformationiface.CloudFormationAPI
-}
-
-func (si StackInfo) Exists() bool {
-	return si.err == nil
 }
 
 func (si StackInfo) AlreadyDeployed() bool {
-	return si.Exists() && !si.InReviewState()
-}
-
-func (si StackInfo) Error() error {
-	if si.err != nil && si.err != ErrStackDoesntExist {
-		return si.err
-	}
-
-	return nil
+	return !si.InReviewState()
 }
 
 func (si StackInfo) InReviewState() bool {
@@ -115,49 +99,4 @@ func (si StackInfo) Outputs() []StackOutput {
 	}
 
 	return outputs
-}
-
-func (si StackInfo) Body() (string, error) {
-	tpl, err := si.cf.GetTemplate(&cloudformation.GetTemplateInput{
-		StackName: si.awsStack.StackName,
-	})
-
-	if err != nil {
-		return "", err
-	}
-
-	return aws.StringValue(tpl.TemplateBody), nil
-}
-
-// Resources returns info about stack resources
-func (si StackInfo) Resources() ([]StackResource, error) {
-	resp, err := si.cf.DescribeStackResources(&cloudformation.DescribeStackResourcesInput{
-		StackName: si.awsStack.StackName,
-	})
-
-	if err != nil {
-		return []StackResource{}, err
-	}
-
-	resources := make([]StackResource, len(resp.StackResources))
-
-	for i, r := range resp.StackResources {
-		resource := StackResource{
-			LogicalID: *r.LogicalResourceId,
-			Status:    *r.ResourceStatus,
-			Type:      *r.ResourceType,
-			Timestamp: *r.Timestamp,
-		}
-
-		if r.PhysicalResourceId != nil {
-			resource.PhysicalID = *r.PhysicalResourceId
-		}
-		if r.ResourceStatusReason != nil {
-			resource.StatusReason = *r.ResourceStatusReason
-		}
-
-		resources[i] = resource
-	}
-
-	return resources, nil
 }

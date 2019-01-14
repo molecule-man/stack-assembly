@@ -21,13 +21,9 @@ parameters:
 
 	cf := &cfMock{}
 	cf.body = oldTplBody
-	st := Stack{
-		Name: "teststack",
-		body: newTplBody,
-		cf:   cf,
-	}
+	chSet := NewStack(cf, "teststack").ChangeSet(newTplBody)
 
-	diff, err := Diff(st)
+	diff, err := Diff(chSet)
 	require.NoError(t, err)
 
 	expected := `
@@ -50,13 +46,9 @@ parameters:
 
 	cf := &cfMock{}
 	cf.describeErr = errors.New("stack does not exist")
-	st := Stack{
-		Name: "teststack",
-		body: newTplBody,
-		cf:   cf,
-	}
+	chSet := NewStack(cf, "teststack").ChangeSet(newTplBody)
 
-	diff, err := Diff(st)
+	diff, err := Diff(chSet)
 	require.NoError(t, err)
 
 	expected := `

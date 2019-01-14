@@ -1,19 +1,12 @@
 package stackassembly
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
-	"io/ioutil"
-	"os/exec"
-	"strconv"
 	"strings"
-	"text/template"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/cloudformation/cloudformationiface"
 )
@@ -31,184 +24,37 @@ type StackEvent struct {
 	Timestamp         time.Time
 }
 
-type StackConfig struct {
-	Name       string
-	Path       string
-	Parameters map[string]string
-	Tags       map[string]string
-	DependsOn  []string
-	Blocked    []string
-	Hooks      struct {
-		PreSync    HookCmds
-		PostSync   HookCmds
-		PreCreate  HookCmds
-		PostCreate HookCmds
-		PreUpdate  HookCmds
-		PostUpdate HookCmds
-	}
-}
-
-type Stack struct {
-	Name string
-
-	parameters map[string]string
-	tags       map[string]string
-	body       string
-	path       string
-
-	cf cloudformationiface.CloudFormationAPI
-}
-
-// Change is a change that is applied to the stack
-type Change struct {
-	Action            string
-	ResourceType      string
-	LogicalResourceID string
-	ReplacementNeeded bool
-}
-
-type ParametersMissingError struct {
-	MissingParameters []string
-}
-
-func (e *ParametersMissingError) Error() string {
-	return fmt.Sprintf(
-		"the following parameters are required but not provided: %s",
-		strings.Join(e.MissingParameters, ", "),
-	)
-}
-
 //ErrNoChange is error that indicate that there are no changes to apply
 var ErrNoChange = errors.New("no changes")
 
 var ErrStackDoesntExist = errors.New("stack doesn't exist")
 
-func NewStack(cf cloudformationiface.CloudFormationAPI, stackCfg StackConfig, globalParameters map[string]string) (Stack, error) {
-	stack := Stack{}
+type Stack struct {
+	Name string
 
-	stack.cf = cf
-
-	stack.path = stackCfg.Path
-	stack.tags = stackCfg.Tags
-
-	stack.parameters = make(map[string]string, len(globalParameters)+len(stackCfg.Parameters))
-
-	for k, v := range globalParameters {
-		if _, ok := stackCfg.Parameters[k]; !ok {
-			stack.parameters[k] = v
-		}
-	}
-
-	data := struct{ Params map[string]string }{}
-	data.Params = stack.parameters
-
-	for k, v := range stackCfg.Parameters {
-		var parsed string
-		if err := applyTemplating(&parsed, v, data); err != nil {
-			return stack, err
-		}
-		stack.parameters[k] = parsed
-	}
-
-	data.Params = stack.parameters
-
-	stack.tags = make(map[string]string, len(stackCfg.Tags))
-	for k, v := range stackCfg.Tags {
-		var parsed string
-		if err := applyTemplating(&parsed, v, data); err != nil {
-			return stack, err
-		}
-		stack.tags[k] = parsed
-	}
-
-	err := applyTemplating(&stack.Name, stackCfg.Name, data)
-
-	return stack, err
+	cf         cloudformationiface.CloudFormationAPI
+	cachedInfo *StackInfo
 }
 
-func (s *Stack) AddParameter(k, v string) {
-	s.parameters[k] = v
+func NewStack(cf cloudformationiface.CloudFormationAPI, name string) *Stack {
+	return &Stack{cf: cf, Name: name}
 }
 
-func (s *Stack) Body() (string, error) {
-	if s.body != "" {
-		return s.body, nil
-	}
-	tplBody, err := ioutil.ReadFile(s.path)
-	if err != nil {
-		return "", err
+func (s *Stack) Info() (StackInfo, error) {
+	if s.cachedInfo != nil {
+		return *s.cachedInfo, nil
 	}
 
-	data := struct{ Params map[string]string }{}
-	data.Params = s.parameters
-	err = applyTemplating(&s.body, string(tplBody), data)
-	return s.body, err
-}
-
-func (s *Stack) ChangeSet() (ChangeSetHandle, error) {
-	chSet := ChangeSetHandle{
-		cf:        s.cf,
-		stackName: s.Name,
-	}
-
-	body, err := s.Body()
-	if err != nil {
-		return chSet, err
-	}
-
-	info := s.Info()
-	if err = info.Error(); err != nil {
-		return chSet, err
-	}
-
-	awsParams, err := s.awsParameters(info)
-	if err != nil {
-		return chSet, err
-	}
-
-	chSet.IsUpdate = info.AlreadyDeployed()
-
-	operation := cloudformation.ChangeSetTypeCreate
-	if chSet.IsUpdate {
-		operation = cloudformation.ChangeSetTypeUpdate
-	}
-
-	createOut, err := s.cf.CreateChangeSet(&cloudformation.CreateChangeSetInput{
-		ChangeSetType: aws.String(operation),
-		ChangeSetName: aws.String("chst-" + strconv.FormatInt(time.Now().UnixNano(), 10)),
-		TemplateBody:  aws.String(body),
-		StackName:     aws.String(s.Name),
-		Parameters:    awsParams,
-		Tags:          s.awsTags(),
-		Capabilities:  []*string{aws.String("CAPABILITY_IAM")},
-	})
-
-	if err != nil {
-		return chSet, err
-	}
-
-	chSet.ID = aws.StringValue(createOut.Id)
-
-	err = s.waitChangeSet(createOut.Id)
-	if err != nil {
-		return chSet, err
-	}
-
-	chSet.Changes, err = s.ChangeSetChanges(createOut.Id)
-	if err != nil {
-		return chSet, err
-	}
-
-	return chSet, err
-}
-
-func (s *Stack) Info() StackInfo {
-	stack, err := s.describe()
 	info := StackInfo{}
+
+	stack, err := s.describe()
+	if err != nil {
+		return info, err
+	}
+
 	info.awsStack = stack
-	info.err = err
-	info.cf = s.cf
-	return info
+	s.cachedInfo = &info
+	return info, err
 }
 
 func (s *Stack) describe() (*cloudformation.Stack, error) {
@@ -226,96 +72,89 @@ func (s *Stack) describe() (*cloudformation.Stack, error) {
 	return info.Stacks[0], nil
 }
 
-func (s *Stack) awsParameters(info StackInfo) ([]*cloudformation.Parameter, error) {
-	body, err := s.Body()
-	if err != nil {
-		return []*cloudformation.Parameter{}, err
+func (s *Stack) Exists() (bool, error) {
+	_, err := s.Info()
+
+	if err == ErrStackDoesntExist {
+		return false, nil
 	}
 
-	out, err := s.cf.ValidateTemplate(&cloudformation.ValidateTemplateInput{
-		TemplateBody: aws.String(body),
+	if err != nil {
+		return false, err
+	}
+
+	return true, nil
+}
+
+func (s *Stack) AlreadyDeployed() (bool, error) {
+	exists, err := s.Exists()
+	if err != nil {
+		return false, err
+	}
+
+	if !exists {
+		return false, nil
+	}
+
+	info, err := s.Info()
+	if err != nil {
+		return false, err
+	}
+
+	return !info.InReviewState(), nil
+}
+
+func (s *Stack) ChangeSet(body string) *ChangeSet {
+	return &ChangeSet{
+		stack:      s,
+		body:       body,
+		parameters: map[string]string{},
+	}
+}
+
+func (s *Stack) Body() (string, error) {
+	tpl, err := s.cf.GetTemplate(&cloudformation.GetTemplateInput{
+		StackName: aws.String(s.Name),
 	})
+
 	if err != nil {
-		return []*cloudformation.Parameter{}, err
+		return "", err
 	}
 
-	awsParams := make([]*cloudformation.Parameter, 0, len(out.Parameters))
-	missingParameters := []string{}
-
-	for _, p := range out.Parameters {
-		k := aws.StringValue(p.ParameterKey)
-		v, ok := s.parameters[k]
-
-		switch {
-		case ok:
-			awsParams = append(awsParams, &cloudformation.Parameter{
-				ParameterKey:   aws.String(k),
-				ParameterValue: aws.String(v),
-			})
-		case info.AlreadyDeployed() && info.HasParameter(k):
-			awsParams = append(awsParams, &cloudformation.Parameter{
-				ParameterKey:     aws.String(k),
-				UsePreviousValue: aws.Bool(true),
-			})
-		case aws.StringValue(p.DefaultValue) == "":
-			missingParameters = append(missingParameters, k)
-		}
-	}
-
-	if len(missingParameters) > 0 {
-		err := &ParametersMissingError{}
-		err.MissingParameters = missingParameters
-		return awsParams, err
-	}
-
-	return awsParams, nil
+	return aws.StringValue(tpl.TemplateBody), nil
 }
 
-func (s *Stack) awsTags() []*cloudformation.Tag {
-	awsTags := make([]*cloudformation.Tag, 0, len(s.tags))
+// Resources returns info about stack resources
+func (s *Stack) Resources() ([]StackResource, error) {
+	resp, err := s.cf.DescribeStackResources(&cloudformation.DescribeStackResourcesInput{
+		StackName: aws.String(s.Name),
+	})
 
-	for k, v := range s.tags {
-		awsTags = append(awsTags, &cloudformation.Tag{
-			Key:   aws.String(k),
-			Value: aws.String(v),
-		})
+	if err != nil {
+		return []StackResource{}, err
 	}
-	return awsTags
-}
 
-func (s *Stack) waitChangeSet(id *string) error {
-	err := s.cf.WaitUntilChangeSetCreateCompleteWithContext(
-		aws.BackgroundContext(),
-		&cloudformation.DescribeChangeSetInput{
-			ChangeSetName: id,
-		},
-		func(w *request.Waiter) {
-			w.Delay = request.ConstantWaiterDelay(1 * time.Second)
-		},
-	)
+	resources := make([]StackResource, len(resp.StackResources))
 
-	if aerr, ok := err.(awserr.Error); ok {
-		if aerr.Code() == request.WaiterResourceNotReadyErrorCode {
-			setInfo, derr := s.cf.DescribeChangeSet(&cloudformation.DescribeChangeSetInput{
-				ChangeSetName: id,
-			})
-
-			if derr != nil {
-				return fmt.Errorf("error while retrieving more info about change set failure: %v", derr)
-			}
-
-			if aws.StringValue(setInfo.StatusReason) == "No updates are to be performed." {
-				return ErrNoChange
-			}
-
-			if aws.StringValue(setInfo.StatusReason) == noChangeStatus {
-				return ErrNoChange
-			}
-
-			return fmt.Errorf("[%s] %s. Status: %s, StatusReason: %s", *setInfo.ChangeSetId, err.Error(), *setInfo.Status, *setInfo.StatusReason)
+	for i, r := range resp.StackResources {
+		resource := StackResource{
+			LogicalID: *r.LogicalResourceId,
+			Status:    *r.ResourceStatus,
+			Type:      *r.ResourceType,
+			Timestamp: *r.Timestamp,
 		}
+
+		if r.PhysicalResourceId != nil {
+			resource.PhysicalID = *r.PhysicalResourceId
+		}
+		if r.ResourceStatusReason != nil {
+			resource.StatusReason = *r.ResourceStatusReason
+		}
+
+		resources[i] = resource
 	}
-	return err
+
+	return resources, nil
 }
 
 func (s *Stack) Events() ([]StackEvent, error) {
@@ -341,50 +180,6 @@ func (s *Stack) Events() ([]StackEvent, error) {
 	}
 
 	return events, nil
-}
-
-func (s *Stack) ChangeSetChanges(ID *string) ([]Change, error) {
-	changes := make([]Change, 0)
-	return changes, s.changes(ID, &changes, nil)
-}
-
-func (s *Stack) changes(ID *string, store *[]Change, nextToken *string) error {
-	setInfo, err := s.cf.DescribeChangeSet(&cloudformation.DescribeChangeSetInput{
-		ChangeSetName: ID,
-		NextToken:     nextToken,
-	})
-
-	if err != nil {
-		return err
-	}
-
-	if *setInfo.Status == cloudformation.ChangeSetStatusFailed {
-
-		if *setInfo.StatusReason == noChangeStatus {
-			return ErrNoChange
-		}
-		return errors.New(*setInfo.StatusReason)
-	}
-
-	for _, c := range setInfo.Changes {
-		awsChange := c.ResourceChange
-		ch := Change{
-			Action:            *awsChange.Action,
-			ResourceType:      *awsChange.ResourceType,
-			LogicalResourceID: *awsChange.LogicalResourceId,
-		}
-		if awsChange.Replacement != nil && *awsChange.Replacement == "True" {
-			ch.ReplacementNeeded = true
-		}
-
-		*store = append(*store, ch)
-	}
-
-	if setInfo.NextToken != nil && *setInfo.NextToken != "" {
-		return s.changes(ID, store, setInfo.NextToken)
-	}
-
-	return nil
 }
 
 // BlockResource prevents a stack resource from deletion and replacement
@@ -424,28 +219,4 @@ func (s *Stack) applyPolicy(policy string) error {
 		StackPolicyBody: aws.String(policy),
 	})
 	return err
-}
-
-func applyTemplating(parsed *string, tpl string, data interface{}) error {
-	t, err := template.New(tpl).Funcs(template.FuncMap{
-		"Exec": func(cmd string, args ...string) (string, error) {
-			out, err := exec.Command(cmd, args...).CombinedOutput()
-			if err != nil {
-				return "", err
-			}
-
-			return strings.TrimSpace(string(out)), nil
-		},
-	}).Parse(tpl)
-	if err != nil {
-		return err
-	}
-	var buff bytes.Buffer
-
-	if err := t.Execute(&buff, data); err != nil {
-		return err
-	}
-
-	*parsed = buff.String()
-	return nil
 }
