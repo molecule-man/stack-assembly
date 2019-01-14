@@ -88,7 +88,7 @@ Feature: stas sync with parameters
             """
             stacks:
               stack1:
-                name: stastest-promptparam-%scenarioid%
+                name: stastest-%scenarioid%
                 path: tpls/stack1.yml
                 tags:
                   STAS_TEST: '%featureid%'
@@ -127,14 +127,14 @@ Feature: stas sync with parameters
             """
         When I enter "s"
         Then launched program should exit with zero status
-        And stack "stastest-promptparam-%scenarioid%" should have status "CREATE_COMPLETE"
+        And stack "stastest-%scenarioid%" should have status "CREATE_COMPLETE"
 
     Scenario: sync prompts me to enter parameter value if it's not present in config when I update stack
         Given file "cfg.yaml" exists:
             """
             stacks:
               stack1:
-                name: stastest-promptparamup-%scenarioid%
+                name: stastest-%scenarioid%
                 path: tpls/stack1.yml
                 tags:
                   STAS_TEST: '%featureid%'

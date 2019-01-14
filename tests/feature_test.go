@@ -12,6 +12,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 	"testing"
@@ -335,8 +336,12 @@ func FeatureContext(s *godog.Suite) {
 	s.Step(`^launched program should exit with non zero status$`, f.launchedProgramShouldExitWithNonZeroStatus)
 	s.Step(`^file "([^"]*)" should contain exactly:$`, f.fileShouldContainExactly)
 
-	s.BeforeScenario(func(interface{}) {
-		f.scenarioID = strconv.FormatInt(rand.Int63(), 10)
+	re := regexp.MustCompile("\\W")
+
+	s.BeforeScenario(func(gs interface{}) {
+		scenario := gs.(*gherkin.Scenario)
+		prefix := re.ReplaceAllString(scenario.Name, "-")
+		f.scenarioID = fmt.Sprintf("%.80s-%d", prefix, rand.Int63())
 		f.testDir = filepath.Join(testDir, "stas_test_"+f.scenarioID)
 	})
 	s.AfterScenario(func(interface{}, error) {
