@@ -114,6 +114,22 @@ func (f *feature) stackShouldHaveStatus(stackName, status string) error {
 	return nil
 }
 
+func (f *feature) stackShouldNotExist(stackName string) error {
+	s := f.replaceParameters(stackName)
+	_, err := f.cf.DescribeStacks(&cloudformation.DescribeStacksInput{
+		StackName: aws.String(s),
+	})
+
+	if err == nil {
+		return fmt.Errorf("Stack %s is not supposed to exist", s)
+	}
+
+	if !strings.Contains(err.Error(), "does not exist") {
+		return err
+	}
+	return nil
+}
+
 func (f *feature) iModifyFile(fname string, content *gherkin.DocString) error {
 	return f.fileExists(fname, content)
 }
@@ -323,6 +339,7 @@ func FeatureContext(s *godog.Suite) {
 	s.Step(`^file "([^"]*)" exists:$`, f.fileExists)
 	s.Step(`^I successfully run "([^"]*)"$`, f.iSuccessfullyRun)
 	s.Step(`^stack "([^"]*)" should have status "([^"]*)"$`, f.stackShouldHaveStatus)
+	s.Step(`^stack "([^"]*)" should not exist$`, f.stackShouldNotExist)
 	s.Step(`^I modify file "([^"]*)":$`, f.iModifyFile)
 	s.Step(`^I run "([^"]*)"$`, f.iRun)
 	s.Step(`^exit code should not be zero$`, f.exitCodeShouldNotBeZero)

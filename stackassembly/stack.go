@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/cloudformation/cloudformationiface"
 )
@@ -84,6 +85,24 @@ func (s *Stack) Exists() (bool, error) {
 	}
 
 	return true, nil
+}
+
+func (s *Stack) Delete() error {
+	_, err := s.cf.DeleteStack(&cloudformation.DeleteStackInput{
+		StackName: aws.String(s.Name),
+	})
+	if err != nil {
+		return err
+	}
+
+	waitInput := cloudformation.DescribeStacksInput{
+		StackName: aws.String(s.Name),
+	}
+	ctx := aws.BackgroundContext()
+	return s.cf.WaitUntilStackDeleteCompleteWithContext(ctx, &waitInput, func(w *request.Waiter) {
+		w.MaxAttempts = 900
+		w.Delay = request.ConstantWaiterDelay(2 * time.Second)
+	})
 }
 
 func (s *Stack) AlreadyDeployed() (bool, error) {

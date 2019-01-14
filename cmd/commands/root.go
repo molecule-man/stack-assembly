@@ -17,6 +17,7 @@ func RootCmd() *cobra.Command {
 	rootCmd.AddCommand(infoCmd())
 	rootCmd.AddCommand(syncCmd())
 	rootCmd.AddCommand(diffCmd())
+	rootCmd.AddCommand(deleteCmd())
 
 	cobra.OnInitialize(func() {
 		color.NoColor = nocolor
