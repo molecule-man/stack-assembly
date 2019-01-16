@@ -64,6 +64,7 @@ type StackConfig struct {
 		PreUpdate  stackassembly.HookCmds
 		PostUpdate stackassembly.HookCmds
 	}
+	RollbackConfiguration *cloudformation.RollbackConfiguration
 }
 
 func (cfg Config) StackConfigsSortedByExecOrder() ([]StackConfig, error) {
@@ -117,7 +118,8 @@ func (cfg Config) ChangeSetFromStackConfig(stackCfg StackConfig) (*stackassembly
 	return stackassembly.NewStack(Cf(cfg), stackCfg.Name).
 		ChangeSet(body).
 		WithParameters(stackCfg.Parameters).
-		WithTags(stackCfg.Tags), err
+		WithTags(stackCfg.Tags).
+		WithRollback(stackCfg.RollbackConfiguration), err
 }
 
 var cf *cloudformation.CloudFormation
@@ -127,6 +129,12 @@ func Cf(cfg Config) *cloudformation.CloudFormation {
 		return cf
 	}
 
+	sess := session.Must(session.NewSessionWithOptions(awsOpts(cfg)))
+
+	return cloudformation.New(sess)
+}
+
+func awsOpts(cfg Config) session.Options {
 	opts := session.Options{}
 
 	if cfg.Settings.Aws.Profile != "" {
@@ -149,9 +157,7 @@ func Cf(cfg Config) *cloudformation.CloudFormation {
 
 	opts.Config = awsCfg
 
-	sess := session.Must(session.NewSessionWithOptions(opts))
-
-	return cloudformation.New(sess)
+	return opts
 }
 
 func LoadConfig(cfgFiles []string) (Config, error) {

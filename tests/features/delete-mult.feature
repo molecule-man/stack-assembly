@@ -28,7 +28,6 @@ Feature: stas delete
         And stack "stastest-2-%scenarioid%" should have status "CREATE_COMPLETE"
 
 
-    @wip
     Scenario: I choose to delete all
         Given I launched "delete -c cfg.yaml"
         When terminal shows:
@@ -40,7 +39,6 @@ Feature: stas delete
         And stack "stastest-1-%scenarioid%" should not exist
         And stack "stastest-2-%scenarioid%" should not exist
 
-    @wip
     Scenario: I can skip deletion of a stack
         Given I launched "delete -c cfg.yaml"
         When terminal shows:

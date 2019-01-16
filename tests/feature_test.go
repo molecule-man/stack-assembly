@@ -152,7 +152,7 @@ func (f *feature) iRun(cmd string) error {
 
 func (f *feature) exitCodeShouldNotBeZero() error {
 	if f.lastErr == nil {
-		return errors.New("program returned zero exit code")
+		return fmt.Errorf("program returned zero exit code. Programs output: \n%s", f.lastOutput)
 	}
 	return nil
 }

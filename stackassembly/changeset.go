@@ -14,10 +14,11 @@ import (
 )
 
 type ChangeSet struct {
-	stack      *Stack
-	body       string
-	parameters map[string]string
-	tags       map[string]string
+	stack       *Stack
+	body        string
+	parameters  map[string]string
+	tags        map[string]string
+	rollbackCfg *cloudformation.RollbackConfiguration
 }
 
 // Change is a change that is applied to the stack
@@ -47,6 +48,11 @@ func (cs *ChangeSet) WithTags(tags map[string]string) *ChangeSet {
 	return cs
 }
 
+func (cs *ChangeSet) WithRollback(rollbackCfg *cloudformation.RollbackConfiguration) *ChangeSet {
+	cs.rollbackCfg = rollbackCfg
+	return cs
+}
+
 func (cs *ChangeSet) Register() (*ChangeSetHandle, error) {
 	chSet := &ChangeSetHandle{
 		cf:        cs.stack.cf,
@@ -69,13 +75,14 @@ func (cs *ChangeSet) Register() (*ChangeSetHandle, error) {
 	}
 
 	output, err := cs.stack.cf.CreateChangeSet(&cloudformation.CreateChangeSetInput{
-		ChangeSetType: aws.String(operation),
-		ChangeSetName: aws.String("chst-" + strconv.FormatInt(time.Now().UnixNano(), 10)),
-		TemplateBody:  aws.String(cs.body),
-		StackName:     aws.String(cs.stack.Name),
-		Parameters:    awsParams,
-		Tags:          cs.awsTags(),
-		Capabilities:  []*string{aws.String("CAPABILITY_IAM")},
+		ChangeSetType:         aws.String(operation),
+		ChangeSetName:         aws.String("chst-" + strconv.FormatInt(time.Now().UnixNano(), 10)),
+		TemplateBody:          aws.String(cs.body),
+		StackName:             aws.String(cs.stack.Name),
+		Parameters:            awsParams,
+		Tags:                  cs.awsTags(),
+		Capabilities:          []*string{aws.String("CAPABILITY_IAM")},
+		RollbackConfiguration: cs.rollbackCfg,
 	})
 
 	if err != nil {
