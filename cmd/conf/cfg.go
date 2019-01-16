@@ -161,6 +161,20 @@ func awsOpts(cfg Config) session.Options {
 }
 
 func LoadConfig(cfgFiles []string) (Config, error) {
+	cfg, err := decodeConfigs(cfgFiles)
+	if err != nil {
+		return cfg, err
+	}
+
+	err = applyTemplating(&cfg)
+	if err != nil {
+		return cfg, err
+	}
+
+	return cfg, initEnvSettings(&cfg.Settings)
+}
+
+func decodeConfigs(cfgFiles []string) (Config, error) {
 	mainConfig := Config{}
 
 	if len(cfgFiles) == 0 {
@@ -189,17 +203,7 @@ func LoadConfig(cfgFiles []string) (Config, error) {
 		return mainConfig, err
 	}
 
-	err = decoder.Decode(mainRawCfg)
-	if err != nil {
-		return mainConfig, err
-	}
-
-	err = applyTemplating(&mainConfig)
-	if err != nil {
-		return mainConfig, err
-	}
-
-	return mainConfig, initEnvSettings(&mainConfig.Settings)
+	return mainConfig, decoder.Decode(mainRawCfg)
 }
 
 func initEnvSettings(settings *settingsConfig) error {

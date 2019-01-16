@@ -21,20 +21,12 @@ var expectedParsedConfig = Config{
 		"tpl1": {
 			Path: "path",
 			Parameters: map[string]string{
-				"Param1": "val1",
-				"param2": "val2",
 				"Param3": "val3",
 				"param4": "val4",
 			},
-			Tags: map[string]string{},
 		},
 		"Tpl2": {
-			Name: "name1",
-			Parameters: map[string]string{
-				"Param1": "val1",
-				"param2": "val2",
-			},
-			Tags:      map[string]string{},
+			Name:      "name1",
 			DependsOn: []string{"sns1"},
 		},
 	},
@@ -65,7 +57,7 @@ func TestParseJSON(t *testing.T) {
 	fpath, cleanup := makeTestFile(t, ".json", jsonContent)
 	defer cleanup()
 
-	actualConfig, err := LoadConfig([]string{fpath})
+	actualConfig, err := decodeConfigs([]string{fpath})
 	require.NoError(t, err)
 	assert.Equal(t, expectedParsedConfig, actualConfig)
 }
@@ -91,7 +83,7 @@ stacks:
 	fpath, cleanup := makeTestFile(t, ".yaml", yamlContent)
 	defer cleanup()
 
-	actualConfig, err := LoadConfig([]string{fpath})
+	actualConfig, err := decodeConfigs([]string{fpath})
 	require.NoError(t, err)
 	assert.Equal(t, expectedParsedConfig, actualConfig)
 }
@@ -121,7 +113,7 @@ blocked = []
 	fpath, cleanup := makeTestFile(t, ".toml", tomlContent)
 	defer cleanup()
 
-	actualConfig, err := LoadConfig([]string{fpath})
+	actualConfig, err := decodeConfigs([]string{fpath})
 	require.NoError(t, err)
 	assert.Equal(t, expectedParsedConfig, actualConfig)
 }
@@ -171,23 +163,17 @@ stacks:
 				Name: "name1",
 				Path: "overwriten_path1",
 				Parameters: map[string]string{
-					"Param1": "overwriten_val1",
 					"Param3": "val3",
 					"param4": "overwriten_val4",
 					"param5": "overwriten_val5",
 				},
 				DependsOn: []string{"overwriten_tpl1"},
 				Blocked:   []string{"sns"},
-				Tags:      map[string]string{},
 			},
 			"tpl2": {
 				Name:    "name2",
 				Path:    "path2",
 				Blocked: []string{"sns2"},
-				Parameters: map[string]string{
-					"Param1": "overwriten_val1",
-				},
-				Tags: map[string]string{},
 			},
 		},
 	}
@@ -197,7 +183,7 @@ stacks:
 	fpath2, cleanup2 := makeTestFile(t, ".yml", cfg2)
 	defer cleanup2()
 
-	actual, err := LoadConfig([]string{fpath1, fpath2})
+	actual, err := decodeConfigs([]string{fpath1, fpath2})
 	require.NoError(t, err)
 	assert.Equal(t, expected, actual)
 }
@@ -206,7 +192,10 @@ func makeTestFile(t *testing.T, ext, content string) (string, func()) {
 	suffix := strconv.FormatInt(time.Now().UnixNano(), 10)
 	fpath := filepath.Join(os.TempDir(), "stastest_"+suffix+ext)
 	err := ioutil.WriteFile(fpath, []byte(content), 0700)
-	require.NoError(t, err)
+
+	if t != nil {
+		require.NoError(t, err)
+	}
 
 	return fpath, func() {
 		os.Remove(fpath)
