@@ -6,12 +6,11 @@ import (
 )
 
 func RootCmd() *cobra.Command {
+	var nocolor bool
 	rootCmd := &cobra.Command{
 		Use: "stas",
 	}
-	rootCmd.PersistentFlags().StringSliceP("configs", "c", []string{}, "CF configs")
-
-	var nocolor bool
+	rootCmd.PersistentFlags().StringSliceP("configs", "c", []string{}, "Stack-Assembly config files")
 	rootCmd.PersistentFlags().BoolVar(&nocolor, "nocolor", false, "Disables color output")
 
 	rootCmd.AddCommand(infoCmd())

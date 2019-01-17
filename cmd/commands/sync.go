@@ -12,36 +12,51 @@ import (
 )
 
 func syncCmd() *cobra.Command {
-	var stackName string
 	var nonInteractive bool
 
 	syncCmd := &cobra.Command{
-		Use:   "sync [stack]",
-		Short: "Sync stacks",
-		Args:  cobra.MaximumNArgs(1),
+		Use:     "sync [ID]",
+		Aliases: []string{"deploy"},
+		Short:   "Synchronize (deploy) stacks",
+		Long: `Creates or updates stacks specified in the config file(s).
+
+By default sync command deploys all the stacks described in the config file(s).
+To deploy a particular stack, ID argument has to be provided. ID is an
+identifier of a stack within the config file. For example, ID is tpl1 in the
+following yaml config:
+
+    stacks:
+      tpl1: # <--- this is ID
+        name: mystack
+        path: path/to/tpl.json`,
+
+		Args: cobra.MaximumNArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			cfgFiles, err := cmd.Parent().PersistentFlags().GetStringSlice("configs")
 			handleError(err)
 
+			cfg, err := conf.LoadConfig(cfgFiles)
+			handleError(err)
+
 			if len(args) > 0 {
-				cfg := conf.Config{}
+				id := args[0]
+				stack, ok := cfg.Stacks[id]
+				if !ok {
+					foundIds := make([]string, 0, len(cfg.Stacks))
+					for id := range cfg.Stacks {
+						foundIds = append(foundIds, id)
+					}
 
-				cfg.Stacks = map[string]conf.StackConfig{
-					stackName: {
-						Path: args[0],
-						Name: stackName,
-					},
+					handleError(fmt.Errorf("ID %s is not found in the config. Found IDs: %v", id, foundIds))
 				}
-
-				sync(cfg, nonInteractive)
-			} else {
-				cfg, err := conf.LoadConfig(cfgFiles)
-				handleError(err)
-				sync(cfg, nonInteractive)
+				cfg.Stacks = map[string]conf.StackConfig{
+					id: stack,
+				}
 			}
+
+			sync(cfg, nonInteractive)
 		},
 	}
-	syncCmd.Flags().StringVarP(&stackName, "stack", "s", "", "Stack name")
 	syncCmd.Flags().BoolVarP(&nonInteractive, "no-interaction", "n", false, "Do not ask any interactive questions")
 
 	return syncCmd
