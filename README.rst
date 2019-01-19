@@ -121,13 +121,137 @@ Usage
       -n, --no-interaction   Do not ask any interactive questions
 
     Global Flags:
-      -c, --configs strings   Stack-Assembly config files
-    	  --nocolor           Disables color output<Paste>
+      -c, --configs strings   Alternative config file(s). Default: stack-assembly.yaml
+    	  --nocolor           Disables color output
+
+Specifying multiple config files
+--------------------------------
+
+You can supply multiple ``-c`` configuration files. When you supply multiple
+files, Stack-Assembly combines them into a single configuration. Subsequent
+files override and add to their predecessors.
+
+For example, consider this command line:
+
+.. code-block:: bash
+
+    $ stas sync -c stack-assembly.yml -c stack-assembly.staging.yml
+
+The ``stack-assembly.yml`` file might look like this:
+
+.. code-block:: yaml
+
+    stacks:
+      ec2machine:
+        name: ec2machine-dev
+        path: cf-tpls/ec2machine.yml
+        parameters:
+          Size: t2.micro
+          ImageID: ami-rt34fu
+
+And the ``stack-assembly.staging.yml`` file might look like this:
+
+.. code-block:: yaml
+
+    stacks:
+      ec2machine:
+        name: ec2machine-staging
+        parameters:
+          Size: t2.medium
+        tags:
+          ENV: staging
+
+Stack-Assembly will apply configuration from ``stack-assembly.staging.yml`` on
+top of ``stack-assembly.yml`` and the result configuration will look like this:
+
+.. code-block:: yaml
+
+    stacks:
+      ec2machine:
+        name: ec2machine-staging
+        path: cf-tpls/ec2machine.yml
+        parameters:
+          Size: t2.medium
+          ImageID: ami-rt34fu
+        tags:
+          ENV: staging
 
 Configuration
 =============
 
-To be added
+Stack-Assembly uses simple yet powerful config file that can be in one of these
+three formats: ``yaml``, ``toml``, ``json``. The next sections will use ``yaml``
+as a format.
+
+Config file location
+--------------------
+
+Stack-Assembly will firstly try to use file ``stack-assembly.yaml`` in your
+project directory. If it's not found then Stack-Assembly will try to use
+``stack-assembly.yml``, ``stack-assembly.toml``, ``stack-assembly.json``.
+
+Config file structure
+---------------------
+
+Example of Stack-Assembly config file:
+
+.. code-block:: yaml
+
+    # cloudformation parameters that are global for all stacks
+    parameters:
+      Env: dev
+      ServiceName: myservice
+
+    stacks:
+      db:
+        # cloudformation stack's name. It's possible to use golang templating
+        # inside `name`
+        name: "{{ .Params.DbName }}"
+
+        # path to cloudformation template
+        path: cf-tpls/rds.yml
+
+        # cloudformation stack's parameters
+        parameters:
+          Type: db.t2.medium
+          # it's possible to use golang templating inside parameter value
+          DbName: "{{ .Params.ServiceName }}-{{ .Params.Env }}"
+
+        # cloudformation stack's tags. It's also possible to use golang
+        # templating inside tag value
+        tags:
+          ENV: "{{ .Params.Env }}"
+
+        # it's possible to create a stack policy that will disallow to `update`
+        # or `delete` certain stack resources. In this case the policy will be
+        # applied to stack resource with `LogicalResourceId` equal to
+        # `DbInstance`. See the following link for more information:
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/protect-stack-resources.html
+        block:
+          - DbInstance
+
+      ec2app:
+        name: "{{ .Params.ServiceName }}-{{ .Params.Env }}-ec2app"
+        path: cf-tpls/ec2app.yml
+        parameters:
+          Type: t2.micro
+
+        # dependsOn instruction tells Stack-Assembly that this stack should be
+        # deployed after `db` stack is deployed
+        dependsOn:
+          - db
+
+        # Rollback triggers enable you to have AWS CloudFormation monitor the
+        # state of your application during stack creation and updating, and to
+        # roll back that operation if the application breaches the threshold of
+        # any of the alarms you've specified.
+        # For more information, see
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-rollback-triggers.html
+        rollbackConfiguration:
+          monitoringTimeInMinutes: 1
+          rollbackTriggers:
+            - arn: arn:aws:cloudwatch:{{ .AWS.Region }}:{{ .AWS.AccountID }}:alarm:{{ .Params.ServiceName }}-errors
+              type: AWS::CloudWatch::Alarm
 
 AWS credentials
 ===============

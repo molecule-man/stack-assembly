@@ -10,7 +10,7 @@ func RootCmd() *cobra.Command {
 	rootCmd := &cobra.Command{
 		Use: "stas",
 	}
-	rootCmd.PersistentFlags().StringSliceP("configs", "c", []string{}, "Stack-Assembly config files")
+	rootCmd.PersistentFlags().StringSliceP("configs", "c", []string{}, "Alternative config file(s). Default: stack-assembly.yaml")
 	rootCmd.PersistentFlags().BoolVar(&nocolor, "nocolor", false, "Disables color output")
 
 	rootCmd.AddCommand(infoCmd())
