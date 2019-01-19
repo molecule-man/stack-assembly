@@ -319,10 +319,29 @@ Now you have couple of options:
 
     $ stas sync --profile default --region eu-west-1
 
+Other commands
+==============
+
+Apart from `sync` command there are also couple of handy other commands you can
+use:
+
+.. code-block:: bash
+
+    $ stas help
+    Usage:
+      stas [command]
+
+    Available Commands:
+      delete      Deletes deployed stacks
+      diff        Show diff of the stacks to be deployed
+      help        Help about any command
+      info        Show info about the stack
+      sync        Synchronize (deploy) stacks
+
 TODO
 ====
 
-* Add possibility to introspect aws resources.
 * Enable user to unblock the blocked resource (interactively).
 * Github support.
 * Add ci.
+* Add possibility to introspect aws resources??
