@@ -17,8 +17,7 @@ Main features
 
 * No dependencies (NodeJS, Python interpreter, aws cli etc.) - Stack-Assembly is
   a single statically linked binary
-* Powerful configuration
-* Powered by `Golang Templates <https://golang.org/pkg/text/template/>`_
+* Configuration powered by `Golang Templates <https://golang.org/pkg/text/template/>`_
 * Interactive interface which enables user to view, diff and confirm changes to
   be deployed
 * Colorized terminal output
@@ -123,6 +122,8 @@ Usage
     Global Flags:
       -c, --configs strings   Alternative config file(s). Default: stack-assembly.yaml
     	  --nocolor           Disables color output
+      -p, --profile string    AWS named profile (default "default")
+      -r, --region string     AWS region
 
 Specifying multiple config files
 --------------------------------
@@ -197,6 +198,18 @@ Example of Stack-Assembly config file:
 
 .. code-block:: yaml
 
+    settings:
+      aws:
+        # aws named profile. See the following link for more information
+        # https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-profiles.html
+        # This configuration option can be overriden by env variable AWS_PROFILE.
+        # Or by command line parameter `--profile`
+        profile: default
+
+        # aws region. This configuration option can be overriden by env variable
+        # AWS_REGION. Or by command line parameter `--region`
+        region: us-west-2
+
     # cloudformation parameters that are global for all stacks
     parameters:
       Env: dev
@@ -227,7 +240,7 @@ Example of Stack-Assembly config file:
         # applied to stack resource with `LogicalResourceId` equal to
         # `DbInstance`. See the following link for more information:
         # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/protect-stack-resources.html
-        block:
+        blocked:
           - DbInstance
 
       ec2app:
@@ -256,7 +269,55 @@ Example of Stack-Assembly config file:
 AWS credentials
 ===============
 
-To be added
+If you've ever used awscli or similar tool you probably already know about aws
+credentials file. Stack-Assembly also uses this file to read credentials. The
+default location of this file is ``$HOME/.aws/credentials``. You can find more
+information in `AWS documentation
+<https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-files.html>`_.
+
+For the sake of example let's consider that you have configured aws credentials
+and now have this files in your home folder:
+
+**~/.aws/credentials**
+
+::
+
+    [default]
+    aws_access_key_id=AKIAIOSFODNN7EXAMPLE
+    aws_secret_access_key=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
+
+**~/.aws/config**
+
+::
+
+    [default]
+    region=us-west-2
+
+Now you have couple of options:
+
+1. Specify profile and region in the config file. See `Config file structure`_:
+
+.. code-block:: yaml
+
+    settings:
+      aws:
+        profile: default
+        # omit next line if you want to use us-west-2 as specified in ~/.aws/config
+        region: eu-west-1
+
+2. Use environmental variables:
+
+.. code-block:: bash
+
+    $ export AWS_PROFILE=default
+    $ export AWS_REGION=eu-west-1
+    $ stas sync
+
+3. Use command line flags:
+
+.. code-block:: bash
+
+    $ stas sync --profile default --region eu-west-1
 
 TODO
 ====

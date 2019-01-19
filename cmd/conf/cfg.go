@@ -207,7 +207,6 @@ func decodeConfigs(cfgFiles []string) (Config, error) {
 }
 
 func initEnvSettings(settings *settingsConfig) error {
-	viper.SetEnvPrefix("STAS")
 	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 	viper.AutomaticEnv()
 

@@ -40,12 +40,6 @@ cleanup:
 		| jq '.Stacks[] | select(.StackName | startswith("stastest-")) | .StackId' -r \
 		| xargs -r -l aws cloudformation delete-stack --stack-name
 
-exec:
-	go run cmd/*.go sync -c Stack-assembly.toml -c tpls/cfg.toml
-
-info:
-	go run cmd/*.go info -c Stack-assembly.toml -c tpls/cfg.toml
-
 lint:
 	golangci-lint run
 
