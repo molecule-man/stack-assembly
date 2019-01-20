@@ -178,8 +178,17 @@ func decodeConfigs(cfgFiles []string) (Config, error) {
 	mainConfig := Config{}
 
 	if len(cfgFiles) == 0 {
-		if _, err := os.Stat("Stack-assembly.toml"); err == nil {
-			cfgFiles = []string{"Stack-assembly.toml"}
+		tryCfgFiles := []string{
+			"stack-assembly.yaml",
+			"stack-assembly.yml",
+			"stack-assembly.toml",
+			"stack-assembly.json",
+		}
+		for _, f := range tryCfgFiles {
+			if _, err := os.Stat(f); err == nil {
+				cfgFiles = []string{f}
+				break
+			}
 		}
 	}
 
