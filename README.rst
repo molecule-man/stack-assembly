@@ -321,7 +321,6 @@ Now you have couple of options:
     settings:
       aws:
         profile: default
-        # omit next line if you want to use us-west-2 as specified in ~/.aws/config
         region: eu-west-1
 
 2. Use environmental variables:
