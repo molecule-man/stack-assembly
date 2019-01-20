@@ -28,7 +28,26 @@ Main features
 Installation
 ============
 
-To be added
+The pre-compiled binaries can be downloaded from `the release page
+<https://github.com/molecule-man/stack-assembly/releases>`_. The following OSs
+are supported:
+
+* Windows amd64/386
+* Linux amd64/386
+* Darwin amd64/386
+
+Build it yourself
+-----------------
+
+This requires go 1.11 to be installed
+
+.. code-block:: bash
+
+    $ git clone git@github.com:molecule-man/stack-assembly.git
+    $ cd stack-assembly
+    $ make build
+
+This will build binary inside ``bin`` folder.
 
 Quick start example
 ===================
