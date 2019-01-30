@@ -65,6 +65,7 @@ type StackConfig struct {
 		PostUpdate stackassembly.HookCmds
 	}
 	RollbackConfiguration *cloudformation.RollbackConfiguration
+	Capabilities          []string
 }
 
 func (cfg Config) StackConfigsSortedByExecOrder() ([]StackConfig, error) {
@@ -119,7 +120,8 @@ func (cfg Config) ChangeSetFromStackConfig(stackCfg StackConfig) (*stackassembly
 		ChangeSet(body).
 		WithParameters(stackCfg.Parameters).
 		WithTags(stackCfg.Tags).
-		WithRollback(stackCfg.RollbackConfiguration), err
+		WithRollback(stackCfg.RollbackConfiguration).
+		WithCapabilities(stackCfg.Capabilities), err
 }
 
 var cf *cloudformation.CloudFormation

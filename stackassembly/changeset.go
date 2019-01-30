@@ -14,11 +14,12 @@ import (
 )
 
 type ChangeSet struct {
-	stack       *Stack
-	body        string
-	parameters  map[string]string
-	tags        map[string]string
-	rollbackCfg *cloudformation.RollbackConfiguration
+	stack        *Stack
+	body         string
+	parameters   map[string]string
+	tags         map[string]string
+	rollbackCfg  *cloudformation.RollbackConfiguration
+	capabilities []*string
 }
 
 // Change is a change that is applied to the stack
@@ -53,6 +54,14 @@ func (cs *ChangeSet) WithRollback(rollbackCfg *cloudformation.RollbackConfigurat
 	return cs
 }
 
+func (cs *ChangeSet) WithCapabilities(capabilities []string) *ChangeSet {
+	cs.capabilities = make([]*string, 0, len(capabilities))
+	for _, c := range capabilities {
+		cs.capabilities = append(cs.capabilities, aws.String(c))
+	}
+	return cs
+}
+
 func (cs *ChangeSet) Register() (*ChangeSetHandle, error) {
 	chSet := &ChangeSetHandle{
 		cf:        cs.stack.cf,
@@ -81,7 +90,7 @@ func (cs *ChangeSet) Register() (*ChangeSetHandle, error) {
 		StackName:             aws.String(cs.stack.Name),
 		Parameters:            awsParams,
 		Tags:                  cs.awsTags(),
-		Capabilities:          []*string{aws.String("CAPABILITY_IAM")},
+		Capabilities:          cs.capabilities,
 		RollbackConfiguration: cs.rollbackCfg,
 	})
 
