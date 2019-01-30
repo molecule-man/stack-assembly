@@ -3,14 +3,16 @@
 GO111MODULE := on
 export GO111MODULE
 
+GO_TEST = $(shell command -v gotest || echo "go test")
+
 build:
 	go build -o bin/stas cmd/main.go
 
 test:
-	go test ./...
+	${GO_TEST} ./...
 
 testrace:
-	go test -race ./...
+	${GO_TEST} -race ./...
 
 run-acctest:
 	go test -tags acceptance -v ./tests $(GODOG_ARGS)

@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/molecule-man/stack-assembly/cli"
+	"github.com/molecule-man/stack-assembly/cli/color"
 	"github.com/molecule-man/stack-assembly/cmd/conf"
 	"github.com/molecule-man/stack-assembly/stackassembly"
 	"github.com/spf13/cobra"
@@ -119,8 +120,10 @@ func sync(cfg conf.Config, nonInteractive bool) {
 			defer stopTracking()
 
 			go func() {
+				writer := cli.NewColWriter(cli.Output, " ")
 				for e := range events {
-					logger.Info(sprintEvent(e))
+					logger.Fprint(writer, sprintEvent(e))
+					writer.Flush()
 				}
 			}()
 
@@ -137,7 +140,7 @@ func sync(cfg conf.Config, nonInteractive bool) {
 				handleError(cfg.Hooks.PostCreate.Exec())
 				handleError(stackCfg.Hooks.PostCreate.Exec())
 			}
-			logger.ColorPrint(cli.SuccessColor, "Synchronization is complete")
+			logger.Print(color.Success("Synchronization is complete"))
 		}
 
 		for _, r := range stackCfg.Blocked {
@@ -154,28 +157,23 @@ func sync(cfg conf.Config, nonInteractive bool) {
 func showChanges(changes []stackassembly.Change) {
 	if len(changes) > 0 {
 		t := cli.NewTable()
-		t.Header().Cell("Action").Cell("Resource Type").Cell("Resource ID").Cell("Replacement needed")
+		t.Header("Action", "Resource Type", "Resource ID", "Replacement needed")
 
 		for _, c := range changes {
-			t.Row()
-
+			action := color.Neutral(c.Action)
 			switch strings.ToLower(c.Action) {
 			case "add":
-				t.ColorizedCell(c.Action, cli.SuccessColor)
+				action = color.Success(c.Action)
 			case "remove":
-				t.ColorizedCell(c.Action, cli.FailureColor)
-			default:
-				t.ColorizedCell(c.Action, cli.NeutralColor)
+				action = color.Fail(c.Action)
 			}
 
-			t.Cell(c.ResourceType)
-			t.Cell(c.LogicalResourceID)
-
-			col := cli.SuccessColor
+			repl := color.Success(fmt.Sprintf("%t", c.ReplacementNeeded))
 			if c.ReplacementNeeded {
-				col = cli.FailureColor
+				repl = color.Fail(fmt.Sprintf("%t", c.ReplacementNeeded))
 			}
-			t.ColorizedCell(fmt.Sprintf("%t", c.ReplacementNeeded), col)
+			t.Row(action, c.ResourceType, c.LogicalResourceID, repl)
+
 		}
 
 		cli.Print(t.Render())

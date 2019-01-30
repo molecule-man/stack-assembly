@@ -17,7 +17,7 @@ type PromptCmd struct {
 }
 
 func Prompt(commands []PromptCmd) error {
-	fmt.Println("*** Commands ***")
+	Print("*** Commands ***")
 	for _, c := range commands {
 		fmt.Println("  " + c.Description)
 	}
@@ -35,12 +35,12 @@ func Prompt(commands []PromptCmd) error {
 		}
 	}
 
-	fmt.Printf("Command %s is not known\n", response)
+	Warnf("Command %s is not known\n", response)
 	return nil
 }
 
 func Ask(query string, args ...interface{}) (string, error) {
-	fmt.Printf(query, args...)
+	Printf(query, args...)
 
 	reader := bufio.NewReader(os.Stdin)
 	response, err := reader.ReadString('\n')

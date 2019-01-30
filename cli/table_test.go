@@ -9,9 +9,9 @@ import (
 
 func TestTable(t *testing.T) {
 	table := NewTable().
-		Row().Cell("hello").Cell("World").
-		Row().Cell("a").Cell("long long long long...").
-		Row().Cell("b")
+		Row("hello", "World").
+		Row("a", "long long long long...").
+		Row("b")
 
 	expected := strings.Join([]string{
 		"+-------+------------------------+",
@@ -25,9 +25,9 @@ func TestTable(t *testing.T) {
 
 func TestTableWithHeader(t *testing.T) {
 	table := NewTable().
-		Header().Cell("HeaderCell1").Cell("HeaderCell2").
-		Row().Cell("hello").Cell("World").
-		Row().Cell("a").Cell("long long long long...")
+		Header("HeaderCell1", "HeaderCell2").
+		Row("hello", "World").
+		Row("a", "long long long long...")
 
 	expected := strings.Join([]string{
 		"+-------------+------------------------+",

@@ -1,124 +1,54 @@
 package cli
 
 import (
+	"bytes"
 	"fmt"
-	"strconv"
 	"strings"
-
-	"github.com/fatih/color"
 )
-
-type cell struct {
-	content  string
-	colorDef *color.Color
-}
 
 // Table represents data as a table
 type Table struct {
+	buf        *bytes.Buffer
 	currentRow int
-	colSizes   []int
-	data       [][]cell
-	hasHeader  bool
-	noBorder   bool
+	w          *ColWriter
 }
 
 // NewTable creates a new table
 func NewTable() *Table {
-	return &Table{
-		currentRow: -1,
+	buf := bytes.NewBuffer([]byte{})
+	w := NewColWriter(buf, " | ")
+	w.PadLastColumn = true
+	w.DecorateLine = func(line string) string {
+		if strings.HasPrefix(line, "-") {
+			line = strings.Replace(line, "|", "+", -1)
+			line = strings.Replace(line, " ", "-", -1)
+			return "+-" + line + "-+"
+		}
+
+		return "| " + line + " |"
 	}
+	return &Table{buf: buf, w: w}
 }
 
-// Header adds a header to table
-func (t *Table) Header() *Table {
-	t.hasHeader = true
-	return t.Row()
-}
-
-func (t *Table) NoBorder() *Table {
-	t.noBorder = true
-	return t.Row()
-}
-
-// Row switches table to a new raw. All the Cell calls will cause new cells to
-// be added to a new row
-func (t *Table) Row() *Table {
-	t.currentRow++
-	t.data = append(t.data, make([]cell, 0))
+func (t *Table) Header(cells ...string) *Table {
+	t.Row(cells...)
+	fmt.Fprintln(t.w, "-")
 	return t
 }
 
-// Cell adds cell
-func (t *Table) Cell(s string) *Table {
-	return t.ColorizedCell(s, NoColor)
-}
-
-func (t *Table) ColorizedCell(s string, colorDef *color.Color) *Table {
-	currentCell := len(t.data[t.currentRow])
-
-	if currentCell >= len(t.colSizes) {
-		t.colSizes = append(t.colSizes, 0)
+func (t *Table) Row(cells ...string) *Table {
+	if t.currentRow == 0 {
+		fmt.Fprintln(t.w, "-")
 	}
-
-	if len(s) > t.colSizes[currentCell] {
-		t.colSizes[currentCell] = len(s)
-	}
-
-	t.data[t.currentRow] = append(t.data[t.currentRow], cell{content: s, colorDef: colorDef})
-
+	fmt.Fprintln(t.w, strings.Join(cells, "\t"))
+	t.currentRow++
 	return t
 }
 
 // Render renders the table
 func (t *Table) Render() string {
-	renderedRows := make([]string, 0)
+	fmt.Fprintln(t.w, "-")
+	t.w.Flush()
 
-	leftBorder := ""
-	inbetweenBorder := " "
-	rightBorder := ""
-	border := ""
-
-	if !t.noBorder {
-		leftBorder = "| "
-		inbetweenBorder = " | "
-		rightBorder = " |"
-
-		borderParts := make([]string, len(t.colSizes))
-
-		for i, size := range t.colSizes {
-			borderParts[i] = strings.Repeat("-", size)
-		}
-		border = "+-" + strings.Join(borderParts, "-+-") + "-+\n"
-	}
-
-	renderedRows = append(renderedRows, border)
-
-	for r, row := range t.data {
-		renderedCells := make([]string, len(t.colSizes))
-
-		for c, size := range t.colSizes {
-			nextCell := cell{colorDef: NoColor}
-
-			if c < len(row) {
-				nextCell = row[c]
-			}
-
-			format := "%-" + strconv.Itoa(size) + "s"
-			cellContent := fmt.Sprintf(format, nextCell.content)
-			if nextCell.colorDef != NoColor {
-				cellContent = nextCell.colorDef.Sprintf(format, nextCell.content)
-			}
-			renderedCells[c] = cellContent
-		}
-		row := leftBorder + strings.Join(renderedCells, inbetweenBorder) + rightBorder
-		renderedRows = append(renderedRows, strings.TrimSpace(row)+"\n")
-
-		if r == 0 && t.hasHeader {
-			renderedRows = append(renderedRows, border)
-		}
-	}
-
-	renderedRows = append(renderedRows, border)
-
-	return strings.Join(renderedRows, "")
+	return t.buf.String()
 }

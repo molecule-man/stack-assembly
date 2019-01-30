@@ -2,16 +2,28 @@ package cli
 
 import (
 	"fmt"
+	"io"
+	"os"
 
 	"github.com/fatih/color"
 )
 
+var Output io.Writer = os.Stdout
+
+func Fprint(w io.Writer, msg string) {
+	fmt.Fprintln(w, msg)
+}
+
 func Print(msg string) {
-	fmt.Println(msg)
+	Fprint(Output, msg)
 }
 
 func ColorPrint(col *color.Color, msg string) {
-	fmt.Println(col.Sprint(msg))
+	Print(col.Sprint(msg))
+}
+
+func Printf(msg string, args ...interface{}) {
+	fmt.Fprintf(Output, msg, args...)
 }
 
 func Error(msg string) {
@@ -50,6 +62,10 @@ func PrefixedLogger(prefix string) *Logger {
 
 func (l *Logger) prefixedMsg(msg string) string {
 	return fmt.Sprintf("%s%s", l.prefix, msg)
+}
+
+func (l *Logger) Fprint(w io.Writer, msg string) {
+	Fprint(w, l.prefixedMsg(msg))
 }
 
 func (l *Logger) Print(msg string) {
