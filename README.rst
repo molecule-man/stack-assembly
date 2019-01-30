@@ -273,6 +273,13 @@ Example of Stack-Assembly config file:
         dependsOn:
           - db
 
+        # In some cases, you must explicity acknowledge that your stack template
+        # contains certain capabilities in order for AWS CloudFormation to
+        # create the stack. For more information, see
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/APIReference/API_CreateStack.html
+        capabilities:
+          - CAPABILITY_IAM
+
         # Rollback triggers enable you to have AWS CloudFormation monitor the
         # state of your application during stack creation and updating, and to
         # roll back that operation if the application breaches the threshold of
