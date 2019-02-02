@@ -1,4 +1,4 @@
-package commands
+package assembly
 
 import (
 	"os"
@@ -6,7 +6,7 @@ import (
 	"github.com/molecule-man/stack-assembly/cli"
 )
 
-func handleError(err error) {
+func MustSucceed(err error) {
 	if err != nil {
 		cli.Errorf("%s", err)
 		os.Exit(1)

@@ -1,4 +1,4 @@
-package stackassembly
+package awscf
 
 import (
 	"errors"

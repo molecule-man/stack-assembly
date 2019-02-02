@@ -16,8 +16,8 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/mitchellh/mapstructure"
+	"github.com/molecule-man/stack-assembly/awscf"
 	"github.com/molecule-man/stack-assembly/depgraph"
-	"github.com/molecule-man/stack-assembly/stackassembly"
 	"github.com/spf13/viper"
 	yaml "gopkg.in/yaml.v2"
 )
@@ -38,14 +38,14 @@ type Config struct {
 	Stacks     map[string]StackConfig
 
 	Hooks struct {
-		Pre        stackassembly.HookCmds
-		Post       stackassembly.HookCmds
-		PreSync    stackassembly.HookCmds
-		PostSync   stackassembly.HookCmds
-		PreCreate  stackassembly.HookCmds
-		PostCreate stackassembly.HookCmds
-		PreUpdate  stackassembly.HookCmds
-		PostUpdate stackassembly.HookCmds
+		Pre        HookCmds
+		Post       HookCmds
+		PreSync    HookCmds
+		PostSync   HookCmds
+		PreCreate  HookCmds
+		PostCreate HookCmds
+		PreUpdate  HookCmds
+		PostUpdate HookCmds
 	}
 }
 
@@ -57,12 +57,12 @@ type StackConfig struct {
 	DependsOn  []string
 	Blocked    []string
 	Hooks      struct {
-		PreSync    stackassembly.HookCmds
-		PostSync   stackassembly.HookCmds
-		PreCreate  stackassembly.HookCmds
-		PostCreate stackassembly.HookCmds
-		PreUpdate  stackassembly.HookCmds
-		PostUpdate stackassembly.HookCmds
+		PreSync    HookCmds
+		PostSync   HookCmds
+		PreCreate  HookCmds
+		PostCreate HookCmds
+		PreUpdate  HookCmds
+		PostUpdate HookCmds
 	}
 	RollbackConfiguration *cloudformation.RollbackConfiguration
 	Capabilities          []string
@@ -87,8 +87,8 @@ func (cfg Config) StackConfigsSortedByExecOrder() ([]StackConfig, error) {
 	return stackCfgs, nil
 }
 
-func (cfg Config) ChangeSets() ([]*stackassembly.ChangeSet, error) {
-	chSets := make([]*stackassembly.ChangeSet, len(cfg.Stacks))
+func (cfg Config) ChangeSets() ([]*awscf.ChangeSet, error) {
+	chSets := make([]*awscf.ChangeSet, len(cfg.Stacks))
 
 	ss, err := cfg.StackConfigsSortedByExecOrder()
 	if err != nil {
@@ -105,7 +105,7 @@ func (cfg Config) ChangeSets() ([]*stackassembly.ChangeSet, error) {
 	return chSets, nil
 }
 
-func (cfg Config) ChangeSetFromStackConfig(stackCfg StackConfig) (*stackassembly.ChangeSet, error) {
+func (cfg Config) ChangeSetFromStackConfig(stackCfg StackConfig) (*awscf.ChangeSet, error) {
 	bodyBytes, err := ioutil.ReadFile(stackCfg.Path)
 	if err != nil {
 		return nil, err
@@ -116,7 +116,7 @@ func (cfg Config) ChangeSetFromStackConfig(stackCfg StackConfig) (*stackassembly
 	data.Params = stackCfg.Parameters
 	err = parseTpl(&body, string(bodyBytes), data)
 
-	return stackassembly.NewStack(Cf(cfg), stackCfg.Name).
+	return awscf.NewStack(Cf(cfg), stackCfg.Name).
 		ChangeSet(body).
 		WithParameters(stackCfg.Parameters).
 		WithTags(stackCfg.Tags).

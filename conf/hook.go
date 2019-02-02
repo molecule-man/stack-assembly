@@ -1,4 +1,4 @@
-package stackassembly
+package conf
 
 import (
 	"errors"

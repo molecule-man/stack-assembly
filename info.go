@@ -1,13 +1,13 @@
-package commands
+package assembly
 
 import (
 	"fmt"
 	"strings"
 	"time"
 
+	"github.com/molecule-man/stack-assembly/awscf"
 	"github.com/molecule-man/stack-assembly/cli"
 	"github.com/molecule-man/stack-assembly/cli/color"
-	"github.com/molecule-man/stack-assembly/stackassembly"
 )
 
 func colorizedStatus(status string) string {
@@ -21,20 +21,20 @@ func colorizedStatus(status string) string {
 	return status
 }
 
-func sprintEvent(e stackassembly.StackEvent) string {
+func sprintEvent(e awscf.StackEvent) string {
 	return fmt.Sprintf("%s\t%s\t%s\t%s", e.ResourceType, colorizedStatus(e.Status), e.LogicalResourceID, e.StatusReason)
 }
 
-func printStackInfo(stack *stackassembly.Stack) {
+func Info(stack *awscf.Stack) {
 	exists, err := stack.Exists()
-	handleError(err)
+	MustSucceed(err)
 
 	if !exists {
 		return
 	}
 
 	info, err := stack.Info()
-	handleError(err)
+	MustSucceed(err)
 
 	printStackDetails(stack.Name, info)
 	printResources(stack)
@@ -44,16 +44,16 @@ func printStackInfo(stack *stackassembly.Stack) {
 	cli.Print("")
 }
 
-func printStackDetails(name string, info stackassembly.StackInfo) {
+func printStackDetails(name string, info awscf.StackInfo) {
 	cli.Print("######################################")
 	cli.Print(fmt.Sprintf("STACK:\t%s", name))
 	cli.Print(fmt.Sprintf("STATUS:\t%s %s", colorizedStatus(info.Status()), info.StatusDescription()))
 	cli.Print("")
 }
 
-func printResources(stack *stackassembly.Stack) {
+func printResources(stack *awscf.Stack) {
 	resources, err := stack.Resources()
-	handleError(err)
+	MustSucceed(err)
 
 	cli.Print("==== RESOURCES ====")
 
@@ -62,24 +62,24 @@ func printResources(stack *stackassembly.Stack) {
 		fields := []string{res.LogicalID, colorizedStatus(res.Status), res.PhysicalID}
 		fmt.Fprintln(w, strings.Join(fields, "\t"))
 	}
-	handleError(w.Flush())
+	MustSucceed(w.Flush())
 	cli.Print("")
 }
 
-func printOutputs(info stackassembly.StackInfo) {
+func printOutputs(info awscf.StackInfo) {
 	cli.Print("==== OUTPUTS ====")
 
 	w := cli.NewColWriter(cli.Output, " ")
 	for _, out := range info.Outputs() {
 		fmt.Fprintln(w, strings.Join([]string{out.Key, out.Value, out.ExportName}, "\t"))
 	}
-	handleError(w.Flush())
+	MustSucceed(w.Flush())
 	cli.Print("")
 }
 
-func printEvents(stack *stackassembly.Stack) {
+func printEvents(stack *awscf.Stack) {
 	events, err := stack.Events()
-	handleError(err)
+	MustSucceed(err)
 
 	w := cli.NewColWriter(cli.Output, " ")
 	cli.Print("==== EVENTS ====")
@@ -90,6 +90,6 @@ func printEvents(stack *stackassembly.Stack) {
 	for _, e := range events[:limit] {
 		fmt.Fprintf(w, "[%s]\t%s\n", e.Timestamp.Format(time.RFC3339), sprintEvent(e))
 	}
-	handleError(w.Flush())
+	MustSucceed(w.Flush())
 	cli.Print("")
 }
