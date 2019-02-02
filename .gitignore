@@ -2,4 +2,4 @@ vendor
 bin
 **/.tmp
 tpls
-Stack-assembly.toml
+stack-assembly.toml

@@ -2,7 +2,7 @@ package commands
 
 import (
 	"github.com/molecule-man/stack-assembly/cli"
-	"github.com/molecule-man/stack-assembly/cmd/conf"
+	"github.com/molecule-man/stack-assembly/conf"
 	"github.com/molecule-man/stack-assembly/stackassembly"
 	"github.com/spf13/cobra"
 )
