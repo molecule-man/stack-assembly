@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/molecule-man/stack-assembly/cli"
+	"github.com/molecule-man/stack-assembly/cli/color"
 	"github.com/molecule-man/stack-assembly/conf"
 	"github.com/molecule-man/stack-assembly/stackassembly"
 	"github.com/spf13/cobra"
@@ -97,7 +98,7 @@ func deleteCmd() *cobra.Command {
 
 				err = stack.Delete()
 				handleError(err)
-				logger.ColorPrint(cli.SuccessColor, "Stack is deleted successfully")
+				logger.Print(color.Success("Stack is deleted successfully"))
 			}
 
 		},

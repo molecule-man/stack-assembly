@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/fatih/color"
+	"github.com/molecule-man/stack-assembly/cli/color"
 	"github.com/pmezard/go-difflib/difflib"
 )
 
@@ -167,13 +167,13 @@ func colorizeDiff(diff string) string {
 	for i, line := range colorized {
 		switch {
 		case strings.HasPrefix(line, "+++"), strings.HasPrefix(line, "---"):
-			colorized[i] = color.YellowString(line)
+			colorized[i] = color.Yellow(line)
 		case strings.HasPrefix(line, "@@"):
-			colorized[i] = color.CyanString(line)
+			colorized[i] = color.Cyan(line)
 		case strings.HasPrefix(line, "+"):
-			colorized[i] = color.GreenString(line)
+			colorized[i] = color.Green(line)
 		case strings.HasPrefix(line, "-"):
-			colorized[i] = color.RedString(line)
+			colorized[i] = color.Red(line)
 		}
 
 	}

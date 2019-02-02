@@ -5,7 +5,7 @@ import (
 	"io"
 	"os"
 
-	"github.com/fatih/color"
+	"github.com/molecule-man/stack-assembly/cli/color"
 )
 
 var Output io.Writer = os.Stdout
@@ -18,20 +18,16 @@ func Print(msg string) {
 	Fprint(Output, msg)
 }
 
-func ColorPrint(col *color.Color, msg string) {
-	Print(col.Sprint(msg))
-}
-
 func Printf(msg string, args ...interface{}) {
 	fmt.Fprintf(Output, msg, args...)
 }
 
 func Error(msg string) {
-	Print(FailureColor.Sprint(msg))
+	Print(color.Fail(msg))
 }
 
 func Errorf(format string, args ...interface{}) {
-	Print(FailureColor.Sprintf(format, args...))
+	Printf(color.Fail(format), args...)
 }
 
 func Info(msg string) {
@@ -43,11 +39,11 @@ func Infof(format string, args ...interface{}) {
 }
 
 func Warn(msg string) {
-	Print(WarnColor.Sprint(msg))
+	Print(color.Warn(msg))
 }
 
 func Warnf(format string, args ...interface{}) {
-	Print(WarnColor.Sprintf(format, args...))
+	Printf(color.Warn(format), args...)
 }
 
 type Logger struct {
@@ -70,10 +66,6 @@ func (l *Logger) Fprint(w io.Writer, msg string) {
 
 func (l *Logger) Print(msg string) {
 	Print(l.prefixedMsg(msg))
-}
-
-func (l *Logger) ColorPrint(col *color.Color, msg string) {
-	ColorPrint(col, l.prefixedMsg(msg))
 }
 
 func (l *Logger) Error(msg string) {

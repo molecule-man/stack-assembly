@@ -1,7 +1,6 @@
 package commands
 
 import (
-	fcolor "github.com/fatih/color"
 	"github.com/molecule-man/stack-assembly/cli/color"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -32,7 +31,6 @@ func RootCmd() *cobra.Command {
 	handleError(err)
 
 	cobra.OnInitialize(func() {
-		fcolor.NoColor = nocolor
 		color.NoColor = nocolor
 		err := viper.BindPFlags(rootCmd.PersistentFlags())
 		handleError(err)

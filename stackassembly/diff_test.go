@@ -5,11 +5,13 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/molecule-man/stack-assembly/cli/color"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestDiffWhenStackExists(t *testing.T) {
+	color.NoColor = true
 	oldTplBody := `
 parameters:
   param1: old_val1
@@ -39,6 +41,7 @@ parameters:
 }
 
 func TestDiffWhenStackDoesntExist(t *testing.T) {
+	color.NoColor = true
 	newTplBody := `
 parameters:
   param1: val1

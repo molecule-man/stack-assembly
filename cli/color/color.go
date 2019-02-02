@@ -12,14 +12,14 @@ type Color int
 
 const (
 	// Foreground colors
-	Black Color = iota + 30
-	Red
-	Green
-	Yellow
-	Blue
-	Magenta
-	Cyan
-	White
+	BlackFG Color = iota + 30
+	RedFG
+	GreenFG
+	YellowFG
+	BlueFG
+	MagentaFG
+	CyanFG
+	WhiteFG
 
 	Defaultt Color = 39
 
@@ -32,10 +32,10 @@ const (
 )
 
 var (
-	CodeSuccess = CodeFunc(Green)
-	CodeFail    = CodeFunc(Red, Bold)
-	CodeNeutral = CodeFunc(Cyan)
-	CodeWarn    = CodeFunc(Yellow)
+	CodeSuccess = CodeFunc(GreenFG)
+	CodeFail    = CodeFunc(RedFG, Bold)
+	CodeNeutral = CodeFunc(CyanFG)
+	CodeWarn    = CodeFunc(YellowFG)
 	CodeReset   = CodeFunc(Reset)
 )
 
@@ -57,6 +57,15 @@ func CodeFunc(attr Color, args ...Color) func() string {
 		return Code(attr, args...)
 	}
 }
+
+func Black(msg string) string   { return Code(BlackFG) + msg + CodeReset() }
+func Red(msg string) string     { return Code(RedFG) + msg + CodeReset() }
+func Green(msg string) string   { return Code(GreenFG) + msg + CodeReset() }
+func Yellow(msg string) string  { return Code(YellowFG) + msg + CodeReset() }
+func Blue(msg string) string    { return Code(BlueFG) + msg + CodeReset() }
+func Magenta(msg string) string { return Code(MagentaFG) + msg + CodeReset() }
+func Cyan(msg string) string    { return Code(CyanFG) + msg + CodeReset() }
+func White(msg string) string   { return Code(WhiteFG) + msg + CodeReset() }
 
 func Success(msg string) string {
 	return CodeSuccess() + msg + CodeReset()
