@@ -19,7 +19,7 @@ func Print(msg string) {
 }
 
 func Printf(msg string, args ...interface{}) {
-	fmt.Fprintf(Output, msg, args...)
+	Print(fmt.Sprintf(msg, args...))
 }
 
 func Error(msg string) {
