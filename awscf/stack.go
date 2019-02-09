@@ -25,6 +25,15 @@ type StackEvent struct {
 	Timestamp         time.Time
 }
 
+type StackEvents []StackEvent
+
+func (se StackEvents) Reversed() StackEvents {
+	for i, j := 0, len(se)-1; i < j; i, j = i+1, j-1 {
+		se[i], se[j] = se[j], se[i]
+	}
+	return se
+}
+
 //ErrNoChange is error that indicate that there are no changes to apply
 var ErrNoChange = errors.New("no changes")
 
@@ -33,8 +42,9 @@ var ErrStackDoesntExist = errors.New("stack doesn't exist")
 type Stack struct {
 	Name string
 
-	cf         cloudformationiface.CloudFormationAPI
-	cachedInfo *StackInfo
+	cf          cloudformationiface.CloudFormationAPI
+	cachedInfo  *StackInfo
+	eventsTrack *EventsTrack
 }
 
 func NewStack(cf cloudformationiface.CloudFormationAPI, name string) *Stack {
@@ -199,6 +209,13 @@ func (s *Stack) Events() ([]StackEvent, error) {
 	}
 
 	return events, nil
+}
+
+func (s *Stack) EventsTrack() *EventsTrack {
+	if s.eventsTrack == nil {
+		s.eventsTrack = &EventsTrack{stack: s}
+	}
+	return s.eventsTrack
 }
 
 // BlockResource prevents a stack resource from deletion and replacement

@@ -12,8 +12,10 @@ import (
 
 func colorizedStatus(status string) string {
 	switch {
-	case strings.Contains(status, "COMPLETE"):
+	case strings.HasSuffix(status, "COMPLETE"):
 		return color.Success(status)
+	case strings.HasSuffix(status, "IN_PROGRESS"):
+		return color.Neutral(status)
 	case strings.Contains(status, "ROLLBACK"), strings.Contains(status, "FAILED"):
 		return color.Fail(status)
 	}

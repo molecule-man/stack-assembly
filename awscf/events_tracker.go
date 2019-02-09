@@ -1,81 +1,43 @@
 package awscf
 
-import (
-	"time"
-)
+type EventsTrack struct {
+	stack *Stack
 
-type eventProvider interface {
-	Events() ([]StackEvent, error)
+	seenEvents      map[string]bool
+	trackingStarted bool
 }
 
-type EventsTracker struct {
-	sleep time.Duration
-}
+func (et *EventsTrack) FreshEvents() (StackEvents, error) {
+	emptyEvents := StackEvents{}
 
-// StartTracking starts event tracking
-func (et *EventsTracker) StartTracking(stack eventProvider) (chan StackEvent, func()) {
-	eventsCh := make(chan StackEvent)
-	stopCh := make(chan bool)
-
-	latestEventID := ""
-	events, _ := stack.Events()
-
-	if len(events) > 0 {
-		latestEventID = events[0].ID
+	// IMPORTANT: newer events appear at the beginning of a slice
+	events, err := et.stack.Events()
+	if err != nil {
+		return emptyEvents, err
 	}
 
-	sleep := et.sleep
+	if !et.trackingStarted {
+		et.seenEvents = make(map[string]bool, len(events))
 
-	if sleep == 0 {
-		sleep = 3 * time.Second
-	}
-	go func() {
-		for {
-			latestEventID = et.publishEvents(stack, eventsCh, latestEventID)
-
-			select {
-			case <-stopCh:
-				et.publishEvents(stack, eventsCh, latestEventID)
-				close(eventsCh)
-				return
-			default:
-			}
-
-			time.Sleep(sleep)
+		for _, e := range events {
+			et.seenEvents[e.ID] = true
 		}
-	}()
 
-	return eventsCh, func() { close(stopCh) }
-}
+		et.trackingStarted = true
+		return emptyEvents, nil
+	}
 
-func (et *EventsTracker) publishEvents(stack eventProvider, eventsCh chan StackEvent, sinceEventID string) string {
-	events, _ := stack.Events()
+	if len(events) == 0 {
+		return emptyEvents, nil
+	}
 
-	lastEventIndex := 0
-
-	for i, e := range events {
-		if e.ID == sinceEventID {
-			lastEventIndex = i
-			break
+	freshEvents := make(StackEvents, 0, len(events))
+	for _, e := range events {
+		if _, ok := et.seenEvents[e.ID]; !ok {
+			freshEvents = append(freshEvents, e)
+			et.seenEvents[e.ID] = true
 		}
 	}
 
-	events = events[:lastEventIndex]
-
-	if len(events) > 0 {
-		sinceEventID = events[0].ID
-
-		for _, e := range reverse(events) {
-			eventsCh <- e
-		}
-	}
-
-	return sinceEventID
-}
-
-func reverse(s []StackEvent) []StackEvent {
-	for i, j := 0, len(s)-1; i < j; i, j = i+1, j-1 {
-		s[i], s[j] = s[j], s[i]
-	}
-	return s
+	return freshEvents, nil
 }

@@ -81,14 +81,9 @@ func TestEventTracking(t *testing.T) {
 
 	capturedEvents := []StackEvent{}
 
-	et := EventsTracker{
-		sleep: 6 * time.Millisecond,
-	}
 	stack := NewStack(cf, "mystack")
 	cs, err := stack.ChangeSet("body").Register()
 	require.NoError(t, err)
-
-	events, stop := et.StartTracking(stack)
 
 	wg.Add(1)
 	go func() {
@@ -101,11 +96,28 @@ func TestEventTracking(t *testing.T) {
 		wg.Done()
 	}()
 
+	stop := make(chan bool)
+	trackingFinished := make(chan bool)
+	go func() {
+		for {
+			events, err := stack.EventsTrack().FreshEvents()
+			require.NoError(t, err)
+			for _, e := range events.Reversed() {
+				capturedEvents = append(capturedEvents, e)
+			}
+			select {
+			case <-stop:
+				trackingFinished <- true
+				return
+			default:
+				time.Sleep(6 * time.Millisecond)
+			}
+		}
+	}()
+
 	require.NoError(t, cs.Exec())
-	stop()
-	for e := range events {
-		capturedEvents = append(capturedEvents, e)
-	}
+	stop <- true
+	<-trackingFinished
 
 	expected := []StackEvent{{ID: "4"}, {ID: "5"}, {ID: "6"}}
 

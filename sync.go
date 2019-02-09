@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/molecule-man/stack-assembly/awscf"
 	"github.com/molecule-man/stack-assembly/cli"
@@ -62,20 +63,13 @@ func Sync(cfg conf.Config, nonInteractive bool) {
 				MustSucceed(stackCfg.Hooks.PreCreate.Exec())
 			}
 
-			et := awscf.EventsTracker{}
-
-			events, stopTracking := et.StartTracking(cs.Stack())
-			defer stopTracking()
-
-			go func() {
-				writer := cli.NewColWriter(cli.Output, " ")
-				for e := range events {
-					logger.Fprint(writer, sprintEvent(e))
-					writer.Flush()
-				}
-			}()
+			wait := showEvents(cs.Stack(), logger)
 
 			err = chSet.Exec()
+
+			wait <- true
+			<-wait
+
 			MustSucceed(err)
 
 			MustSucceed(cfg.Hooks.PostSync.Exec())
@@ -100,6 +94,40 @@ func Sync(cfg conf.Config, nonInteractive bool) {
 	}
 
 	MustSucceed(cfg.Hooks.Post.Exec())
+}
+
+func showEvents(stack *awscf.Stack, logger *cli.Logger) chan bool {
+	wait := make(chan bool)
+
+	if _, err := stack.EventsTrack().FreshEvents(); err != nil {
+		logger.Warnf("got an error while requesting stack events: %s", err)
+	}
+
+	go func() {
+		writer := cli.NewColWriter(cli.Output, " ")
+
+		for {
+			events, err := stack.EventsTrack().FreshEvents()
+			if err != nil {
+				logger.Warnf("got an error while requesting stack events: %s", err)
+			}
+
+			for _, e := range events.Reversed() {
+				logger.Fprint(writer, sprintEvent(e))
+			}
+			writer.Flush()
+
+			select {
+			case <-wait:
+				wait <- true
+				return
+			default:
+				time.Sleep(2 * time.Second)
+			}
+		}
+	}()
+
+	return wait
 }
 
 func showChanges(changes []awscf.Change) {
