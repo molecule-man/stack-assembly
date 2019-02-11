@@ -240,7 +240,8 @@ Example of Stack-Assembly config file:
         # inside `name`
         name: "{{ .Params.DbName }}"
 
-        # path to cloudformation template
+        # path to cloudformation template.
+        # Either `path` or `body` has to be provided
         path: cf-tpls/rds.yml
 
         # cloudformation stack's parameters
@@ -264,9 +265,18 @@ Example of Stack-Assembly config file:
 
       ec2app:
         name: "{{ .Params.ServiceName }}-{{ .Params.Env }}-ec2app"
-        path: cf-tpls/ec2app.yml
         parameters:
           Type: t2.micro
+
+        # `path` is not the only way to specify cloudformation template. It's
+        # possible to specify the whole template body inside the config. It
+        # might be especially useful when template generating tool (as e.g.
+        # troposphere) is used.
+        # In this example, given that `Env` is equal to "dev", body will have
+        # contents of the output produced by executing
+        # `python terraform_tpls/ec2.py dev`
+        body: |
+          {{ .Params.Env | Exec "python" "terraform_tpls/ec2.py" }}
 
         # dependsOn instruction tells Stack-Assembly that this stack should be
         # deployed after `db` stack is deployed

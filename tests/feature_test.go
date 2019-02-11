@@ -158,8 +158,12 @@ func (f *feature) exitCodeShouldNotBeZero() error {
 }
 
 func (f *feature) outputShouldContain(s *gherkin.DocString) error {
-	if !strings.Contains(f.lastOutput, f.replaceParameters(s.Content)) {
-		return fmt.Errorf("output doesn't contain searched string. Output:\n%s", f.lastOutput)
+	expected := f.replaceParameters(s.Content)
+	if !strings.Contains(f.lastOutput, expected) {
+		return fmt.Errorf(
+			"output doesn't contain searched string:\n%s\nActual output:\n%s",
+			expected,
+			f.lastOutput)
 	}
 	return nil
 }

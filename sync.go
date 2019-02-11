@@ -23,8 +23,7 @@ func Sync(cfg conf.Config, nonInteractive bool) {
 
 		logger.Info("Synchronizing template")
 
-		cs, err := cfg.ChangeSetFromStackConfig(stackCfg)
-		MustSucceed(err)
+		cs := cfg.ChangeSetFromStackConfig(stackCfg)
 
 		chSet, err := cs.Register()
 

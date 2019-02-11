@@ -52,6 +52,7 @@ type Config struct {
 type StackConfig struct {
 	Name       string
 	Path       string
+	Body       string
 	Parameters map[string]string
 	Tags       map[string]string
 	DependsOn  []string
@@ -96,32 +97,19 @@ func (cfg Config) ChangeSets() ([]*awscf.ChangeSet, error) {
 	}
 
 	for i, s := range ss {
-		chSets[i], err = cfg.ChangeSetFromStackConfig(s)
-		if err != nil {
-			return chSets, err
-		}
+		chSets[i] = cfg.ChangeSetFromStackConfig(s)
 	}
 
 	return chSets, nil
 }
 
-func (cfg Config) ChangeSetFromStackConfig(stackCfg StackConfig) (*awscf.ChangeSet, error) {
-	bodyBytes, err := ioutil.ReadFile(stackCfg.Path)
-	if err != nil {
-		return nil, err
-	}
-
-	body := ""
-	data := struct{ Params map[string]string }{}
-	data.Params = stackCfg.Parameters
-	err = parseTpl(&body, string(bodyBytes), data)
-
+func (cfg Config) ChangeSetFromStackConfig(stackCfg StackConfig) *awscf.ChangeSet {
 	return awscf.NewStack(Cf(cfg), stackCfg.Name).
-		ChangeSet(body).
+		ChangeSet(stackCfg.Body).
 		WithParameters(stackCfg.Parameters).
 		WithTags(stackCfg.Tags).
 		WithRollback(stackCfg.RollbackConfiguration).
-		WithCapabilities(stackCfg.Capabilities), err
+		WithCapabilities(stackCfg.Capabilities)
 }
 
 var cf *cloudformation.CloudFormation
@@ -166,6 +154,24 @@ func LoadConfig(cfgFiles []string) (Config, error) {
 	cfg, err := decodeConfigs(cfgFiles)
 	if err != nil {
 		return cfg, err
+	}
+
+	for i, stackCfg := range cfg.Stacks {
+		if stackCfg.Body != "" {
+			continue
+		}
+
+		if stackCfg.Path == "" {
+			return cfg, fmt.Errorf("not possible to parse config for stack %s. "+
+				"Either \"path\" or \"body\" should be provided", i)
+		}
+		buf, rerr := ioutil.ReadFile(stackCfg.Path)
+		if rerr != nil {
+			return cfg, rerr
+		}
+
+		stackCfg.Body = string(buf)
+		cfg.Stacks[i] = stackCfg
 	}
 
 	err = applyTemplating(&cfg)

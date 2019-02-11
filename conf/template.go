@@ -39,21 +39,7 @@ func applyTemplating(cfg *Config) error {
 
 		data.Params = stackCfg.Parameters
 
-		if err := templatizeMap(&stackCfg.Parameters, data); err != nil {
-			return err
-		}
-		data.Params = stackCfg.Parameters
-
-		if err := templatizeMap(&stackCfg.Tags, data); err != nil {
-			return err
-		}
-
-		err := parseTpl(&stackCfg.Name, stackCfg.Name, data)
-		if err != nil {
-			return err
-		}
-
-		err = templatizeRollbackConfig(stackCfg.RollbackConfiguration, data)
+		stackCfg, err = templatizeStackConfig(stackCfg, data)
 		if err != nil {
 			return err
 		}
@@ -61,6 +47,30 @@ func applyTemplating(cfg *Config) error {
 		cfg.Stacks[i] = stackCfg
 	}
 	return nil
+}
+
+func templatizeStackConfig(cfg StackConfig, data tplData) (StackConfig, error) {
+	if err := templatizeMap(&cfg.Parameters, data); err != nil {
+		return cfg, err
+	}
+	data.Params = cfg.Parameters
+
+	if err := templatizeMap(&cfg.Tags, data); err != nil {
+		return cfg, err
+	}
+
+	err := parseTpl(&cfg.Name, cfg.Name, data)
+	if err != nil {
+		return cfg, err
+	}
+
+	if err = parseTpl(&cfg.Body, cfg.Body, data); err != nil {
+		return cfg, err
+	}
+
+	err = templatizeRollbackConfig(cfg.RollbackConfiguration, data)
+
+	return cfg, err
 }
 
 func newTplData(cfg *Config) (tplData, error) {
