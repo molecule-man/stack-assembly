@@ -19,12 +19,18 @@ func Sync(cfg conf.Config, nonInteractive bool) {
 	MustSucceed(cfg.Hooks.Pre.Exec())
 
 	for _, stackCfg := range stackCfgs {
+		syncOne(stackCfg, cfg, nonInteractive)
+	}
+
+	MustSucceed(cfg.Hooks.Post.Exec())
+}
+
+func syncOne(stackCfg conf.StackConfig, cfg conf.Config, nonInteractive bool) {
+	if stackCfg.Body != "" {
 		logger := cli.PrefixedLogger(fmt.Sprintf("[%s] ", stackCfg.Name))
 
 		logger.Info("Synchronizing template")
-
 		cs := cfg.ChangeSetFromStackConfig(stackCfg)
-
 		chSet, err := cs.Register()
 
 		if paramerr, ok := err.(*awscf.ParametersMissingError); ok {
@@ -92,7 +98,9 @@ func Sync(cfg conf.Config, nonInteractive bool) {
 		}
 	}
 
-	MustSucceed(cfg.Hooks.Post.Exec())
+	for _, nestedStack := range stackCfg.Stacks {
+		syncOne(nestedStack, cfg, nonInteractive)
+	}
 }
 
 func showEvents(stack *awscf.Stack, logger *cli.Logger) chan bool {

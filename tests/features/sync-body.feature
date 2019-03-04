@@ -31,10 +31,10 @@ Feature: stas sync (body test)
         Then exit code should not be zero
         And output should contain:
             """
-            Either "path" or "body" should be provided
+            not possible to parse config for stack
             """
 
-    @short @wip
+    @short
     Scenario: use templating in body
         Given file "cfg.yaml" exists:
             """

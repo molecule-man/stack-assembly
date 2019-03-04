@@ -67,6 +67,7 @@ type StackConfig struct {
 	}
 	RollbackConfiguration *cloudformation.RollbackConfiguration
 	Capabilities          []string
+	Stacks                map[string]StackConfig
 }
 
 func (cfg Config) StackConfigsSortedByExecOrder() ([]StackConfig, error) {
@@ -157,20 +158,12 @@ func LoadConfig(cfgFiles []string) (Config, error) {
 	}
 
 	for i, stackCfg := range cfg.Stacks {
-		if stackCfg.Body != "" {
-			continue
+		stackCfg := stackCfg
+		berr := parseBodies(i, &stackCfg)
+		if berr != nil {
+			return cfg, berr
 		}
 
-		if stackCfg.Path == "" {
-			return cfg, fmt.Errorf("not possible to parse config for stack %s. "+
-				"Either \"path\" or \"body\" should be provided", i)
-		}
-		buf, rerr := ioutil.ReadFile(stackCfg.Path)
-		if rerr != nil {
-			return cfg, rerr
-		}
-
-		stackCfg.Body = string(buf)
 		cfg.Stacks[i] = stackCfg
 	}
 
@@ -180,6 +173,36 @@ func LoadConfig(cfgFiles []string) (Config, error) {
 	}
 
 	return cfg, initEnvSettings(&cfg.Settings)
+}
+
+func parseBodies(id string, stackCfg *StackConfig) error {
+	for i, nestedStack := range stackCfg.Stacks {
+		nestedStack := nestedStack
+		err := parseBodies(i, &nestedStack)
+		if err != nil {
+			return err
+		}
+		stackCfg.Stacks[i] = nestedStack
+	}
+
+	switch {
+	case stackCfg.Body != "":
+		return nil
+	case stackCfg.Path == "" && len(stackCfg.Stacks) == 0:
+		return fmt.Errorf("not possible to parse config for stack %s. "+
+			"Either \"path\", \"body\" or non-empty \"stacks\" should be provided", id)
+	case stackCfg.Path == "":
+		return nil
+	}
+
+	buf, err := ioutil.ReadFile(stackCfg.Path)
+	if err != nil {
+		return err
+	}
+
+	stackCfg.Body = string(buf)
+
+	return nil
 }
 
 func decodeConfigs(cfgFiles []string) (Config, error) {
