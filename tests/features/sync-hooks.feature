@@ -8,18 +8,6 @@ Feature: stas sync with hooks
                 - ["sh", "-c", "echo root pre executed > hooks.log"]
               post:
                 - ["sh", "-c", "echo root post executed >> hooks.log"]
-              presync:
-                - ["sh", "-c", "echo root presync executed >> hooks.log"]
-              postsync:
-                - ["sh", "-c", "echo root postsync executed >> hooks.log"]
-              precreate:
-                - ["sh", "-c", "echo root precreate executed >> hooks.log"]
-              postcreate:
-                - ["sh", "-c", "echo root postcreate executed >> hooks.log"]
-              preupdate:
-                - ["sh", "-c", "echo root preupdate executed >> hooks.log"]
-              postupdate:
-                - ["sh", "-c", "echo root postupdate executed >> hooks.log"]
             stacks:
               stack1:
                 name: stastest-hooks-%scenarioid%
@@ -27,10 +15,10 @@ Feature: stas sync with hooks
                 tags:
                   STAS_TEST: '%featureid%'
                 hooks:
-                  presync:
-                    - ["sh", "-c", "echo stack presync executed >> hooks.log"]
-                  postsync:
-                    - ["sh", "-c", "echo stack postsync executed >> hooks.log"]
+                  pre:
+                    - ["sh", "-c", "echo stack pre executed >> hooks.log"]
+                  post:
+                    - ["sh", "-c", "echo stack post executed >> hooks.log"]
                   precreate:
                     - ["sh", "-c", "echo stack precreate executed >> hooks.log"]
                   postcreate:
@@ -52,14 +40,10 @@ Feature: stas sync with hooks
         Then file "hooks.log" should contain exactly:
             """
             root pre executed
-            root presync executed
-            stack presync executed
-            root precreate executed
+            stack pre executed
             stack precreate executed
-            root postsync executed
-            stack postsync executed
-            root postcreate executed
             stack postcreate executed
+            stack post executed
             root post executed
             """
         When I modify file "tpls/stack1.yml":
@@ -74,13 +58,9 @@ Feature: stas sync with hooks
         Then file "hooks.log" should contain exactly:
             """
             root pre executed
-            root presync executed
-            stack presync executed
-            root preupdate executed
+            stack pre executed
             stack preupdate executed
-            root postsync executed
-            stack postsync executed
-            root postupdate executed
             stack postupdate executed
+            stack post executed
             root post executed
             """

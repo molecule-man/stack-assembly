@@ -31,23 +31,7 @@ type settingsConfig struct {
 }
 
 // Config is a struct holding stacks configurations
-type Config struct {
-	Settings settingsConfig
-
-	Parameters map[string]string
-	Stacks     map[string]StackConfig
-
-	Hooks struct {
-		Pre        HookCmds
-		Post       HookCmds
-		PreSync    HookCmds
-		PostSync   HookCmds
-		PreCreate  HookCmds
-		PostCreate HookCmds
-		PreUpdate  HookCmds
-		PostUpdate HookCmds
-	}
-}
+type Config StackConfig
 
 type StackConfig struct {
 	Name       string
@@ -58,8 +42,8 @@ type StackConfig struct {
 	DependsOn  []string
 	Blocked    []string
 	Hooks      struct {
-		PreSync    HookCmds
-		PostSync   HookCmds
+		Pre        HookCmds
+		Post       HookCmds
 		PreCreate  HookCmds
 		PostCreate HookCmds
 		PreUpdate  HookCmds
@@ -68,9 +52,15 @@ type StackConfig struct {
 	RollbackConfiguration *cloudformation.RollbackConfiguration
 	Capabilities          []string
 	Stacks                map[string]StackConfig
+
+	Settings settingsConfig
 }
 
 func (cfg Config) StackConfigsSortedByExecOrder() ([]StackConfig, error) {
+	return StackConfig(cfg).StackConfigsSortedByExecOrder()
+}
+
+func (cfg StackConfig) StackConfigsSortedByExecOrder() ([]StackConfig, error) {
 	stackCfgs := make([]StackConfig, len(cfg.Stacks))
 	dg := depgraph.DepGraph{}
 
@@ -157,15 +147,12 @@ func LoadConfig(cfgFiles []string) (Config, error) {
 		return cfg, err
 	}
 
-	for i, stackCfg := range cfg.Stacks {
-		stackCfg := stackCfg
-		berr := parseBodies(i, &stackCfg)
-		if berr != nil {
-			return cfg, berr
-		}
-
-		cfg.Stacks[i] = stackCfg
+	stackCfg := StackConfig(cfg)
+	err = parseBodies("root", &stackCfg)
+	if err != nil {
+		return cfg, err
 	}
+	cfg = Config(stackCfg)
 
 	err = applyTemplating(&cfg)
 	if err != nil {

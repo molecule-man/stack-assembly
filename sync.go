@@ -13,23 +13,17 @@ import (
 )
 
 func Sync(cfg conf.Config, nonInteractive bool) {
-	stackCfgs, err := cfg.StackConfigsSortedByExecOrder()
-	MustSucceed(err)
-
-	MustSucceed(cfg.Hooks.Pre.Exec())
-
-	for _, stackCfg := range stackCfgs {
-		syncOne(stackCfg, cfg, nonInteractive)
-	}
-
-	MustSucceed(cfg.Hooks.Post.Exec())
+	syncOne(conf.StackConfig(cfg), cfg, nonInteractive)
 }
 
 func syncOne(stackCfg conf.StackConfig, cfg conf.Config, nonInteractive bool) {
+	MustSucceed(stackCfg.Hooks.Pre.Exec())
+
 	if stackCfg.Body != "" {
 		logger := cli.PrefixedLogger(fmt.Sprintf("[%s] ", stackCfg.Name))
 
 		logger.Info("Synchronizing template")
+
 		cs := cfg.ChangeSetFromStackConfig(stackCfg)
 		chSet, err := cs.Register()
 
@@ -57,14 +51,9 @@ func syncOne(stackCfg conf.StackConfig, cfg conf.Config, nonInteractive bool) {
 				letUserChooseNextAction(cs)
 			}
 
-			MustSucceed(cfg.Hooks.PreSync.Exec())
-			MustSucceed(stackCfg.Hooks.PreSync.Exec())
-
 			if chSet.IsUpdate {
-				MustSucceed(cfg.Hooks.PreUpdate.Exec())
 				MustSucceed(stackCfg.Hooks.PreUpdate.Exec())
 			} else {
-				MustSucceed(cfg.Hooks.PreCreate.Exec())
 				MustSucceed(stackCfg.Hooks.PreCreate.Exec())
 			}
 
@@ -77,14 +66,9 @@ func syncOne(stackCfg conf.StackConfig, cfg conf.Config, nonInteractive bool) {
 
 			MustSucceed(err)
 
-			MustSucceed(cfg.Hooks.PostSync.Exec())
-			MustSucceed(stackCfg.Hooks.PostSync.Exec())
-
 			if chSet.IsUpdate {
-				MustSucceed(cfg.Hooks.PostUpdate.Exec())
 				MustSucceed(stackCfg.Hooks.PostUpdate.Exec())
 			} else {
-				MustSucceed(cfg.Hooks.PostCreate.Exec())
 				MustSucceed(stackCfg.Hooks.PostCreate.Exec())
 			}
 			logger.Print(color.Success("Synchronization is complete"))
@@ -98,9 +82,14 @@ func syncOne(stackCfg conf.StackConfig, cfg conf.Config, nonInteractive bool) {
 		}
 	}
 
-	for _, nestedStack := range stackCfg.Stacks {
+	nestedStacks, err := stackCfg.StackConfigsSortedByExecOrder()
+	MustSucceed(err)
+
+	for _, nestedStack := range nestedStacks {
 		syncOne(nestedStack, cfg, nonInteractive)
 	}
+
+	MustSucceed(stackCfg.Hooks.Post.Exec())
 }
 
 func showEvents(stack *awscf.Stack, logger *cli.Logger) chan bool {
