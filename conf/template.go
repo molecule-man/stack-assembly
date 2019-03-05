@@ -26,51 +26,43 @@ func applyTemplating(cfg *Config) error {
 		return err
 	}
 
-	for i, stackCfg := range cfg.Stacks {
-		if stackCfg.Parameters == nil {
-			stackCfg.Parameters = make(map[string]string, len(cfg.Parameters))
-		}
-
-		for k, v := range cfg.Parameters {
-			if _, ok := stackCfg.Parameters[k]; !ok {
-				stackCfg.Parameters[k] = v
-			}
-		}
-
-		data.Params = stackCfg.Parameters
-
-		stackCfg, err = templatizeStackConfig(stackCfg, data)
-		if err != nil {
-			return err
-		}
-
-		cfg.Stacks[i] = stackCfg
-	}
-	return nil
+	*cfg, err = templatizeStackConfig(*cfg, data)
+	return err
 }
 
 func templatizeStackConfig(cfg Config, data tplData) (Config, error) {
-	if err := templatizeMap(&cfg.Parameters, data); err != nil {
+	if err := templatizeParams(&cfg.Parameters, data); err != nil {
 		return cfg, err
 	}
+
 	data.Params = cfg.Parameters
 
 	if err := templatizeMap(&cfg.Tags, data); err != nil {
 		return cfg, err
 	}
 
-	err := parseTpl(&cfg.Name, cfg.Name, data)
-	if err != nil {
+	if err := parseTpl(&cfg.Name, cfg.Name, data); err != nil {
 		return cfg, err
 	}
 
-	if err = parseTpl(&cfg.Body, cfg.Body, data); err != nil {
+	if err := parseTpl(&cfg.Body, cfg.Body, data); err != nil {
 		return cfg, err
 	}
 
-	err = templatizeRollbackConfig(cfg.RollbackConfiguration, data)
+	if err := templatizeRollbackConfig(cfg.RollbackConfiguration, data); err != nil {
+		return cfg, err
+	}
 
-	return cfg, err
+	for i, nestedCfg := range cfg.Stacks {
+		templatizedCfg, err := templatizeStackConfig(nestedCfg, data)
+		if err != nil {
+			return cfg, err
+		}
+
+		cfg.Stacks[i] = templatizedCfg
+	}
+
+	return cfg, nil
 }
 
 func newTplData(cfg *Config) (tplData, error) {
@@ -85,6 +77,7 @@ func newTplData(cfg *Config) (tplData, error) {
 
 	data.AWS.Region = aws.StringValue(sess.Config.Region)
 	data.AWS.AccountID = aws.StringValue(callerIdent.Account)
+	data.Params = map[string]string{}
 
 	return data, nil
 }
@@ -102,6 +95,20 @@ func templatizeRollbackConfig(rlbCfg *cloudformation.RollbackConfiguration, data
 	}
 
 	return nil
+}
+
+func templatizeParams(parameters *map[string]string, data tplData) error {
+	if *parameters == nil {
+		*parameters = make(map[string]string, len(data.Params))
+	}
+
+	for k, v := range data.Params {
+		if _, ok := (*parameters)[k]; !ok {
+			(*parameters)[k] = v
+		}
+	}
+
+	return templatizeMap(parameters, data)
 }
 
 func templatizeMap(m *map[string]string, data tplData) error {
