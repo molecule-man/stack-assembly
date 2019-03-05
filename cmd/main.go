@@ -39,7 +39,6 @@ func main() {
 			cfg, err := conf.LoadConfig(cfgFiles)
 			assembly.MustSucceed(err)
 
-			// stacks, err := cfg.GetStacks()
 			ss, err := cfg.StackConfigsSortedByExecOrder()
 			assembly.MustSucceed(err)
 
@@ -90,7 +89,7 @@ following yaml config:
 
 					assembly.MustSucceed(fmt.Errorf("ID %s is not found in the config. Found IDs: %v", id, foundIds))
 				}
-				cfg.Stacks = map[string]conf.StackConfig{
+				cfg.Stacks = map[string]conf.Config{
 					id: stack,
 				}
 			}

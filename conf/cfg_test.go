@@ -17,7 +17,7 @@ var expectedParsedConfig = Config{
 		"Param1": "val1",
 		"param2": "val2",
 	},
-	Stacks: map[string]StackConfig{
+	Stacks: map[string]Config{
 		"tpl1": {
 			Path: "path",
 			Parameters: map[string]string{
@@ -158,7 +158,7 @@ stacks:
 		Parameters: map[string]string{
 			"Param1": "overwriten_val1",
 		},
-		Stacks: map[string]StackConfig{
+		Stacks: map[string]Config{
 			"tpl1": {
 				Name: "name1",
 				Path: "overwriten_path1",

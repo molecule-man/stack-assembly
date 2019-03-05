@@ -31,9 +31,7 @@ type settingsConfig struct {
 }
 
 // Config is a struct holding stacks configurations
-type Config StackConfig
-
-type StackConfig struct {
+type Config struct {
 	Name       string
 	Path       string
 	Body       string
@@ -51,17 +49,13 @@ type StackConfig struct {
 	}
 	RollbackConfiguration *cloudformation.RollbackConfiguration
 	Capabilities          []string
-	Stacks                map[string]StackConfig
+	Stacks                map[string]Config
 
 	Settings settingsConfig
 }
 
-func (cfg Config) StackConfigsSortedByExecOrder() ([]StackConfig, error) {
-	return StackConfig(cfg).StackConfigsSortedByExecOrder()
-}
-
-func (cfg StackConfig) StackConfigsSortedByExecOrder() ([]StackConfig, error) {
-	stackCfgs := make([]StackConfig, len(cfg.Stacks))
+func (cfg Config) StackConfigsSortedByExecOrder() ([]Config, error) {
+	stackCfgs := make([]Config, len(cfg.Stacks))
 	dg := depgraph.DepGraph{}
 
 	for id, stackCfg := range cfg.Stacks {
@@ -94,7 +88,7 @@ func (cfg Config) ChangeSets() ([]*awscf.ChangeSet, error) {
 	return chSets, nil
 }
 
-func (cfg Config) ChangeSetFromStackConfig(stackCfg StackConfig) *awscf.ChangeSet {
+func (cfg Config) ChangeSetFromStackConfig(stackCfg Config) *awscf.ChangeSet {
 	return awscf.NewStack(Cf(cfg), stackCfg.Name).
 		ChangeSet(stackCfg.Body).
 		WithParameters(stackCfg.Parameters).
@@ -147,12 +141,10 @@ func LoadConfig(cfgFiles []string) (Config, error) {
 		return cfg, err
 	}
 
-	stackCfg := StackConfig(cfg)
-	err = parseBodies("root", &stackCfg)
+	err = parseBodies("root", &cfg)
 	if err != nil {
 		return cfg, err
 	}
-	cfg = Config(stackCfg)
 
 	err = applyTemplating(&cfg)
 	if err != nil {
@@ -162,7 +154,7 @@ func LoadConfig(cfgFiles []string) (Config, error) {
 	return cfg, initEnvSettings(&cfg.Settings)
 }
 
-func parseBodies(id string, stackCfg *StackConfig) error {
+func parseBodies(id string, stackCfg *Config) error {
 	for i, nestedStack := range stackCfg.Stacks {
 		nestedStack := nestedStack
 		err := parseBodies(i, &nestedStack)

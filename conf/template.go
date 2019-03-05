@@ -49,7 +49,7 @@ func applyTemplating(cfg *Config) error {
 	return nil
 }
 
-func templatizeStackConfig(cfg StackConfig, data tplData) (StackConfig, error) {
+func templatizeStackConfig(cfg Config, data tplData) (Config, error) {
 	if err := templatizeMap(&cfg.Parameters, data); err != nil {
 		return cfg, err
 	}

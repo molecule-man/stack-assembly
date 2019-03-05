@@ -13,10 +13,10 @@ import (
 )
 
 func Sync(cfg conf.Config, nonInteractive bool) {
-	syncOne(conf.StackConfig(cfg), cfg, nonInteractive)
+	syncOne(cfg, cfg, nonInteractive)
 }
 
-func syncOne(stackCfg conf.StackConfig, cfg conf.Config, nonInteractive bool) {
+func syncOne(stackCfg conf.Config, root conf.Config, nonInteractive bool) {
 	MustSucceed(stackCfg.Hooks.Pre.Exec())
 
 	if stackCfg.Body != "" {
@@ -24,7 +24,7 @@ func syncOne(stackCfg conf.StackConfig, cfg conf.Config, nonInteractive bool) {
 
 		logger.Info("Synchronizing template")
 
-		cs := cfg.ChangeSetFromStackConfig(stackCfg)
+		cs := root.ChangeSetFromStackConfig(stackCfg)
 		chSet, err := cs.Register()
 
 		if paramerr, ok := err.(*awscf.ParametersMissingError); ok {
@@ -86,7 +86,7 @@ func syncOne(stackCfg conf.StackConfig, cfg conf.Config, nonInteractive bool) {
 	MustSucceed(err)
 
 	for _, nestedStack := range nestedStacks {
-		syncOne(nestedStack, cfg, nonInteractive)
+		syncOne(nestedStack, root, nonInteractive)
 	}
 
 	MustSucceed(stackCfg.Hooks.Post.Exec())
