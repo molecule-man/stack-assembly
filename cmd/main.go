@@ -2,8 +2,10 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 
+	"github.com/BurntSushi/toml"
 	assembly "github.com/molecule-man/stack-assembly"
 	"github.com/molecule-man/stack-assembly/awscf"
 	"github.com/molecule-man/stack-assembly/cli"
@@ -11,11 +13,25 @@ import (
 	"github.com/molecule-man/stack-assembly/conf"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	yaml "gopkg.in/yaml.v2"
 )
 
 func main() {
+	rootCmd := rootCmd()
+
+	rootCmd.AddCommand(
+		infoCmd(),
+		syncCmd(),
+		diffCmd(),
+		deleteCmd(),
+		dumpConfigCmd(),
+	)
+
+	assembly.MustSucceed(rootCmd.Execute())
+}
+
+func rootCmd() *cobra.Command {
 	var nocolor bool
-	var nonInteractive bool
 
 	rootCmd := &cobra.Command{
 		Use: "stas",
@@ -27,8 +43,26 @@ func main() {
 		"Alternative config file(s). Default: stack-assembly.yaml")
 	rootCmd.PersistentFlags().BoolVar(&nocolor, "nocolor", false,
 		"Disables color output")
+	rootCmd.PersistentFlags().BoolP("no-interaction", "n", false,
+		"Do not ask any interactive questions")
 
-	rootCmd.AddCommand(&cobra.Command{
+	err := viper.BindPFlag("aws.profile", rootCmd.PersistentFlags().Lookup("profile"))
+	assembly.MustSucceed(err)
+
+	err = viper.BindPFlag("aws.region", rootCmd.PersistentFlags().Lookup("region"))
+	assembly.MustSucceed(err)
+
+	cobra.OnInitialize(func() {
+		color.NoColor = nocolor
+		err := viper.BindPFlags(rootCmd.PersistentFlags())
+		assembly.MustSucceed(err)
+	})
+
+	return rootCmd
+}
+
+func infoCmd() *cobra.Command {
+	return &cobra.Command{
 		Use:   "info [stack name]",
 		Short: "Show info about the stack",
 		Args:  cobra.MaximumNArgs(1),
@@ -52,9 +86,11 @@ func main() {
 				assembly.Info(awscf.NewStack(cf, s.Name))
 			}
 		},
-	})
+	}
+}
 
-	syncCmd := &cobra.Command{
+func syncCmd() *cobra.Command {
+	return &cobra.Command{
 		Use:     "sync [ID]",
 		Aliases: []string{"deploy"},
 		Short:   "Synchronize (deploy) stacks",
@@ -94,13 +130,16 @@ following yaml config:
 				}
 			}
 
+			nonInteractive, err := cmd.Parent().PersistentFlags().GetBool("no-interaction")
+			assembly.MustSucceed(err)
+
 			assembly.Sync(cfg, nonInteractive)
 		},
 	}
-	syncCmd.Flags().BoolVarP(&nonInteractive, "no-interaction", "n", false, "Do not ask any interactive questions")
-	rootCmd.AddCommand(syncCmd)
+}
 
-	rootCmd.AddCommand(&cobra.Command{
+func diffCmd() *cobra.Command {
+	return &cobra.Command{
 		Use:   "diff [stack name]",
 		Short: "Show diff of the stacks to be deployed",
 		Run: func(cmd *cobra.Command, args []string) {
@@ -120,9 +159,11 @@ following yaml config:
 				cli.Print(diff)
 			}
 		},
-	})
+	}
+}
 
-	deleteCmd := &cobra.Command{
+func deleteCmd() *cobra.Command {
+	return &cobra.Command{
 		Use:   "delete [stack name]",
 		Short: "Deletes deployed stacks",
 		Run: func(cmd *cobra.Command, args []string) {
@@ -132,24 +173,43 @@ following yaml config:
 			cfg, err := conf.LoadConfig(cfgFiles)
 			assembly.MustSucceed(err)
 
+			nonInteractive, err := cmd.Parent().PersistentFlags().GetBool("no-interaction")
+			assembly.MustSucceed(err)
+
 			assembly.Delete(cfg, nonInteractive)
 		},
 	}
+}
 
-	deleteCmd.Flags().BoolVarP(&nonInteractive, "no-interaction", "n", false, "Do not ask any interactive questions")
-	rootCmd.AddCommand(deleteCmd)
+func dumpConfigCmd() *cobra.Command {
+	var format string
+	dumpCmd := &cobra.Command{
+		Use:   "dump-config",
+		Short: "Dump loaded config into stdout",
+		Run: func(cmd *cobra.Command, _ []string) {
+			cfgFiles, err := cmd.Parent().PersistentFlags().GetStringSlice("configs")
+			assembly.MustSucceed(err)
 
-	err := viper.BindPFlag("aws.profile", rootCmd.PersistentFlags().Lookup("profile"))
-	assembly.MustSucceed(err)
+			cfg, err := conf.LoadConfig(cfgFiles)
+			assembly.MustSucceed(err)
 
-	err = viper.BindPFlag("aws.region", rootCmd.PersistentFlags().Lookup("region"))
-	assembly.MustSucceed(err)
+			out := cli.Output
 
-	cobra.OnInitialize(func() {
-		color.NoColor = nocolor
-		err := viper.BindPFlags(rootCmd.PersistentFlags())
-		assembly.MustSucceed(err)
-	})
+			switch format {
+			case "yaml", "yml":
+				assembly.MustSucceed(yaml.NewEncoder(out).Encode(cfg))
+			case "json":
+				enc := json.NewEncoder(out)
+				enc.SetIndent("", "  ")
+				assembly.MustSucceed(enc.Encode(cfg))
+			case "toml":
+				assembly.MustSucceed(toml.NewEncoder(out).Encode(cfg))
+			default:
+				assembly.Terminate("unknown format: " + format)
+			}
+		},
+	}
+	dumpCmd.Flags().StringVarP(&format, "format", "f", "yaml", "One of: yaml, toml, json")
 
-	assembly.MustSucceed(rootCmd.Execute())
+	return dumpCmd
 }

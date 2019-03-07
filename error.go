@@ -8,7 +8,11 @@ import (
 
 func MustSucceed(err error) {
 	if err != nil {
-		cli.Errorf("%s", err)
-		os.Exit(1)
+		Terminate(err.Error())
 	}
+}
+
+func Terminate(msg string) {
+	cli.Error(msg)
+	os.Exit(1)
 }

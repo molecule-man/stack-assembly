@@ -36,22 +36,24 @@ type Config struct {
 	Path       string
 	Body       string
 	Parameters map[string]string
-	Tags       map[string]string
-	DependsOn  []string
-	Blocked    []string
+	Tags       map[string]string `json:",omitempty" yaml:",omitempty" toml:",omitempty"`
+	DependsOn  []string          `json:",omitempty" yaml:",omitempty" toml:",omitempty"`
+	Blocked    []string          `json:",omitempty" yaml:",omitempty" toml:",omitempty"`
 	Hooks      struct {
-		Pre        HookCmds
-		Post       HookCmds
-		PreCreate  HookCmds
-		PostCreate HookCmds
-		PreUpdate  HookCmds
-		PostUpdate HookCmds
-	}
-	RollbackConfiguration *cloudformation.RollbackConfiguration
-	Capabilities          []string
-	Stacks                map[string]Config
+		Pre        HookCmds `json:",omitempty" yaml:",omitempty" toml:",omitempty"`
+		Post       HookCmds `json:",omitempty" yaml:",omitempty" toml:",omitempty"`
+		PreCreate  HookCmds `json:",omitempty" yaml:",omitempty" toml:",omitempty"`
+		PostCreate HookCmds `json:",omitempty" yaml:",omitempty" toml:",omitempty"`
+		PreUpdate  HookCmds `json:",omitempty" yaml:",omitempty" toml:",omitempty"`
+		PostUpdate HookCmds `json:",omitempty" yaml:",omitempty" toml:",omitempty"`
+	} `json:",omitempty" yaml:",omitempty" toml:",omitempty"`
 
-	Settings settingsConfig
+	RollbackConfiguration *cloudformation.RollbackConfiguration `json:",omitempty" yaml:",omitempty" toml:",omitempty"`
+
+	Capabilities []string       `json:",omitempty" yaml:",omitempty" toml:",omitempty"`
+	Settings     settingsConfig `json:",omitempty" yaml:",omitempty" toml:",omitempty"`
+
+	Stacks map[string]Config `json:",omitempty" yaml:",omitempty" toml:",omitempty"`
 }
 
 func (cfg Config) StackConfigsSortedByExecOrder() ([]Config, error) {
