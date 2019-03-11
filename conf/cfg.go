@@ -23,11 +23,13 @@ import (
 )
 
 type settingsConfig struct {
-	Aws struct {
-		Region   string
-		Profile  string
-		Endpoint string
-	}
+	Aws AwsConfig
+}
+
+type AwsConfig struct {
+	Region   string
+	Profile  string
+	Endpoint string
 }
 
 // Config is a struct holding stacks configurations
@@ -84,34 +86,63 @@ func (cfg Config) ChangeSets() ([]*awscf.ChangeSet, error) {
 	}
 
 	for i, s := range ss {
-		chSets[i] = cfg.ChangeSetFromStackConfig(s)
+		chSets[i] = s.ChangeSet()
 	}
 
 	return chSets, nil
 }
 
-func (cfg Config) ChangeSetFromStackConfig(stackCfg Config) *awscf.ChangeSet {
-	return awscf.NewStack(Cf(cfg), stackCfg.Name).
-		ChangeSet(stackCfg.Body).
-		WithParameters(stackCfg.Parameters).
-		WithTags(stackCfg.Tags).
-		WithRollback(stackCfg.RollbackConfiguration).
-		WithCapabilities(stackCfg.Capabilities)
+func (cfg Config) Stack() *awscf.Stack {
+	return awscf.NewStack(cfg.cf(), cfg.Name)
 }
 
-var cf *cloudformation.CloudFormation
+func (cfg Config) ChangeSet() *awscf.ChangeSet {
+	return cfg.Stack().
+		ChangeSet(cfg.Body).
+		WithParameters(cfg.Parameters).
+		WithTags(cfg.Tags).
+		WithRollback(cfg.RollbackConfiguration).
+		WithCapabilities(cfg.Capabilities)
+}
 
-func Cf(cfg Config) *cloudformation.CloudFormation {
-	if cf != nil {
+func (cfg *Config) initAwsSettings() {
+	for i, s := range cfg.Stacks {
+		if s.Settings.Aws.Region == "" {
+			s.Settings.Aws.Region = cfg.Settings.Aws.Region
+		}
+
+		if s.Settings.Aws.Profile == "" {
+			s.Settings.Aws.Profile = cfg.Settings.Aws.Profile
+		}
+
+		if s.Settings.Aws.Endpoint == "" {
+			s.Settings.Aws.Endpoint = cfg.Settings.Aws.Endpoint
+		}
+
+		s.initAwsSettings()
+
+		cfg.Stacks[i] = s
+	}
+}
+
+func (cfg Config) cf() *cloudformation.CloudFormation {
+	if cf, ok := cfPool[cfg.Settings.Aws]; ok {
 		return cf
 	}
 
-	sess := session.Must(session.NewSessionWithOptions(awsOpts(cfg)))
+	sess := cfg.awsSession()
 
-	return cloudformation.New(sess)
+	cf := cloudformation.New(sess)
+	cfPool[cfg.Settings.Aws] = cf
+
+	return cf
 }
 
-func awsOpts(cfg Config) session.Options {
+func (cfg Config) awsSession() *session.Session {
+	if sess, ok := sessPool[cfg.Settings.Aws]; ok {
+		return sess
+	}
+
 	opts := session.Options{}
 
 	if cfg.Settings.Aws.Profile != "" {
@@ -134,7 +165,10 @@ func awsOpts(cfg Config) session.Options {
 
 	opts.Config = awsCfg
 
-	return opts
+	sess := session.Must(session.NewSessionWithOptions(opts))
+	sessPool[cfg.Settings.Aws] = sess
+
+	return sess
 }
 
 func LoadConfig(cfgFiles []string) (Config, error) {
@@ -148,12 +182,14 @@ func LoadConfig(cfgFiles []string) (Config, error) {
 		return cfg, err
 	}
 
-	err = applyTemplating(&cfg)
+	err = initEnvSettings(&cfg.Settings)
 	if err != nil {
 		return cfg, err
 	}
 
-	return cfg, initEnvSettings(&cfg.Settings)
+	cfg.initAwsSettings()
+
+	return cfg, applyTemplating(&cfg)
 }
 
 func parseBodies(id string, stackCfg *Config) error {
@@ -317,3 +353,6 @@ func normalizeRawCfgEntry(src interface{}) interface{} {
 	}
 	return trg
 }
+
+var cfPool = map[AwsConfig]*cloudformation.CloudFormation{}
+var sessPool = map[AwsConfig]*session.Session{}

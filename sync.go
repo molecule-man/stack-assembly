@@ -24,7 +24,7 @@ func syncOne(stackCfg conf.Config, root conf.Config, nonInteractive bool) {
 
 		logger.Info("Synchronizing template")
 
-		cs := root.ChangeSetFromStackConfig(stackCfg)
+		cs := stackCfg.ChangeSet()
 		chSet, err := cs.Register()
 
 		if paramerr, ok := err.(*awscf.ParametersMissingError); ok {

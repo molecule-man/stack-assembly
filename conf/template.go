@@ -7,7 +7,6 @@ import (
 	"text/template"
 
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/sts"
 )
@@ -21,16 +20,16 @@ type tplData struct {
 }
 
 func applyTemplating(cfg *Config) error {
-	data, err := newTplData(cfg)
-	if err != nil {
-		return err
-	}
-
-	*cfg, err = templatizeStackConfig(*cfg, data)
+	var err error
+	*cfg, err = templatizeStackConfig(*cfg, tplData{Params: map[string]string{}})
 	return err
 }
 
 func templatizeStackConfig(cfg Config, data tplData) (Config, error) {
+	if err := updateAwsSettings(&data, cfg); err != nil {
+		return cfg, err
+	}
+
 	if err := templatizeParams(&cfg.Parameters, data); err != nil {
 		return cfg, err
 	}
@@ -65,21 +64,17 @@ func templatizeStackConfig(cfg Config, data tplData) (Config, error) {
 	return cfg, nil
 }
 
-func newTplData(cfg *Config) (tplData, error) {
-	data := tplData{}
-
-	opts := awsOpts(*cfg)
-	sess := session.Must(session.NewSessionWithOptions(opts))
+func updateAwsSettings(data *tplData, cfg Config) error {
+	sess := cfg.awsSession()
 	callerIdent, err := sts.New(sess).GetCallerIdentity(&sts.GetCallerIdentityInput{})
 	if err != nil {
-		return data, err
+		return err
 	}
 
 	data.AWS.Region = aws.StringValue(sess.Config.Region)
 	data.AWS.AccountID = aws.StringValue(callerIdent.Account)
-	data.Params = map[string]string{}
 
-	return data, nil
+	return nil
 }
 
 func templatizeRollbackConfig(rlbCfg *cloudformation.RollbackConfiguration, data tplData) error {

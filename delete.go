@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/molecule-man/stack-assembly/awscf"
 	"github.com/molecule-man/stack-assembly/cli"
 	"github.com/molecule-man/stack-assembly/cli/color"
 	"github.com/molecule-man/stack-assembly/conf"
@@ -14,8 +13,6 @@ func Delete(cfg conf.Config, nonInteractive bool) {
 	ss, err := cfg.StackConfigsSortedByExecOrder()
 	MustSucceed(err)
 
-	cf := conf.Cf(cfg)
-
 	// reverse order of stack configs
 	for i, j := 0, len(ss)-1; i < j; i, j = i+1, j-1 {
 		ss[i], ss[j] = ss[j], ss[i]
@@ -24,7 +21,7 @@ func Delete(cfg conf.Config, nonInteractive bool) {
 	for _, s := range ss {
 		logger := cli.PrefixedLogger(fmt.Sprintf("[%s] ", s.Name))
 
-		stack := awscf.NewStack(cf, s.Name)
+		stack := s.Stack()
 
 		exists, err := stack.Exists()
 		MustSucceed(err)

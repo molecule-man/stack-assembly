@@ -76,14 +76,12 @@ func infoCmd() *cobra.Command {
 			ss, err := cfg.StackConfigsSortedByExecOrder()
 			assembly.MustSucceed(err)
 
-			cf := conf.Cf(cfg)
-
 			for _, s := range ss {
 				if len(args) > 0 && args[0] != s.Name {
 					continue
 				}
 
-				assembly.Info(awscf.NewStack(cf, s.Name))
+				assembly.Info(s.Stack())
 			}
 		},
 	}

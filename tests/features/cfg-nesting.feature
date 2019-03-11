@@ -84,3 +84,74 @@ Feature: nested
         When I successfully run "sync -c cfg.yaml --no-interaction"
         Then stack "stastest-1-%scenarioid%" should have status "CREATE_COMPLETE"
         And stack "stastest-2-%scenarioid%" should have status "CREATE_COMPLETE"
+
+    @short
+    Scenario: aws settings are propagated down the tree
+        Given file "cfg.yaml" exists:
+            """
+            parameters:
+              region: "{{ .AWS.Region }}"
+            stacks:
+              stack1:
+                name: stastest-1-%scenarioid%
+                path: tpls/stack.yml
+                settings:
+                  aws:
+                    region: us-east-1
+                parameters:
+                  region: "{{ .AWS.Region }}"
+                stacks:
+                  stack2:
+                    name: stastest-2-%scenarioid%
+                    path: tpls/stack.yml
+                    settings:
+                      aws:
+                        endpoint: www.example.com
+                    parameters:
+                      region: "{{ .AWS.Region }}"
+            """
+        And file "tpls/stack.yml" exists:
+            """
+            Resources:
+              Cluster:
+                Type: AWS::ECS::Cluster
+                Properties:
+                  ClusterName: !Ref AWS::StackName
+            """
+        When I successfully run "dump-config -c cfg.yaml -r eu-west-1 -f json"
+        Then node "Settings.Aws" in json output should be:
+            """
+            {
+              "Region": "eu-west-1",
+              "Profile": "%aws_profile%",
+              "Endpoint": ""
+            }
+            """
+        And node "Parameters.region" in json output should be:
+            """
+            "eu-west-1"
+            """
+        And node "Stacks.stack1.Settings.Aws" in json output should be:
+            """
+            {
+              "Region": "us-east-1",
+              "Profile": "%aws_profile%",
+              "Endpoint": ""
+            }
+            """
+        And node "Stacks.stack1.Parameters.region" in json output should be:
+            """
+            "us-east-1"
+            """
+        And node "Stacks.stack1.Stacks.stack2.Settings.Aws" in json output should be:
+            """
+            {
+              "Region": "us-east-1",
+              "Profile": "%aws_profile%",
+              "Endpoint": "www.example.com"
+            }
+            """
+        And node "Stacks.stack1.Stacks.stack2.Parameters.region" in json output should be:
+            """
+            "us-east-1"
+            """

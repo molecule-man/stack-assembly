@@ -4,6 +4,7 @@ package tests
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
@@ -25,6 +26,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
+	"github.com/stretchr/testify/assert"
 	yaml "gopkg.in/yaml.v2"
 )
 
@@ -69,6 +71,12 @@ type feature struct {
 	cancel  context.CancelFunc
 
 	cf *cloudformation.CloudFormation
+}
+
+func (f *feature) assertEgual(expected, actual interface{}, msgAndArgs ...interface{}) error {
+	result := assertionResult{}
+	assert.Equal(&result, expected, actual, msgAndArgs...)
+	return result.err
 }
 
 func (f *feature) fileExists(fname string, content *gherkin.DocString) error {
@@ -173,6 +181,38 @@ func (f *feature) outputShouldBeExactly(s *gherkin.DocString) error {
 		return fmt.Errorf("output isn't equal to expected string. Output:\n%s", f.lastOutput)
 	}
 	return nil
+}
+
+func (f *feature) nodeInJsonOutputShouldBe(nodePath string, expectedContent *gherkin.DocString) error {
+	var expected interface{}
+	c := f.replaceParameters(expectedContent.Content)
+	err := json.Unmarshal([]byte(c), &expected)
+	if err != nil {
+		return err
+	}
+
+	var actual interface{}
+	c = f.replaceParameters(f.lastOutput)
+	err = json.Unmarshal([]byte(c), &actual)
+	if err != nil {
+		return fmt.Errorf("err: %s, output:\n%s", err, f.lastOutput)
+	}
+
+	for _, key := range strings.Split(nodePath, ".") {
+		casted, ok := actual.(map[string]interface{})
+		if !ok {
+			return fmt.Errorf("not able to find key %s in node (which is not map):\n%#v", key, actual)
+		}
+
+		node, ok := casted[key]
+		if !ok {
+			return fmt.Errorf("not able to find key %s in node:\n%s", key, casted)
+		}
+
+		actual = node
+	}
+
+	return f.assertEgual(expected, actual)
 }
 
 func (f *feature) thereShouldBeStackThatMatches(stackName string, expectedContent *gherkin.DocString) error {
@@ -312,6 +352,7 @@ func (f *feature) tagValue(stack *cloudformation.Stack, tagKey string) string {
 func (f *feature) replaceParameters(s string) string {
 	s = strings.Replace(s, "%scenarioid%", f.scenarioID, -1)
 	s = strings.Replace(s, "%featureid%", f.featurID, -1)
+	s = strings.Replace(s, "%aws_profile%", os.Getenv("AWS_PROFILE"), -1)
 
 	return s
 }
@@ -349,6 +390,7 @@ func FeatureContext(s *godog.Suite) {
 	s.Step(`^exit code should not be zero$`, f.exitCodeShouldNotBeZero)
 	s.Step(`^output should contain:$`, f.outputShouldContain)
 	s.Step(`^output should be exactly:$`, f.outputShouldBeExactly)
+	s.Step(`^node "([^"]*)" in json output should be:$`, f.nodeInJsonOutputShouldBe)
 	s.Step(`^there should be stack "([^"]*)" that matches:$`, f.thereShouldBeStackThatMatches)
 	s.Step(`^I launched "([^"]*)"$`, f.iLaunched)
 	s.Step(`^terminal shows:$`, f.terminalShows)
@@ -387,4 +429,12 @@ func FeatureContext(s *godog.Suite) {
 			}
 		}
 	})
+}
+
+type assertionResult struct {
+	err error
+}
+
+func (a *assertionResult) Errorf(format string, args ...interface{}) {
+	a.err = fmt.Errorf(format, args...)
 }
