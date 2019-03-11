@@ -123,24 +123,39 @@ Usage
     identifier of a stack within the config file. For example, ID is tpl1 in the
     following yaml config:
 
-    	stacks:
-    	  tpl1: # <--- this is ID
-    		name: mystack
-    		path: path/to/tpl.json
+        stacks:
+          tpl1: # <--- this is ID
+            name: mystack
+            path: path/to/tpl.json
+
+    The config can be nested:
+        stacks:
+          parent_tpl:
+            name: my-parent-stack
+            path: path/to/tpl.json
+            stacks:
+              child_tpl: # <--- this is ID of the stack we want to deploy
+                name: my-child-stack
+                path: path/to/tpl.json
+
+    In this case specifying ID of only wanted stack is not enough all the parent IDs
+    have to be specified as well:
+
+      stas sync parent_tpl child_tpl
 
     Usage:
-      stas sync [ID] [flags]
+      stas sync [<ID> [<ID> ...]] [flags]
 
     Aliases:
       sync, deploy
 
     Flags:
-      -h, --help             help for sync
-      -n, --no-interaction   Do not ask any interactive questions
+      -h, --help   help for sync
 
     Global Flags:
       -c, --configs strings   Alternative config file(s). Default: stack-assembly.yaml
-    	  --nocolor           Disables color output
+      -n, --no-interaction    Do not ask any interactive questions
+          --nocolor           Disables color output
       -p, --profile string    AWS named profile (default "default")
       -r, --region string     AWS region
 
@@ -302,6 +317,11 @@ Example of Stack-Assembly config file:
             - arn: arn:aws:cloudwatch:{{ .AWS.Region }}:{{ .AWS.AccountID }}:alarm:{{ .Params.ServiceName }}-errors
               type: AWS::CloudWatch::Alarm
 
+Config nesting
+--------------
+
+TODO
+
 AWS credentials
 ===============
 
@@ -369,6 +389,7 @@ use:
     Available Commands:
       delete      Deletes deployed stacks
       diff        Show diff of the stacks to be deployed
+      dump-config Dump loaded config into stdout
       help        Help about any command
       info        Show info about the stack
       sync        Synchronize (deploy) stacks

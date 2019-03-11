@@ -155,3 +155,32 @@ Feature: nested
             """
             "us-east-1"
             """
+
+    @wip
+    Scenario: executing specific nested stack
+        Given file "cfg.yaml" exists:
+            """
+            stacks:
+              staging:
+                name: stastest-staging-%scenarioid%
+                path: tpls/stack1.yml
+                tags:
+                  STAS_TEST: '%featureid%'
+                stacks:
+                  app:
+                    name: stastest-app-%scenarioid%
+                    path: tpls/stack1.yml
+                    tags:
+                      STAS_TEST: '%featureid%'
+            """
+        And file "tpls/stack1.yml" exists:
+            """
+            Resources:
+                Cluster:
+                    Type: AWS::ECS::Cluster
+                    Properties:
+                        ClusterName: !Ref AWS::StackName
+            """
+        When I successfully run "sync -c cfg.yaml --no-interaction staging app"
+        Then stack "stastest-app-%scenarioid%" should have status "CREATE_COMPLETE"
+        But stack "stastest-staging-%scenarioid%" should not exist

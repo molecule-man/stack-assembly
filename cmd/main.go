@@ -76,6 +76,7 @@ func infoCmd() *cobra.Command {
 			ss, err := cfg.StackConfigsSortedByExecOrder()
 			assembly.MustSucceed(err)
 
+			// TODO take nesting into account
 			for _, s := range ss {
 				if len(args) > 0 && args[0] != s.Name {
 					continue
@@ -89,7 +90,7 @@ func infoCmd() *cobra.Command {
 
 func syncCmd() *cobra.Command {
 	return &cobra.Command{
-		Use:     "sync [ID]",
+		Use:     "sync [<ID> [<ID> ...]]",
 		Aliases: []string{"deploy"},
 		Short:   "Synchronize (deploy) stacks",
 		Long: `Creates or updates stacks specified in the config file(s).
@@ -102,9 +103,23 @@ following yaml config:
     stacks:
       tpl1: # <--- this is ID
         name: mystack
-        path: path/to/tpl.json`,
+        path: path/to/tpl.json
 
-		Args: cobra.MaximumNArgs(1),
+The config can be nested:
+    stacks:
+      parent_tpl:
+        name: my-parent-stack
+        path: path/to/tpl.json
+        stacks:
+          child_tpl: # <--- this is ID of the stack we want to deploy
+            name: my-child-stack
+            path: path/to/tpl.json
+
+In this case specifying ID of only wanted stack is not enough all the parent IDs
+have to be specified as well:
+
+  stas sync parent_tpl child_tpl`,
+
 		Run: func(cmd *cobra.Command, args []string) {
 			cfgFiles, err := cmd.Parent().PersistentFlags().GetStringSlice("configs")
 			assembly.MustSucceed(err)
@@ -112,8 +127,7 @@ following yaml config:
 			cfg, err := conf.LoadConfig(cfgFiles)
 			assembly.MustSucceed(err)
 
-			if len(args) > 0 {
-				id := args[0]
+			for _, id := range args {
 				stack, ok := cfg.Stacks[id]
 				if !ok {
 					foundIds := make([]string, 0, len(cfg.Stacks))
@@ -123,9 +137,8 @@ following yaml config:
 
 					assembly.MustSucceed(fmt.Errorf("ID %s is not found in the config. Found IDs: %v", id, foundIds))
 				}
-				cfg.Stacks = map[string]conf.Config{
-					id: stack,
-				}
+
+				cfg = stack
 			}
 
 			nonInteractive, err := cmd.Parent().PersistentFlags().GetBool("no-interaction")
@@ -138,7 +151,7 @@ following yaml config:
 
 func diffCmd() *cobra.Command {
 	return &cobra.Command{
-		Use:   "diff [stack name]",
+		Use:   "diff",
 		Short: "Show diff of the stacks to be deployed",
 		Run: func(cmd *cobra.Command, args []string) {
 			cfgFiles, err := cmd.Parent().PersistentFlags().GetStringSlice("configs")
@@ -150,6 +163,7 @@ func diffCmd() *cobra.Command {
 			cc, err := cfg.ChangeSets()
 			assembly.MustSucceed(err)
 
+			// TODO take nesting into account
 			for _, c := range cc {
 				diff, err := awscf.Diff(c)
 				assembly.MustSucceed(err)
@@ -162,7 +176,7 @@ func diffCmd() *cobra.Command {
 
 func deleteCmd() *cobra.Command {
 	return &cobra.Command{
-		Use:   "delete [stack name]",
+		Use:   "delete",
 		Short: "Deletes deployed stacks",
 		Run: func(cmd *cobra.Command, args []string) {
 			cfgFiles, err := cmd.Parent().PersistentFlags().GetStringSlice("configs")
@@ -174,6 +188,7 @@ func deleteCmd() *cobra.Command {
 			nonInteractive, err := cmd.Parent().PersistentFlags().GetBool("no-interaction")
 			assembly.MustSucceed(err)
 
+			// TODO take nesting into account
 			assembly.Delete(cfg, nonInteractive)
 		},
 	}
