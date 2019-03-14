@@ -7,7 +7,6 @@ import (
 	"text/template"
 
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/sts"
 )
@@ -21,72 +20,61 @@ type tplData struct {
 }
 
 func applyTemplating(cfg *Config) error {
-	data, err := newTplData(cfg)
-	if err != nil {
-		return err
-	}
-
-	for i, stackCfg := range cfg.Stacks {
-		if stackCfg.Parameters == nil {
-			stackCfg.Parameters = make(map[string]string, len(cfg.Parameters))
-		}
-
-		for k, v := range cfg.Parameters {
-			if _, ok := stackCfg.Parameters[k]; !ok {
-				stackCfg.Parameters[k] = v
-			}
-		}
-
-		data.Params = stackCfg.Parameters
-
-		stackCfg, err = templatizeStackConfig(stackCfg, data)
-		if err != nil {
-			return err
-		}
-
-		cfg.Stacks[i] = stackCfg
-	}
-	return nil
+	var err error
+	*cfg, err = templatizeStackConfig(*cfg, tplData{Params: map[string]string{}})
+	return err
 }
 
-func templatizeStackConfig(cfg StackConfig, data tplData) (StackConfig, error) {
-	if err := templatizeMap(&cfg.Parameters, data); err != nil {
+func templatizeStackConfig(cfg Config, data tplData) (Config, error) {
+	if err := updateAwsSettings(&data, cfg); err != nil {
 		return cfg, err
 	}
+
+	if err := templatizeParams(&cfg.Parameters, data); err != nil {
+		return cfg, err
+	}
+
 	data.Params = cfg.Parameters
 
 	if err := templatizeMap(&cfg.Tags, data); err != nil {
 		return cfg, err
 	}
 
-	err := parseTpl(&cfg.Name, cfg.Name, data)
-	if err != nil {
+	if err := parseTpl(&cfg.Name, cfg.Name, data); err != nil {
 		return cfg, err
 	}
 
-	if err = parseTpl(&cfg.Body, cfg.Body, data); err != nil {
+	if err := parseTpl(&cfg.Body, cfg.Body, data); err != nil {
 		return cfg, err
 	}
 
-	err = templatizeRollbackConfig(cfg.RollbackConfiguration, data)
+	if err := templatizeRollbackConfig(cfg.RollbackConfiguration, data); err != nil {
+		return cfg, err
+	}
 
-	return cfg, err
+	for i, nestedCfg := range cfg.Stacks {
+		templatizedCfg, err := templatizeStackConfig(nestedCfg, data)
+		if err != nil {
+			return cfg, err
+		}
+
+		cfg.Stacks[i] = templatizedCfg
+	}
+
+	return cfg, nil
 }
 
-func newTplData(cfg *Config) (tplData, error) {
-	data := tplData{}
-
-	opts := awsOpts(*cfg)
-	sess := session.Must(session.NewSessionWithOptions(opts))
+func updateAwsSettings(data *tplData, cfg Config) error {
+	sess := cfg.awsSession()
 	callerIdent, err := sts.New(sess).GetCallerIdentity(&sts.GetCallerIdentityInput{})
 	if err != nil {
-		return data, err
+		return err
 	}
 
 	data.AWS.Region = aws.StringValue(sess.Config.Region)
 	data.AWS.AccountID = aws.StringValue(callerIdent.Account)
 
-	return data, nil
+	return nil
 }
 
 func templatizeRollbackConfig(rlbCfg *cloudformation.RollbackConfiguration, data tplData) error {
@@ -102,6 +90,20 @@ func templatizeRollbackConfig(rlbCfg *cloudformation.RollbackConfiguration, data
 	}
 
 	return nil
+}
+
+func templatizeParams(parameters *map[string]string, data tplData) error {
+	if *parameters == nil {
+		*parameters = make(map[string]string, len(data.Params))
+	}
+
+	for k, v := range data.Params {
+		if _, ok := (*parameters)[k]; !ok {
+			(*parameters)[k] = v
+		}
+	}
+
+	return templatizeMap(parameters, data)
 }
 
 func templatizeMap(m *map[string]string, data tplData) error {

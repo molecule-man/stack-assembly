@@ -8,6 +8,7 @@ import (
 	"github.com/molecule-man/stack-assembly/awscf"
 	"github.com/molecule-man/stack-assembly/cli"
 	"github.com/molecule-man/stack-assembly/cli/color"
+	"github.com/molecule-man/stack-assembly/conf"
 )
 
 func colorizedStatus(status string) string {
@@ -44,6 +45,21 @@ func Info(stack *awscf.Stack) {
 	printEvents(stack)
 
 	cli.Print("")
+}
+
+func InfoAll(cfg conf.Config) {
+	ss, err := cfg.StackConfigsSortedByExecOrder()
+	MustSucceed(err)
+
+	for _, s := range ss {
+		InfoAll(s)
+	}
+
+	if cfg.Name == "" {
+		return
+	}
+
+	Info(cfg.Stack())
 }
 
 func printStackDetails(name string, info awscf.StackInfo) {

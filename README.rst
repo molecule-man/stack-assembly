@@ -123,24 +123,39 @@ Usage
     identifier of a stack within the config file. For example, ID is tpl1 in the
     following yaml config:
 
-    	stacks:
-    	  tpl1: # <--- this is ID
-    		name: mystack
-    		path: path/to/tpl.json
+        stacks:
+          tpl1: # <--- this is ID
+            name: mystack
+            path: path/to/tpl.json
+
+    The config can be nested:
+        stacks:
+          parent_tpl:
+            name: my-parent-stack
+            path: path/to/tpl.json
+            stacks:
+              child_tpl: # <--- this is ID of the stack we want to deploy
+                name: my-child-stack
+                path: path/to/tpl.json
+
+    In this case specifying ID of only wanted stack is not enough all the parent IDs
+    have to be specified as well:
+
+      stas sync parent_tpl child_tpl
 
     Usage:
-      stas sync [ID] [flags]
+      stas sync [<ID> [<ID> ...]] [flags]
 
     Aliases:
       sync, deploy
 
     Flags:
-      -h, --help             help for sync
-      -n, --no-interaction   Do not ask any interactive questions
+      -h, --help   help for sync
 
     Global Flags:
       -c, --configs strings   Alternative config file(s). Default: stack-assembly.yaml
-    	  --nocolor           Disables color output
+      -n, --no-interaction    Do not ask any interactive questions
+          --nocolor           Disables color output
       -p, --profile string    AWS named profile (default "default")
       -r, --region string     AWS region
 
@@ -302,6 +317,64 @@ Example of Stack-Assembly config file:
             - arn: arn:aws:cloudwatch:{{ .AWS.Region }}:{{ .AWS.AccountID }}:alarm:{{ .Params.ServiceName }}-errors
               type: AWS::CloudWatch::Alarm
 
+Config nesting
+--------------
+
+Every stack in stack-assembly config can contain nested stacks. This enables
+possibility to deploy subgroup (subtree) of stacks.
+
+.. code-block:: yaml
+
+    stacks:
+      staging:
+
+        # settings, as well as parameters, are propagated down the tree.
+        # All the child stacks of `staging` inherit settings and parameters
+        # defined at `staging` level
+        settings:
+          aws:
+            region: eu-west-1
+        parameters:
+          Env: staging
+
+        stacks:
+          db:
+            name: "db-staging"
+            path: cf-tpls/rds.yml
+          app:
+            name: "app-staging"
+            path: cf-tpls/app.yml
+
+      production:
+
+        settings:
+          aws:
+            region: us-east-1
+        parameters:
+          Env: production
+
+        stacks:
+          db:
+            name: "db-production"
+            path: cf-tpls/rds.yml
+          app:
+            name: "app-production"
+            path: cf-tpls/app.yml
+
+Having this config one can deploy all the stacks under ``production`` by
+running:
+
+.. code-block:: bash
+
+    stas sync production
+
+Or, if one needs to deploy ``db`` stack under ``staging``, one can use the
+following command:
+
+.. code-block:: bash
+
+    stas sync staging db
+
 AWS credentials
 ===============
 
@@ -369,6 +442,7 @@ use:
     Available Commands:
       delete      Deletes deployed stacks
       diff        Show diff of the stacks to be deployed
+      dump-config Dump loaded config into stdout
       help        Help about any command
       info        Show info about the stack
       sync        Synchronize (deploy) stacks

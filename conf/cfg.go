@@ -23,54 +23,43 @@ import (
 )
 
 type settingsConfig struct {
-	Aws struct {
-		Region   string
-		Profile  string
-		Endpoint string
-	}
+	Aws AwsConfig
+}
+
+type AwsConfig struct {
+	Region   string
+	Profile  string
+	Endpoint string
 }
 
 // Config is a struct holding stacks configurations
 type Config struct {
-	Settings settingsConfig
-
-	Parameters map[string]string
-	Stacks     map[string]StackConfig
-
-	Hooks struct {
-		Pre        HookCmds
-		Post       HookCmds
-		PreSync    HookCmds
-		PostSync   HookCmds
-		PreCreate  HookCmds
-		PostCreate HookCmds
-		PreUpdate  HookCmds
-		PostUpdate HookCmds
-	}
-}
-
-type StackConfig struct {
 	Name       string
 	Path       string
 	Body       string
 	Parameters map[string]string
-	Tags       map[string]string
-	DependsOn  []string
-	Blocked    []string
+	Tags       map[string]string `json:",omitempty" yaml:",omitempty" toml:",omitempty"`
+	DependsOn  []string          `json:",omitempty" yaml:",omitempty" toml:",omitempty"`
+	Blocked    []string          `json:",omitempty" yaml:",omitempty" toml:",omitempty"`
 	Hooks      struct {
-		PreSync    HookCmds
-		PostSync   HookCmds
-		PreCreate  HookCmds
-		PostCreate HookCmds
-		PreUpdate  HookCmds
-		PostUpdate HookCmds
-	}
-	RollbackConfiguration *cloudformation.RollbackConfiguration
-	Capabilities          []string
+		Pre        HookCmds `json:",omitempty" yaml:",omitempty" toml:",omitempty"`
+		Post       HookCmds `json:",omitempty" yaml:",omitempty" toml:",omitempty"`
+		PreCreate  HookCmds `json:",omitempty" yaml:",omitempty" toml:",omitempty"`
+		PostCreate HookCmds `json:",omitempty" yaml:",omitempty" toml:",omitempty"`
+		PreUpdate  HookCmds `json:",omitempty" yaml:",omitempty" toml:",omitempty"`
+		PostUpdate HookCmds `json:",omitempty" yaml:",omitempty" toml:",omitempty"`
+	} `json:",omitempty" yaml:",omitempty" toml:",omitempty"`
+
+	RollbackConfiguration *cloudformation.RollbackConfiguration `json:",omitempty" yaml:",omitempty" toml:",omitempty"`
+
+	Capabilities []string       `json:",omitempty" yaml:",omitempty" toml:",omitempty"`
+	Settings     settingsConfig `json:",omitempty" yaml:",omitempty" toml:",omitempty"`
+
+	Stacks map[string]Config `json:",omitempty" yaml:",omitempty" toml:",omitempty"`
 }
 
-func (cfg Config) StackConfigsSortedByExecOrder() ([]StackConfig, error) {
-	stackCfgs := make([]StackConfig, len(cfg.Stacks))
+func (cfg Config) StackConfigsSortedByExecOrder() ([]Config, error) {
+	stackCfgs := make([]Config, len(cfg.Stacks))
 	dg := depgraph.DepGraph{}
 
 	for id, stackCfg := range cfg.Stacks {
@@ -97,34 +86,63 @@ func (cfg Config) ChangeSets() ([]*awscf.ChangeSet, error) {
 	}
 
 	for i, s := range ss {
-		chSets[i] = cfg.ChangeSetFromStackConfig(s)
+		chSets[i] = s.ChangeSet()
 	}
 
 	return chSets, nil
 }
 
-func (cfg Config) ChangeSetFromStackConfig(stackCfg StackConfig) *awscf.ChangeSet {
-	return awscf.NewStack(Cf(cfg), stackCfg.Name).
-		ChangeSet(stackCfg.Body).
-		WithParameters(stackCfg.Parameters).
-		WithTags(stackCfg.Tags).
-		WithRollback(stackCfg.RollbackConfiguration).
-		WithCapabilities(stackCfg.Capabilities)
+func (cfg Config) Stack() *awscf.Stack {
+	return awscf.NewStack(cfg.cf(), cfg.Name)
 }
 
-var cf *cloudformation.CloudFormation
+func (cfg Config) ChangeSet() *awscf.ChangeSet {
+	return cfg.Stack().
+		ChangeSet(cfg.Body).
+		WithParameters(cfg.Parameters).
+		WithTags(cfg.Tags).
+		WithRollback(cfg.RollbackConfiguration).
+		WithCapabilities(cfg.Capabilities)
+}
 
-func Cf(cfg Config) *cloudformation.CloudFormation {
-	if cf != nil {
+func (cfg *Config) initAwsSettings() {
+	for i, s := range cfg.Stacks {
+		if s.Settings.Aws.Region == "" {
+			s.Settings.Aws.Region = cfg.Settings.Aws.Region
+		}
+
+		if s.Settings.Aws.Profile == "" {
+			s.Settings.Aws.Profile = cfg.Settings.Aws.Profile
+		}
+
+		if s.Settings.Aws.Endpoint == "" {
+			s.Settings.Aws.Endpoint = cfg.Settings.Aws.Endpoint
+		}
+
+		s.initAwsSettings()
+
+		cfg.Stacks[i] = s
+	}
+}
+
+func (cfg Config) cf() *cloudformation.CloudFormation {
+	if cf, ok := cfPool[cfg.Settings.Aws]; ok {
 		return cf
 	}
 
-	sess := session.Must(session.NewSessionWithOptions(awsOpts(cfg)))
+	sess := cfg.awsSession()
 
-	return cloudformation.New(sess)
+	cf := cloudformation.New(sess)
+	cfPool[cfg.Settings.Aws] = cf
+
+	return cf
 }
 
-func awsOpts(cfg Config) session.Options {
+func (cfg Config) awsSession() *session.Session {
+	if sess, ok := sessPool[cfg.Settings.Aws]; ok {
+		return sess
+	}
+
 	opts := session.Options{}
 
 	if cfg.Settings.Aws.Profile != "" {
@@ -147,7 +165,10 @@ func awsOpts(cfg Config) session.Options {
 
 	opts.Config = awsCfg
 
-	return opts
+	sess := session.Must(session.NewSessionWithOptions(opts))
+	sessPool[cfg.Settings.Aws] = sess
+
+	return sess
 }
 
 func LoadConfig(cfgFiles []string) (Config, error) {
@@ -156,30 +177,49 @@ func LoadConfig(cfgFiles []string) (Config, error) {
 		return cfg, err
 	}
 
-	for i, stackCfg := range cfg.Stacks {
-		if stackCfg.Body != "" {
-			continue
-		}
-
-		if stackCfg.Path == "" {
-			return cfg, fmt.Errorf("not possible to parse config for stack %s. "+
-				"Either \"path\" or \"body\" should be provided", i)
-		}
-		buf, rerr := ioutil.ReadFile(stackCfg.Path)
-		if rerr != nil {
-			return cfg, rerr
-		}
-
-		stackCfg.Body = string(buf)
-		cfg.Stacks[i] = stackCfg
-	}
-
-	err = applyTemplating(&cfg)
+	err = parseBodies("root", &cfg)
 	if err != nil {
 		return cfg, err
 	}
 
-	return cfg, initEnvSettings(&cfg.Settings)
+	err = initEnvSettings(&cfg.Settings)
+	if err != nil {
+		return cfg, err
+	}
+
+	cfg.initAwsSettings()
+
+	return cfg, applyTemplating(&cfg)
+}
+
+func parseBodies(id string, stackCfg *Config) error {
+	for i, nestedStack := range stackCfg.Stacks {
+		nestedStack := nestedStack
+		err := parseBodies(i, &nestedStack)
+		if err != nil {
+			return err
+		}
+		stackCfg.Stacks[i] = nestedStack
+	}
+
+	switch {
+	case stackCfg.Body != "":
+		return nil
+	case stackCfg.Path == "" && len(stackCfg.Stacks) == 0:
+		return fmt.Errorf("not possible to parse config for stack %s. "+
+			"Either \"path\", \"body\" or non-empty \"stacks\" should be provided", id)
+	case stackCfg.Path == "":
+		return nil
+	}
+
+	buf, err := ioutil.ReadFile(stackCfg.Path)
+	if err != nil {
+		return err
+	}
+
+	stackCfg.Body = string(buf)
+
+	return nil
 }
 
 func decodeConfigs(cfgFiles []string) (Config, error) {
@@ -313,3 +353,6 @@ func normalizeRawCfgEntry(src interface{}) interface{} {
 	}
 	return trg
 }
+
+var cfPool = map[AwsConfig]*cloudformation.CloudFormation{}
+var sessPool = map[AwsConfig]*session.Session{}
