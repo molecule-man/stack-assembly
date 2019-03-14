@@ -63,9 +63,8 @@ func rootCmd() *cobra.Command {
 
 func infoCmd() *cobra.Command {
 	return &cobra.Command{
-		Use:   "info [stack name]",
-		Short: "Show info about the stack",
-		Args:  cobra.MaximumNArgs(1),
+		Use:   "info",
+		Short: "Show info about the stacks",
 		Run: func(cmd *cobra.Command, args []string) {
 			cfgFiles, err := cmd.Parent().PersistentFlags().GetStringSlice("configs")
 			assembly.MustSucceed(err)
@@ -73,17 +72,7 @@ func infoCmd() *cobra.Command {
 			cfg, err := conf.LoadConfig(cfgFiles)
 			assembly.MustSucceed(err)
 
-			ss, err := cfg.StackConfigsSortedByExecOrder()
-			assembly.MustSucceed(err)
-
-			// TODO take nesting into account
-			for _, s := range ss {
-				if len(args) > 0 && args[0] != s.Name {
-					continue
-				}
-
-				assembly.Info(s.Stack())
-			}
+			assembly.InfoAll(cfg)
 		},
 	}
 }
