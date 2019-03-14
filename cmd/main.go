@@ -188,7 +188,6 @@ func deleteCmd() *cobra.Command {
 			nonInteractive, err := cmd.Parent().PersistentFlags().GetBool("no-interaction")
 			assembly.MustSucceed(err)
 
-			// TODO take nesting into account
 			assembly.Delete(cfg, nonInteractive)
 		},
 	}

@@ -156,7 +156,6 @@ Feature: nested
             "us-east-1"
             """
 
-    @wip
     Scenario: executing specific nested stack
         Given file "cfg.yaml" exists:
             """
@@ -176,11 +175,42 @@ Feature: nested
         And file "tpls/stack1.yml" exists:
             """
             Resources:
-                Cluster:
-                    Type: AWS::ECS::Cluster
-                    Properties:
-                        ClusterName: !Ref AWS::StackName
+              Cluster:
+                Type: AWS::ECS::Cluster
+                Properties:
+                  ClusterName: !Ref AWS::StackName
             """
         When I successfully run "sync -c cfg.yaml --no-interaction staging app"
         Then stack "stastest-app-%scenarioid%" should have status "CREATE_COMPLETE"
         But stack "stastest-staging-%scenarioid%" should not exist
+
+    Scenario: I delete nested stack
+        Given file "cfg.yaml" exists:
+            """
+            name: stastest-root-%scenarioid%
+            path: tpls/stack1.yml
+            tags:
+              STAS_TEST: '%featureid%'
+            stacks:
+              parent:
+                stacks:
+                  child:
+                    name: stastest-child-%scenarioid%
+                    path: tpls/stack1.yml
+                    tags:
+                      STAS_TEST: '%featureid%'
+            """
+        And file "tpls/stack1.yml" exists:
+            """
+            Resources:
+              Cluster:
+                Type: AWS::ECS::Cluster
+                Properties:
+                  ClusterName: !Ref AWS::StackName
+            """
+        And I successfully run "sync -c cfg.yaml --no-interaction"
+        And stack "stastest-root-%scenarioid%" should have status "CREATE_COMPLETE"
+        And stack "stastest-child-%scenarioid%" should have status "CREATE_COMPLETE"
+        When I successfully run "delete -c cfg.yaml --no-interaction"
+        Then stack "stastest-root-%scenarioid%" should not exist
+        And stack "stastest-child-%scenarioid%" should not exist

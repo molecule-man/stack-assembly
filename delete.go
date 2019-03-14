@@ -1,7 +1,6 @@
 package assembly
 
 import (
-	"errors"
 	"fmt"
 
 	"github.com/molecule-man/stack-assembly/cli"
@@ -10,6 +9,15 @@ import (
 )
 
 func Delete(cfg conf.Config, nonInteractive bool) {
+	action := &deleteAction{nonInteractive}
+	action.delete(cfg)
+}
+
+type deleteAction struct {
+	nonInteractive bool
+}
+
+func (a *deleteAction) delete(cfg conf.Config) {
 	ss, err := cfg.StackConfigsSortedByExecOrder()
 	MustSucceed(err)
 
@@ -19,69 +27,76 @@ func Delete(cfg conf.Config, nonInteractive bool) {
 	}
 
 	for _, s := range ss {
-		logger := cli.PrefixedLogger(fmt.Sprintf("[%s] ", s.Name))
+		Delete(s, a.nonInteractive)
+	}
 
-		stack := s.Stack()
+	if cfg.Name == "" {
+		return
+	}
 
-		exists, err := stack.Exists()
-		MustSucceed(err)
+	logger := cli.PrefixedLogger(fmt.Sprintf("[%s] ", cfg.Name))
 
-		if !exists {
-			logger.Info("Stack doesn't exist")
-		}
+	stack := cfg.Stack()
 
-		logger.Warnf("Stack %s is about to be deleted", s.Name)
+	exists, err := stack.Exists()
+	MustSucceed(err)
 
-		skip := false
+	if !exists {
+		logger.Info("Stack doesn't exist")
+		return
+	}
 
-		if !nonInteractive {
-			continueDelete := false
-			for !continueDelete && !skip {
-				err = cli.Prompt([]cli.PromptCmd{{
-					Description:   "[d]elete",
-					TriggerInputs: []string{"d", "delete"},
-					Action: func() {
-						continueDelete = true
-					},
-				}, {
-					Description:   "[a]ll (delete all without asking again)",
-					TriggerInputs: []string{"a", "all"},
-					Action: func() {
-						nonInteractive = true
-						continueDelete = true
-					},
-				}, {
-					Description:   "[i]nfo (show stack info)",
-					TriggerInputs: []string{"i", "info"},
-					Action: func() {
-						Info(stack)
-					},
-				}, {
-					Description:   "[s]kip",
-					TriggerInputs: []string{"s", "skip"},
-					Action: func() {
-						skip = true
-					},
-				}, {
-					Description:   "[q]uit",
-					TriggerInputs: []string{"q", "quit"},
-					Action: func() {
-						cli.Error("Interrupted by user")
-						MustSucceed(errors.New("deletion is cancelled"))
-					},
-				}})
-				if err != cli.ErrPromptCommandIsNotKnown {
-					MustSucceed(err)
-				}
+	logger.Warnf("Stack %s is about to be deleted", cfg.Name)
+
+	skip := false
+
+	if !a.nonInteractive {
+		continueDelete := false
+		for !continueDelete && !skip {
+			err = cli.Prompt([]cli.PromptCmd{{
+				Description:   "[d]elete",
+				TriggerInputs: []string{"d", "delete"},
+				Action: func() {
+					continueDelete = true
+				},
+			}, {
+				Description:   "[a]ll (delete all without asking again)",
+				TriggerInputs: []string{"a", "all"},
+				Action: func() {
+					a.nonInteractive = true
+					continueDelete = true
+				},
+			}, {
+				Description:   "[i]nfo (show stack info)",
+				TriggerInputs: []string{"i", "info"},
+				Action: func() {
+					Info(stack)
+				},
+			}, {
+				Description:   "[s]kip",
+				TriggerInputs: []string{"s", "skip"},
+				Action: func() {
+					skip = true
+				},
+			}, {
+				Description:   "[q]uit",
+				TriggerInputs: []string{"q", "quit"},
+				Action: func() {
+					cli.Error("Interrupted by user")
+					Terminate("deletion is cancelled")
+				},
+			}})
+			if err != cli.ErrPromptCommandIsNotKnown {
+				MustSucceed(err)
 			}
 		}
-
-		if skip {
-			continue
-		}
-
-		err = stack.Delete()
-		MustSucceed(err)
-		logger.Print(color.Success("Stack is deleted successfully"))
 	}
+
+	if skip {
+		return
+	}
+
+	err = stack.Delete()
+	MustSucceed(err)
+	logger.Print(color.Success("Stack is deleted successfully"))
 }
