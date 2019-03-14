@@ -7,7 +7,6 @@ import (
 
 	"github.com/BurntSushi/toml"
 	assembly "github.com/molecule-man/stack-assembly"
-	"github.com/molecule-man/stack-assembly/awscf"
 	"github.com/molecule-man/stack-assembly/cli"
 	"github.com/molecule-man/stack-assembly/cli/color"
 	"github.com/molecule-man/stack-assembly/conf"
@@ -149,16 +148,7 @@ func diffCmd() *cobra.Command {
 			cfg, err := conf.LoadConfig(cfgFiles)
 			assembly.MustSucceed(err)
 
-			cc, err := cfg.ChangeSets()
-			assembly.MustSucceed(err)
-
-			// TODO take nesting into account
-			for _, c := range cc {
-				diff, err := awscf.Diff(c)
-				assembly.MustSucceed(err)
-
-				cli.Print(diff)
-			}
+			assembly.Diff(cfg)
 		},
 	}
 }
