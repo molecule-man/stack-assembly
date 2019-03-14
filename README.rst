@@ -320,7 +320,60 @@ Example of Stack-Assembly config file:
 Config nesting
 --------------
 
-TODO
+Every stack in stack-assembly config can contain nested stacks. This enables
+possibility to deploy subgroup (subtree) of stacks.
+
+.. code-block:: yaml
+
+    stacks:
+      staging:
+
+        # settings, as well as parameters, are propagated down the tree.
+        # All the child stacks of `staging` inherit settings and parameters
+        # defined at `staging` level
+        settings:
+          aws:
+            region: eu-west-1
+        parameters:
+          Env: staging
+
+        stacks:
+          db:
+            name: "db-staging"
+            path: cf-tpls/rds.yml
+          app:
+            name: "app-staging"
+            path: cf-tpls/app.yml
+
+      production:
+
+        settings:
+          aws:
+            region: us-east-1
+        parameters:
+          Env: production
+
+        stacks:
+          db:
+            name: "db-production"
+            path: cf-tpls/rds.yml
+          app:
+            name: "app-production"
+            path: cf-tpls/app.yml
+
+Having this config one can deploy all the stacks under ``production`` by
+running:
+
+.. code-block:: bash
+
+    stas sync production
+
+Or, if one needs to deploy ``db`` stack under ``staging``, one can use the
+following command:
+
+.. code-block:: bash
+
+    stas sync staging db
 
 AWS credentials
 ===============
