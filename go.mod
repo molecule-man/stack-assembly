@@ -4,7 +4,7 @@ require (
 	github.com/BurntSushi/toml v0.3.1
 	github.com/DATA-DOG/godog v0.7.9
 	github.com/Netflix/go-expect v0.0.0-20180928190340-9d1f4485533b
-	github.com/aws/aws-sdk-go v1.16.31
+	github.com/aws/aws-sdk-go v1.18.3
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
 	github.com/kr/pretty v0.1.0 // indirect
 	github.com/kr/pty v1.1.3 // indirect
