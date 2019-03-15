@@ -199,6 +199,10 @@ func (f *feature) nodeInJsonOutputShouldBe(nodePath string, expectedContent *ghe
 	}
 
 	for _, key := range strings.Split(nodePath, ".") {
+		if key == "" {
+			continue
+		}
+
 		casted, ok := actual.(map[string]interface{})
 		if !ok {
 			return fmt.Errorf("not able to find key %s in node (which is not map):\n%#v", key, actual)

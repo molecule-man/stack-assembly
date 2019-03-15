@@ -375,6 +375,37 @@ following command:
 
     stas sync staging db
 
+Reuse
+-----
+
+When writing complex config, it's almost inevitable to have duplication in the
+config. This section describes how stack-assembly helps to avoid
+copying-and-pasting.
+
+Let's say we have a stack we want to deploy multiple times in different
+environments. Each environment is different from each other only by handful of
+parameters. Then we put the reused stack under the ``definitions`` in the root
+of the config. And then we can (re)use this stack in the config by referencing
+this stack with ``$basedOn`` field in the config:
+
+.. code-block:: yaml
+
+    stacks:
+      staging:
+        "$basedOn": reused_stack
+        parameters:
+          Env: staging
+
+      production:
+        "$basedOn": reused_stack
+        parameters:
+          Env: production
+
+    definitions:
+      reused_stack:
+        name: "reused-stack-{{ .Params.Env }}"
+        path: cf-tpls/stack.yml
+
 AWS credentials
 ===============
 

@@ -3,6 +3,7 @@ package conf
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -250,6 +251,22 @@ func decodeConfigs(cfgFiles []string) (Config, error) {
 		mainRawCfg = merged.(map[string]interface{})
 	}
 
+	if d, ok := mainRawCfg["definitions"]; ok {
+		delete(mainRawCfg, "definitions")
+
+		d = normalizeRawCfgEntry(d)
+
+		definitions, ok := d.(map[string]interface{})
+
+		if !ok {
+			return mainConfig, errors.New("error occured while parsing config: `definitions` should be map")
+		}
+
+		if err := inheritDefinitions(&mainRawCfg, definitions); err != nil {
+			return mainConfig, fmt.Errorf("error occured while parsing config: %v", err)
+		}
+	}
+
 	config := mapstructure.DecoderConfig{
 		ErrorUnused: true,
 		Result:      &mainConfig,
@@ -261,6 +278,42 @@ func decodeConfigs(cfgFiles []string) (Config, error) {
 	}
 
 	return mainConfig, decoder.Decode(mainRawCfg)
+}
+
+func inheritDefinitions(cfg *map[string]interface{}, definitions map[string]interface{}) error {
+	if basedOn, ok := (*cfg)["$basedOn"]; ok {
+		basedOnValue, ok := basedOn.(string)
+
+		delete(*cfg, "$basedOn")
+
+		if !ok {
+			return errors.New("value of $basedOn must be string")
+		}
+
+		def, ok := definitions[basedOnValue]
+
+		if !ok {
+			return fmt.Errorf("definition for %s doesn't exist", basedOnValue)
+		}
+
+		merged := merge(def, *cfg)
+		*cfg = merged.(map[string]interface{})
+	}
+
+	for k, v := range *cfg {
+		v = normalizeRawCfgEntry(v)
+		if m, ok := v.(map[string]interface{}); ok {
+			err := inheritDefinitions(&m, definitions)
+
+			if err != nil {
+				return err
+			}
+
+			(*cfg)[k] = m
+		}
+	}
+
+	return nil
 }
 
 func initEnvSettings(settings *settingsConfig) error {
