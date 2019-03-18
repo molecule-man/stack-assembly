@@ -7,6 +7,13 @@ stacks in a safe way. The safety aspect is enabled by utilizing Cloudformation
 <https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-changesets.html>`_
 and letting the user to view and confirm changes to be deployed.
 
+.. class:: no-web
+
+    .. image:: demo.gif
+        :alt: stack-assembly in action
+        :width: 100%
+        :align: center
+
 
 .. contents::
 
