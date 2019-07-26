@@ -83,7 +83,7 @@ func (a *deleteAction) delete(cfg conf.Config) {
 				TriggerInputs: []string{"q", "quit"},
 				Action: func() {
 					cli.Error("Interrupted by user")
-					Terminate("deletion is cancelled")
+					Terminate("deletion is canceled")
 				},
 			}})
 			if err != cli.ErrPromptCommandIsNotKnown {

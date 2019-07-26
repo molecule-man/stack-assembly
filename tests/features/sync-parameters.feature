@@ -192,3 +192,30 @@ Feature: stas sync with parameters
             """
         Then I successfully run "sync -c cfg.yaml --no-interaction"
         And stack "stastest-defaultparam-%scenarioid%" should have status "CREATE_COMPLETE"
+
+    @short
+    Scenario: parameters can be taken from command line
+        Given file "cfg.yaml" exists:
+            """
+            stacks:
+              stack1:
+                name: stastest-1-%scenarioid%
+                path: tpls/stack.yml
+            """
+        And file "tpls/stack.yml" exists:
+            """
+            Resources:
+              EcsCluster:
+                Type: AWS::ECS::Cluster
+                Properties:
+                  ClusterName: !Sub "${AWS::StackName}"
+            """
+        When I successfully run "dump-config -c cfg.yaml -f json -v param1=Foo -v Param2=bar"
+        Then node "Parameters.param1" in json output should be:
+            """
+            "Foo"
+            """
+        And node "Parameters.Param2" in json output should be:
+            """
+            "bar"
+            """

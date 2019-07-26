@@ -12,6 +12,7 @@ require (
 	github.com/pmezard/go-difflib v1.0.0
 	github.com/spf13/afero v1.2.0 // indirect
 	github.com/spf13/cobra v0.0.3
+	github.com/spf13/pflag v1.0.3
 	github.com/spf13/viper v1.3.1
 	github.com/stretchr/testify v1.2.2
 	golang.org/x/net v0.0.0-20181220203305-927f97764cc3 // indirect

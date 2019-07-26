@@ -178,7 +178,7 @@ func letUserChooseNextAction(chSet *awscf.ChangeSet) {
 				TriggerInputs: []string{"q", "quit"},
 				Action: func() {
 					cli.Error("Interrupted by user")
-					MustSucceed(errors.New("sync is cancelled"))
+					MustSucceed(errors.New("sync is canceled"))
 				},
 			},
 		})

@@ -160,11 +160,14 @@ Usage
       -h, --help   help for sync
 
     Global Flags:
-      -c, --configs strings   Alternative config file(s). Default: stack-assembly.yaml
-      -n, --no-interaction    Do not ask any interactive questions
-          --nocolor           Disables color output
-      -p, --profile string    AWS named profile (default "default")
-      -r, --region string     AWS region
+      -c, --configs strings            Alternative config file(s). Default: stack-assembly.yaml
+      -n, --no-interaction             Do not ask any interactive questions
+          --nocolor                    Disables color output
+      -p, --profile string             AWS named profile (default "default")
+      -r, --region string              AWS region
+      -v, --var -v myParam=someValue   Additional variables to use as parameters in config.
+                                       Example: -v myParam=someValue
+
 
 Specifying multiple config files
 --------------------------------

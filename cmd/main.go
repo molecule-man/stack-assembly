@@ -44,6 +44,8 @@ func rootCmd() *cobra.Command {
 		"Disables color output")
 	rootCmd.PersistentFlags().BoolP("no-interaction", "n", false,
 		"Do not ask any interactive questions")
+	rootCmd.PersistentFlags().StringSliceP("var", "v", []string{},
+		"Additional variables to use as parameters in config.\nExample: -v myParam=someValue")
 
 	err := viper.BindPFlag("aws.profile", rootCmd.PersistentFlags().Lookup("profile"))
 	assembly.MustSucceed(err)
@@ -65,10 +67,7 @@ func infoCmd() *cobra.Command {
 		Use:   "info",
 		Short: "Show info about the stacks",
 		Run: func(cmd *cobra.Command, args []string) {
-			cfgFiles, err := cmd.Parent().PersistentFlags().GetStringSlice("configs")
-			assembly.MustSucceed(err)
-
-			cfg, err := conf.LoadConfig(cfgFiles)
+			cfg, err := conf.LoadConfig(cmd.Parent().PersistentFlags())
 			assembly.MustSucceed(err)
 
 			assembly.InfoAll(cfg)
@@ -109,10 +108,7 @@ have to be specified as well:
   stas sync parent_tpl child_tpl`,
 
 		Run: func(cmd *cobra.Command, args []string) {
-			cfgFiles, err := cmd.Parent().PersistentFlags().GetStringSlice("configs")
-			assembly.MustSucceed(err)
-
-			cfg, err := conf.LoadConfig(cfgFiles)
+			cfg, err := conf.LoadConfig(cmd.Parent().PersistentFlags())
 			assembly.MustSucceed(err)
 
 			for _, id := range args {
@@ -142,10 +138,7 @@ func diffCmd() *cobra.Command {
 		Use:   "diff",
 		Short: "Show diff of the stacks to be deployed",
 		Run: func(cmd *cobra.Command, args []string) {
-			cfgFiles, err := cmd.Parent().PersistentFlags().GetStringSlice("configs")
-			assembly.MustSucceed(err)
-
-			cfg, err := conf.LoadConfig(cfgFiles)
+			cfg, err := conf.LoadConfig(cmd.Parent().PersistentFlags())
 			assembly.MustSucceed(err)
 
 			assembly.Diff(cfg)
@@ -158,10 +151,7 @@ func deleteCmd() *cobra.Command {
 		Use:   "delete",
 		Short: "Deletes deployed stacks",
 		Run: func(cmd *cobra.Command, args []string) {
-			cfgFiles, err := cmd.Parent().PersistentFlags().GetStringSlice("configs")
-			assembly.MustSucceed(err)
-
-			cfg, err := conf.LoadConfig(cfgFiles)
+			cfg, err := conf.LoadConfig(cmd.Parent().PersistentFlags())
 			assembly.MustSucceed(err)
 
 			nonInteractive, err := cmd.Parent().PersistentFlags().GetBool("no-interaction")
@@ -178,10 +168,7 @@ func dumpConfigCmd() *cobra.Command {
 		Use:   "dump-config",
 		Short: "Dump loaded config into stdout",
 		Run: func(cmd *cobra.Command, _ []string) {
-			cfgFiles, err := cmd.Parent().PersistentFlags().GetStringSlice("configs")
-			assembly.MustSucceed(err)
-
-			cfg, err := conf.LoadConfig(cfgFiles)
+			cfg, err := conf.LoadConfig(cmd.Parent().PersistentFlags())
 			assembly.MustSucceed(err)
 
 			out := cli.Output

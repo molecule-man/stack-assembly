@@ -19,6 +19,7 @@ import (
 	"github.com/mitchellh/mapstructure"
 	"github.com/molecule-man/stack-assembly/awscf"
 	"github.com/molecule-man/stack-assembly/depgraph"
+	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 	yaml "gopkg.in/yaml.v2"
 )
@@ -172,10 +173,28 @@ func (cfg Config) awsSession() *session.Session {
 	return sess
 }
 
-func LoadConfig(cfgFiles []string) (Config, error) {
+func LoadConfig(flags *pflag.FlagSet) (Config, error) {
+	cfgFiles, err := flags.GetStringSlice("configs")
+	if err != nil {
+		return Config{}, err
+	}
+
 	cfg, err := decodeConfigs(cfgFiles)
 	if err != nil {
 		return cfg, err
+	}
+
+	vars, err := flags.GetStringSlice("var")
+	if err != nil {
+		return cfg, err
+	}
+
+	for _, v := range vars {
+		vParts := strings.Split(v, "=")
+		if len(vParts) != 2 {
+			return cfg, fmt.Errorf("var must have format `key=value`. `%s` is given", v)
+		}
+		cfg.Parameters[vParts[0]] = vParts[1]
 	}
 
 	err = parseBodies("root", &cfg)
@@ -224,7 +243,9 @@ func parseBodies(id string, stackCfg *Config) error {
 }
 
 func decodeConfigs(cfgFiles []string) (Config, error) {
-	mainConfig := Config{}
+	mainConfig := Config{
+		Parameters: map[string]string{},
+	}
 
 	if len(cfgFiles) == 0 {
 		tryCfgFiles := []string{
@@ -245,7 +266,7 @@ func decodeConfigs(cfgFiles []string) (Config, error) {
 	for _, cf := range cfgFiles {
 		extraRawCfg := make(map[string]interface{})
 		if err := parseFile(cf, &extraRawCfg); err != nil {
-			return mainConfig, fmt.Errorf("error occured while parsing config file %s: %v", cf, err)
+			return mainConfig, fmt.Errorf("error occurred while parsing config file %s: %v", cf, err)
 		}
 		merged := merge(mainRawCfg, extraRawCfg)
 		mainRawCfg = merged.(map[string]interface{})
@@ -259,11 +280,11 @@ func decodeConfigs(cfgFiles []string) (Config, error) {
 		definitions, ok := d.(map[string]interface{})
 
 		if !ok {
-			return mainConfig, errors.New("error occured while parsing config: `definitions` should be map")
+			return mainConfig, errors.New("error occurred while parsing config: `definitions` should be map")
 		}
 
 		if err := inheritDefinitions(&mainRawCfg, definitions); err != nil {
-			return mainConfig, fmt.Errorf("error occured while parsing config: %v", err)
+			return mainConfig, fmt.Errorf("error occurred while parsing config: %v", err)
 		}
 	}
 
