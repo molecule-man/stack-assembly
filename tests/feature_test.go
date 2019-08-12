@@ -148,7 +148,7 @@ func (f *feature) iRun(cmd string) error {
 		return err
 	}
 
-	c := exec.Command(bin, strings.Split(cmd, " ")...)
+	c := exec.Command(bin, strings.Split(f.replaceParameters(cmd), " ")...)
 	c.Dir = f.testDir
 
 	out, err := c.CombinedOutput()
@@ -293,7 +293,7 @@ func (f *feature) iLaunched(cmdInstruction string) error {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 25*time.Second)
 	f.cancel = cancel
-	cmd := exec.CommandContext(ctx, bin, strings.Split(cmdInstruction, " ")...)
+	cmd := exec.CommandContext(ctx, bin, strings.Split(f.replaceParameters(cmdInstruction), " ")...)
 	cmd.Dir = f.testDir
 
 	cmd.Stdin = c.Tty()

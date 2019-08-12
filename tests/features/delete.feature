@@ -55,7 +55,7 @@ Feature: stas delete
             """
         And terminal shows:
             """
-            deletion is cancelled
+            deletion is canceled
             """
         And launched program should exit with non zero status
         And stack "stastest-%scenarioid%" should have status "CREATE_COMPLETE"

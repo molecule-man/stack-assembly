@@ -184,32 +184,36 @@ func LoadConfig(flags *pflag.FlagSet) (Config, error) {
 		return cfg, err
 	}
 
+	return cfg, InitConfig(flags, &cfg)
+}
+
+func InitConfig(flags *pflag.FlagSet, cfg *Config) error {
 	vars, err := flags.GetStringSlice("var")
 	if err != nil {
-		return cfg, err
+		return err
 	}
 
 	for _, v := range vars {
 		vParts := strings.Split(v, "=")
 		if len(vParts) != 2 {
-			return cfg, fmt.Errorf("var must have format `key=value`. `%s` is given", v)
+			return fmt.Errorf("var must have format `key=value`. `%s` is given", v)
 		}
 		cfg.Parameters[vParts[0]] = vParts[1]
 	}
 
-	err = parseBodies("root", &cfg)
+	err = parseBodies("root", cfg)
 	if err != nil {
-		return cfg, err
+		return err
 	}
 
 	err = initEnvSettings(&cfg.Settings)
 	if err != nil {
-		return cfg, err
+		return err
 	}
 
 	cfg.initAwsSettings()
 
-	return cfg, applyTemplating(&cfg)
+	return applyTemplating(cfg)
 }
 
 func parseBodies(id string, stackCfg *Config) error {

@@ -54,7 +54,7 @@ Feature: stas sync in interactive mode
             """
         And terminal shows:
             """
-            sync is cancelled
+            sync is canceled
             """
         And launched program should exit with non zero status
 

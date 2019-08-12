@@ -33,7 +33,9 @@ func rootCmd() *cobra.Command {
 	var nocolor bool
 
 	rootCmd := &cobra.Command{
-		Use: "stas",
+		Use:  "stas <stack name> <template path>",
+		Args: cobra.ExactArgs(2),
+		Run:  deployTpl,
 	}
 	rootCmd.PersistentFlags().StringP("profile", "p", "default", "AWS named profile")
 	rootCmd.PersistentFlags().StringP("region", "r", "", "AWS region")
@@ -73,6 +75,24 @@ func infoCmd() *cobra.Command {
 			assembly.InfoAll(cfg)
 		},
 	}
+}
+
+func deployTpl(cmd *cobra.Command, args []string) {
+	stackName := args[0]
+	tplPath := args[1]
+
+	cfg := conf.Config{
+		Parameters: map[string]string{},
+		Name:       stackName,
+		Path:       tplPath,
+	}
+
+	assembly.MustSucceed(conf.InitConfig(cmd.PersistentFlags(), &cfg))
+
+	nonInteractive, err := cmd.PersistentFlags().GetBool("no-interaction")
+	assembly.MustSucceed(err)
+
+	assembly.Sync(cfg, nonInteractive)
 }
 
 func syncCmd() *cobra.Command {
