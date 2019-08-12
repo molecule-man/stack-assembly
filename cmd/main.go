@@ -49,6 +49,9 @@ func rootCmd() *cobra.Command {
 	rootCmd.PersistentFlags().StringSliceP("var", "v", []string{},
 		"Additional variables to use as parameters in config.\nExample: -v myParam=someValue")
 
+	rootCmd.Flags().StringSlice("capabilities", []string{},
+		"A list of capabilities that you must specify before AWS\nCloudformation can create certain stacks. E.g. CAPABILITY_IAM")
+
 	err := viper.BindPFlag("aws.profile", rootCmd.PersistentFlags().Lookup("profile"))
 	assembly.MustSucceed(err)
 
@@ -81,10 +84,14 @@ func deployTpl(cmd *cobra.Command, args []string) {
 	stackName := args[0]
 	tplPath := args[1]
 
+	capabilities, err := cmd.Flags().GetStringSlice("capabilities")
+	assembly.MustSucceed(err)
+
 	cfg := conf.Config{
-		Parameters: map[string]string{},
-		Name:       stackName,
-		Path:       tplPath,
+		Parameters:   map[string]string{},
+		Name:         stackName,
+		Path:         tplPath,
+		Capabilities: capabilities,
 	}
 
 	assembly.MustSucceed(conf.InitConfig(cmd.PersistentFlags(), &cfg))
