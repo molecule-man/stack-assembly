@@ -188,17 +188,13 @@ func LoadConfig(flags *pflag.FlagSet) (Config, error) {
 }
 
 func InitConfig(flags *pflag.FlagSet, cfg *Config) error {
-	vars, err := flags.GetStringSlice("var")
+	vars, err := flags.GetStringToString("var")
 	if err != nil {
 		return err
 	}
 
-	for _, v := range vars {
-		vParts := strings.Split(v, "=")
-		if len(vParts) != 2 {
-			return fmt.Errorf("var must have format `key=value`. `%s` is given", v)
-		}
-		cfg.Parameters[vParts[0]] = vParts[1]
+	for k, v := range vars {
+		cfg.Parameters[k] = v
 	}
 
 	err = parseBodies("root", cfg)

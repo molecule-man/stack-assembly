@@ -46,7 +46,7 @@ func rootCmd() *cobra.Command {
 		"Disables color output")
 	rootCmd.PersistentFlags().BoolP("no-interaction", "n", false,
 		"Do not ask any interactive questions")
-	rootCmd.PersistentFlags().StringSliceP("var", "v", []string{},
+	rootCmd.PersistentFlags().StringToStringP("var", "v", map[string]string{},
 		"Additional variables to use as parameters in config.\nExample: -v myParam=someValue")
 
 	rootCmd.Flags().StringSlice("capabilities", []string{},
