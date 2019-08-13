@@ -21,6 +21,7 @@ func main() {
 	rootCmd.AddCommand(
 		infoCmd(),
 		syncCmd(),
+		deployCmd(),
 		diffCmd(),
 		deleteCmd(),
 		dumpConfigCmd(),
@@ -33,9 +34,7 @@ func rootCmd() *cobra.Command {
 	var nocolor bool
 
 	rootCmd := &cobra.Command{
-		Use:  "stas <stack name> <template path>",
-		Args: cobra.ExactArgs(2),
-		Run:  deployTpl,
+		Use: "stas <stack name> <template path>",
 	}
 	rootCmd.PersistentFlags().StringP("profile", "p", "default", "AWS named profile")
 	rootCmd.PersistentFlags().StringP("region", "r", "", "AWS region")
@@ -48,9 +47,6 @@ func rootCmd() *cobra.Command {
 		"Do not ask any interactive questions")
 	rootCmd.PersistentFlags().StringToStringP("var", "v", map[string]string{},
 		"Additional variables to use as parameters in config.\nExample: -v myParam=someValue")
-
-	rootCmd.Flags().StringSlice("capabilities", []string{},
-		"A list of capabilities that you must specify before AWS\nCloudformation can create certain stacks. E.g. CAPABILITY_IAM")
 
 	err := viper.BindPFlag("aws.profile", rootCmd.PersistentFlags().Lookup("profile"))
 	assembly.MustSucceed(err)
@@ -80,33 +76,43 @@ func infoCmd() *cobra.Command {
 	}
 }
 
-func deployTpl(cmd *cobra.Command, args []string) {
-	stackName := args[0]
-	tplPath := args[1]
+func deployCmd() *cobra.Command {
+	var capabilities []string
 
-	capabilities, err := cmd.Flags().GetStringSlice("capabilities")
-	assembly.MustSucceed(err)
+	cmd := &cobra.Command{
+		Use:   "deploy <stack name> <template path>",
+		Args:  cobra.ExactArgs(2),
+		Short: "Deploys single cloudformation template",
+		Run: func(cmd *cobra.Command, args []string) {
+			stackName := args[0]
+			tplPath := args[1]
 
-	cfg := conf.Config{
-		Parameters:   map[string]string{},
-		Name:         stackName,
-		Path:         tplPath,
-		Capabilities: capabilities,
+			cfg := conf.Config{
+				Parameters:   map[string]string{},
+				Name:         stackName,
+				Path:         tplPath,
+				Capabilities: capabilities,
+			}
+
+			assembly.MustSucceed(conf.InitConfig(cmd.Parent().PersistentFlags(), &cfg))
+
+			nonInteractive, err := cmd.Parent().PersistentFlags().GetBool("no-interaction")
+			assembly.MustSucceed(err)
+
+			assembly.Sync(cfg, nonInteractive)
+		},
 	}
 
-	assembly.MustSucceed(conf.InitConfig(cmd.PersistentFlags(), &cfg))
+	cmd.Flags().StringSliceVar(&capabilities, "capabilities", []string{},
+		"A list of capabilities that you must specify before AWS\nCloudformation can create certain stacks. E.g. CAPABILITY_IAM")
 
-	nonInteractive, err := cmd.PersistentFlags().GetBool("no-interaction")
-	assembly.MustSucceed(err)
-
-	assembly.Sync(cfg, nonInteractive)
+	return cmd
 }
 
 func syncCmd() *cobra.Command {
 	return &cobra.Command{
-		Use:     "sync [<ID> [<ID> ...]]",
-		Aliases: []string{"deploy"},
-		Short:   "Synchronize (deploy) stacks",
+		Use:   "sync [<ID> [<ID> ...]]",
+		Short: "Deploy stacks using the config file(s)",
 		Long: `Creates or updates stacks specified in the config file(s).
 
 By default sync command deploys all the stacks described in the config file(s).

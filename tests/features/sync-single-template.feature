@@ -10,7 +10,7 @@ Feature: stas deploy only single template
                 Properties:
                   ClusterName: !Ref AWS::StackName
             """
-        When I successfully run "--no-interaction stastest-%scenarioid% tpl.yaml"
+        When I successfully run "deploy --no-interaction stastest-%scenarioid% tpl.yaml"
         Then stack "stastest-%scenarioid%" should have status "CREATE_COMPLETE"
 
     @short
@@ -26,5 +26,5 @@ Feature: stas deploy only single template
                 Properties:
                   ClusterName: !Sub "${AWS::StackName}-${version}"
             """
-        When I successfully run "--no-interaction stastest-%scenarioid% tpl.yaml -v version=1-2-3"
+        When I successfully run "deploy --no-interaction stastest-%scenarioid% tpl.yaml -v version=1-2-3"
         Then stack "stastest-%scenarioid%" should have status "CREATE_COMPLETE"
