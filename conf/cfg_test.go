@@ -57,7 +57,8 @@ func TestParseJSON(t *testing.T) {
 	fpath, cleanup := makeTestFile(t, ".json", jsonContent)
 	defer cleanup()
 
-	actualConfig, err := decodeConfigs([]string{fpath})
+	actualConfig := Config{}
+	err := decodeConfigs(&actualConfig, []string{fpath})
 	require.NoError(t, err)
 	assert.Equal(t, expectedParsedConfig, actualConfig)
 }
@@ -83,7 +84,8 @@ stacks:
 	fpath, cleanup := makeTestFile(t, ".yaml", yamlContent)
 	defer cleanup()
 
-	actualConfig, err := decodeConfigs([]string{fpath})
+	actualConfig := Config{}
+	err := decodeConfigs(&actualConfig, []string{fpath})
 	require.NoError(t, err)
 	assert.Equal(t, expectedParsedConfig, actualConfig)
 }
@@ -113,7 +115,8 @@ blocked = []
 	fpath, cleanup := makeTestFile(t, ".toml", tomlContent)
 	defer cleanup()
 
-	actualConfig, err := decodeConfigs([]string{fpath})
+	actualConfig := Config{}
+	err := decodeConfigs(&actualConfig, []string{fpath})
 	require.NoError(t, err)
 	assert.Equal(t, expectedParsedConfig, actualConfig)
 }
@@ -183,7 +186,8 @@ stacks:
 	fpath2, cleanup2 := makeTestFile(t, ".yml", cfg2)
 	defer cleanup2()
 
-	actual, err := decodeConfigs([]string{fpath1, fpath2})
+	actual := Config{}
+	err := decodeConfigs(&actual, []string{fpath1, fpath2})
 	require.NoError(t, err)
 	assert.Equal(t, expected, actual)
 }

@@ -1,7 +1,6 @@
 package conf
 
 import (
-	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -19,8 +18,6 @@ import (
 	"github.com/mitchellh/mapstructure"
 	"github.com/molecule-man/stack-assembly/awscf"
 	"github.com/molecule-man/stack-assembly/depgraph"
-	"github.com/spf13/pflag"
-	"github.com/spf13/viper"
 	yaml "gopkg.in/yaml.v2"
 )
 
@@ -32,6 +29,20 @@ type AwsConfig struct {
 	Region   string
 	Profile  string
 	Endpoint string
+}
+
+func (ac *AwsConfig) merge(otherCfg AwsConfig) {
+	if ac.Region == "" {
+		ac.Region = otherCfg.Region
+	}
+
+	if ac.Profile == "" {
+		ac.Profile = otherCfg.Profile
+	}
+
+	if ac.Endpoint == "" {
+		ac.Endpoint = otherCfg.Endpoint
+	}
 }
 
 // Config is a struct holding stacks configurations
@@ -109,17 +120,7 @@ func (cfg Config) ChangeSet() *awscf.ChangeSet {
 
 func (cfg *Config) initAwsSettings() {
 	for i, s := range cfg.Stacks {
-		if s.Settings.Aws.Region == "" {
-			s.Settings.Aws.Region = cfg.Settings.Aws.Region
-		}
-
-		if s.Settings.Aws.Profile == "" {
-			s.Settings.Aws.Profile = cfg.Settings.Aws.Profile
-		}
-
-		if s.Settings.Aws.Endpoint == "" {
-			s.Settings.Aws.Endpoint = cfg.Settings.Aws.Endpoint
-		}
+		s.Settings.Aws.merge(cfg.Settings.Aws)
 
 		s.initAwsSettings()
 
@@ -173,36 +174,17 @@ func (cfg Config) awsSession() *session.Session {
 	return sess
 }
 
-func LoadConfig(flags *pflag.FlagSet) (Config, error) {
-	cfgFiles, err := flags.GetStringSlice("configs")
+func LoadConfig(cfgFiles []string, cfg *Config) error {
+	err := decodeConfigs(cfg, cfgFiles)
 	if err != nil {
-		return Config{}, err
+		return err
 	}
 
-	cfg, err := decodeConfigs(cfgFiles)
-	if err != nil {
-		return cfg, err
-	}
-
-	return cfg, InitConfig(flags, &cfg)
+	return InitConfig(cfg)
 }
 
-func InitConfig(flags *pflag.FlagSet, cfg *Config) error {
-	vars, err := flags.GetStringToString("var")
-	if err != nil {
-		return err
-	}
-
-	for k, v := range vars {
-		cfg.Parameters[k] = v
-	}
-
-	err = parseBodies("root", cfg)
-	if err != nil {
-		return err
-	}
-
-	err = initEnvSettings(&cfg.Settings)
+func InitConfig(cfg *Config) error {
+	err := parseBodies("root", cfg)
 	if err != nil {
 		return err
 	}
@@ -242,11 +224,7 @@ func parseBodies(id string, stackCfg *Config) error {
 	return nil
 }
 
-func decodeConfigs(cfgFiles []string) (Config, error) {
-	mainConfig := Config{
-		Parameters: map[string]string{},
-	}
-
+func decodeConfigs(mainConfig *Config, cfgFiles []string) error {
 	if len(cfgFiles) == 0 {
 		tryCfgFiles := []string{
 			"stack-assembly.yaml",
@@ -266,7 +244,7 @@ func decodeConfigs(cfgFiles []string) (Config, error) {
 	for _, cf := range cfgFiles {
 		extraRawCfg := make(map[string]interface{})
 		if err := parseFile(cf, &extraRawCfg); err != nil {
-			return mainConfig, fmt.Errorf("error occurred while parsing config file %s: %v", cf, err)
+			return fmt.Errorf("error occurred while parsing config file %s: %v", cf, err)
 		}
 		merged := merge(mainRawCfg, extraRawCfg)
 		mainRawCfg = merged.(map[string]interface{})
@@ -280,25 +258,25 @@ func decodeConfigs(cfgFiles []string) (Config, error) {
 		definitions, ok := d.(map[string]interface{})
 
 		if !ok {
-			return mainConfig, errors.New("error occurred while parsing config: `definitions` should be map")
+			return errors.New("error occurred while parsing config: `definitions` should be map")
 		}
 
 		if err := inheritDefinitions(&mainRawCfg, definitions); err != nil {
-			return mainConfig, fmt.Errorf("error occurred while parsing config: %v", err)
+			return fmt.Errorf("error occurred while parsing config: %v", err)
 		}
 	}
 
 	config := mapstructure.DecoderConfig{
 		ErrorUnused: true,
-		Result:      &mainConfig,
+		Result:      mainConfig,
 	}
 
 	decoder, err := mapstructure.NewDecoder(&config)
 	if err != nil {
-		return mainConfig, err
+		return err
 	}
 
-	return mainConfig, decoder.Decode(mainRawCfg)
+	return decoder.Decode(mainRawCfg)
 }
 
 func inheritDefinitions(cfg *map[string]interface{}, definitions map[string]interface{}) error {
@@ -335,25 +313,6 @@ func inheritDefinitions(cfg *map[string]interface{}, definitions map[string]inte
 	}
 
 	return nil
-}
-
-func initEnvSettings(settings *settingsConfig) error {
-	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
-	viper.AutomaticEnv()
-
-	viper.SetConfigType("json")
-	buf := bytes.Buffer{}
-	enc := json.NewEncoder(&buf)
-
-	if err := enc.Encode(settings); err != nil {
-		return err
-	}
-
-	if err := viper.ReadConfig(&buf); err != nil {
-		return err
-	}
-
-	return viper.Unmarshal(settings)
 }
 
 func parseFile(filename string, cfg *map[string]interface{}) error {

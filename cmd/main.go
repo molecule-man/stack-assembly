@@ -4,6 +4,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"os"
 
 	"github.com/BurntSushi/toml"
 	assembly "github.com/molecule-man/stack-assembly"
@@ -11,9 +12,11 @@ import (
 	"github.com/molecule-man/stack-assembly/cli/color"
 	"github.com/molecule-man/stack-assembly/conf"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 	yaml "gopkg.in/yaml.v2"
 )
+
+var cfg = conf.Config{}
+var cfgFiles []string
 
 func main() {
 	rootCmd := rootCmd()
@@ -33,31 +36,29 @@ func main() {
 func rootCmd() *cobra.Command {
 	var nocolor bool
 
+	defaultProfile := "default"
+	if profile := os.Getenv("AWS_PROFILE"); profile != "" {
+		defaultProfile = profile
+	}
+
 	rootCmd := &cobra.Command{
 		Use: "stas <stack name> <template path>",
 	}
-	rootCmd.PersistentFlags().StringP("profile", "p", "default", "AWS named profile")
-	rootCmd.PersistentFlags().StringP("region", "r", "", "AWS region")
+	rootCmd.PersistentFlags().StringVarP(&cfg.Settings.Aws.Profile, "profile", "p", defaultProfile, "AWS named profile")
+	rootCmd.PersistentFlags().StringVarP(&cfg.Settings.Aws.Region, "region", "r", os.Getenv("AWS_REGION"), "AWS region")
 
-	rootCmd.PersistentFlags().StringSliceP("configs", "c", []string{},
+	rootCmd.PersistentFlags().StringSliceVarP(&cfgFiles, "configs", "c", []string{},
 		"Alternative config file(s). Default: stack-assembly.yaml")
 	rootCmd.PersistentFlags().BoolVar(&nocolor, "nocolor", false,
 		"Disables color output")
 	rootCmd.PersistentFlags().BoolP("no-interaction", "n", false,
 		"Do not ask any interactive questions")
-	rootCmd.PersistentFlags().StringToStringP("var", "v", map[string]string{},
+
+	rootCmd.PersistentFlags().StringToStringVarP(&cfg.Parameters, "var", "v", map[string]string{},
 		"Additional variables to use as parameters in config.\nExample: -v myParam=someValue")
-
-	err := viper.BindPFlag("aws.profile", rootCmd.PersistentFlags().Lookup("profile"))
-	assembly.MustSucceed(err)
-
-	err = viper.BindPFlag("aws.region", rootCmd.PersistentFlags().Lookup("region"))
-	assembly.MustSucceed(err)
 
 	cobra.OnInitialize(func() {
 		color.NoColor = nocolor
-		err := viper.BindPFlags(rootCmd.PersistentFlags())
-		assembly.MustSucceed(err)
 	})
 
 	return rootCmd
@@ -68,7 +69,7 @@ func infoCmd() *cobra.Command {
 		Use:   "info",
 		Short: "Show info about the stacks",
 		Run: func(cmd *cobra.Command, args []string) {
-			cfg, err := conf.LoadConfig(cmd.Parent().PersistentFlags())
+			err := conf.LoadConfig(cfgFiles, &cfg)
 			assembly.MustSucceed(err)
 
 			assembly.InfoAll(cfg)
@@ -84,17 +85,11 @@ func deployCmd() *cobra.Command {
 		Args:  cobra.ExactArgs(2),
 		Short: "Deploys single cloudformation template",
 		Run: func(cmd *cobra.Command, args []string) {
-			stackName := args[0]
-			tplPath := args[1]
+			cfg.Name = args[0]
+			cfg.Path = args[1]
+			cfg.Capabilities = capabilities
 
-			cfg := conf.Config{
-				Parameters:   map[string]string{},
-				Name:         stackName,
-				Path:         tplPath,
-				Capabilities: capabilities,
-			}
-
-			assembly.MustSucceed(conf.InitConfig(cmd.Parent().PersistentFlags(), &cfg))
+			assembly.MustSucceed(conf.InitConfig(&cfg))
 
 			nonInteractive, err := cmd.Parent().PersistentFlags().GetBool("no-interaction")
 			assembly.MustSucceed(err)
@@ -141,7 +136,7 @@ have to be specified as well:
   stas sync parent_tpl child_tpl`,
 
 		Run: func(cmd *cobra.Command, args []string) {
-			cfg, err := conf.LoadConfig(cmd.Parent().PersistentFlags())
+			err := conf.LoadConfig(cfgFiles, &cfg)
 			assembly.MustSucceed(err)
 
 			for _, id := range args {
@@ -171,7 +166,7 @@ func diffCmd() *cobra.Command {
 		Use:   "diff",
 		Short: "Show diff of the stacks to be deployed",
 		Run: func(cmd *cobra.Command, args []string) {
-			cfg, err := conf.LoadConfig(cmd.Parent().PersistentFlags())
+			err := conf.LoadConfig(cfgFiles, &cfg)
 			assembly.MustSucceed(err)
 
 			assembly.Diff(cfg)
@@ -184,7 +179,7 @@ func deleteCmd() *cobra.Command {
 		Use:   "delete",
 		Short: "Deletes deployed stacks",
 		Run: func(cmd *cobra.Command, args []string) {
-			cfg, err := conf.LoadConfig(cmd.Parent().PersistentFlags())
+			err := conf.LoadConfig(cfgFiles, &cfg)
 			assembly.MustSucceed(err)
 
 			nonInteractive, err := cmd.Parent().PersistentFlags().GetBool("no-interaction")
@@ -201,7 +196,7 @@ func dumpConfigCmd() *cobra.Command {
 		Use:   "dump-config",
 		Short: "Dump loaded config into stdout",
 		Run: func(cmd *cobra.Command, _ []string) {
-			cfg, err := conf.LoadConfig(cmd.Parent().PersistentFlags())
+			err := conf.LoadConfig(cfgFiles, &cfg)
 			assembly.MustSucceed(err)
 
 			out := cli.Output
