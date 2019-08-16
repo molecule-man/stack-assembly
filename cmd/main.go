@@ -12,14 +12,25 @@ import (
 	"github.com/molecule-man/stack-assembly/cli/color"
 	"github.com/molecule-man/stack-assembly/conf"
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 	yaml "gopkg.in/yaml.v2"
 )
 
-var cfg = conf.Config{}
+var cfg = conf.Config{
+	Parameters:   map[string]string{},
+	Tags:         map[string]string{},
+	Capabilities: []string{},
+}
+
+var cfgFilesFlag = pflag.NewFlagSet("configs", pflag.ContinueOnError)
 var cfgFiles []string
+var nonInteractive bool
 
 func main() {
 	rootCmd := rootCmd()
+
+	cfgFilesFlag.StringSliceVarP(&cfgFiles, "configs", "c", []string{},
+		"Alternative config file(s). Default: stack-assembly.yaml")
 
 	rootCmd.AddCommand(
 		infoCmd(),
@@ -47,11 +58,11 @@ func rootCmd() *cobra.Command {
 	rootCmd.PersistentFlags().StringVarP(&cfg.Settings.Aws.Profile, "profile", "p", defaultProfile, "AWS named profile")
 	rootCmd.PersistentFlags().StringVarP(&cfg.Settings.Aws.Region, "region", "r", os.Getenv("AWS_REGION"), "AWS region")
 
-	rootCmd.PersistentFlags().StringSliceVarP(&cfgFiles, "configs", "c", []string{},
-		"Alternative config file(s). Default: stack-assembly.yaml")
+	// rootCmd.PersistentFlags().StringSliceVarP(&cfgFiles, "configs", "c", []string{},
+	// 	"Alternative config file(s). Default: stack-assembly.yaml")
 	rootCmd.PersistentFlags().BoolVar(&nocolor, "nocolor", false,
 		"Disables color output")
-	rootCmd.PersistentFlags().BoolP("no-interaction", "n", false,
+	rootCmd.PersistentFlags().BoolVarP(&nonInteractive, "no-interaction", "n", false,
 		"Do not ask any interactive questions")
 
 	rootCmd.PersistentFlags().StringToStringVarP(&cfg.Parameters, "var", "v", map[string]string{},
@@ -65,7 +76,7 @@ func rootCmd() *cobra.Command {
 }
 
 func infoCmd() *cobra.Command {
-	return &cobra.Command{
+	cmd := &cobra.Command{
 		Use:   "info",
 		Short: "Show info about the stacks",
 		Run: func(cmd *cobra.Command, args []string) {
@@ -75,11 +86,12 @@ func infoCmd() *cobra.Command {
 			assembly.InfoAll(cfg)
 		},
 	}
+
+	cmd.Flags().AddFlagSet(cfgFilesFlag)
+	return cmd
 }
 
 func deployCmd() *cobra.Command {
-	var capabilities []string
-
 	cmd := &cobra.Command{
 		Use:   "deploy <stack name> <template path>",
 		Args:  cobra.ExactArgs(2),
@@ -87,25 +99,21 @@ func deployCmd() *cobra.Command {
 		Run: func(cmd *cobra.Command, args []string) {
 			cfg.Name = args[0]
 			cfg.Path = args[1]
-			cfg.Capabilities = capabilities
 
 			assembly.MustSucceed(conf.InitConfig(&cfg))
-
-			nonInteractive, err := cmd.Parent().PersistentFlags().GetBool("no-interaction")
-			assembly.MustSucceed(err)
-
 			assembly.Sync(cfg, nonInteractive)
 		},
 	}
 
-	cmd.Flags().StringSliceVar(&capabilities, "capabilities", []string{},
+	cmd.Flags().StringSliceVar(&cfg.Capabilities, "capabilities", cfg.Capabilities,
 		"A list of capabilities that you must specify before AWS\nCloudformation can create certain stacks. E.g. CAPABILITY_IAM")
+	cmd.Flags().StringToStringVar(&cfg.Tags, "tags", cfg.Tags, "A list of tags to associate with the stack that is deployed")
 
 	return cmd
 }
 
 func syncCmd() *cobra.Command {
-	return &cobra.Command{
+	cmd := &cobra.Command{
 		Use:   "sync [<ID> [<ID> ...]]",
 		Short: "Deploy stacks using the config file(s)",
 		Long: `Creates or updates stacks specified in the config file(s).
@@ -153,16 +161,16 @@ have to be specified as well:
 				cfg = stack
 			}
 
-			nonInteractive, err := cmd.Parent().PersistentFlags().GetBool("no-interaction")
-			assembly.MustSucceed(err)
-
 			assembly.Sync(cfg, nonInteractive)
 		},
 	}
+
+	cmd.Flags().AddFlagSet(cfgFilesFlag)
+	return cmd
 }
 
 func diffCmd() *cobra.Command {
-	return &cobra.Command{
+	cmd := &cobra.Command{
 		Use:   "diff",
 		Short: "Show diff of the stacks to be deployed",
 		Run: func(cmd *cobra.Command, args []string) {
@@ -172,22 +180,25 @@ func diffCmd() *cobra.Command {
 			assembly.Diff(cfg)
 		},
 	}
+
+	cmd.Flags().AddFlagSet(cfgFilesFlag)
+	return cmd
 }
 
 func deleteCmd() *cobra.Command {
-	return &cobra.Command{
+	cmd := &cobra.Command{
 		Use:   "delete",
 		Short: "Deletes deployed stacks",
 		Run: func(cmd *cobra.Command, args []string) {
 			err := conf.LoadConfig(cfgFiles, &cfg)
 			assembly.MustSucceed(err)
 
-			nonInteractive, err := cmd.Parent().PersistentFlags().GetBool("no-interaction")
-			assembly.MustSucceed(err)
-
 			assembly.Delete(cfg, nonInteractive)
 		},
 	}
+
+	cmd.Flags().AddFlagSet(cfgFilesFlag)
+	return cmd
 }
 
 func dumpConfigCmd() *cobra.Command {
@@ -199,23 +210,28 @@ func dumpConfigCmd() *cobra.Command {
 			err := conf.LoadConfig(cfgFiles, &cfg)
 			assembly.MustSucceed(err)
 
-			out := cli.Output
-
-			switch format {
-			case "yaml", "yml":
-				assembly.MustSucceed(yaml.NewEncoder(out).Encode(cfg))
-			case "json":
-				enc := json.NewEncoder(out)
-				enc.SetIndent("", "  ")
-				assembly.MustSucceed(enc.Encode(cfg))
-			case "toml":
-				assembly.MustSucceed(toml.NewEncoder(out).Encode(cfg))
-			default:
-				assembly.Terminate("unknown format: " + format)
-			}
+			dumpCfg(format)
 		},
 	}
 	dumpCmd.Flags().StringVarP(&format, "format", "f", "yaml", "One of: yaml, toml, json")
+	dumpCmd.Flags().AddFlagSet(cfgFilesFlag)
 
 	return dumpCmd
+}
+
+func dumpCfg(format string) {
+	out := cli.Output
+
+	switch format {
+	case "yaml", "yml":
+		assembly.MustSucceed(yaml.NewEncoder(out).Encode(cfg))
+	case "json":
+		enc := json.NewEncoder(out)
+		enc.SetIndent("", "  ")
+		assembly.MustSucceed(enc.Encode(cfg))
+	case "toml":
+		assembly.MustSucceed(toml.NewEncoder(out).Encode(cfg))
+	default:
+		assembly.Terminate("unknown format: " + format)
+	}
 }
