@@ -21,6 +21,7 @@ var mu = sync.Mutex{}
 func newDumper(testID, featureID, scenarioID string) *dumper {
 	mu.Lock()
 	defer mu.Unlock()
+
 	if _, ok := dumpersPool[scenarioID]; !ok {
 		dumpersPool[scenarioID] = &dumper{
 			rr:          registries{},
@@ -32,6 +33,7 @@ func newDumper(testID, featureID, scenarioID string) *dumper {
 		}
 		dumpersPool[scenarioID].addReplacement(featureID, "FEATURE_ID")
 	}
+
 	return dumpersPool[scenarioID]
 }
 
@@ -86,7 +88,9 @@ func (d *dumper) read(methodName string, input interface{}, output interface{}) 
 		if jErr != nil {
 			log.Fatal(jErr)
 		}
+
 		fmt.Printf("json = %+v\n", string(jsonF))
+
 		jsonFStr := d.rr.replace(d.scenarioID, string(jsonF))
 		fmt.Printf("jsonStr = %+v\n", jsonFStr)
 
@@ -139,28 +143,14 @@ func (d *dumper) dumpFile(f string, data interface{}) {
 	}
 }
 func (d *dumper) hash(input interface{}) string {
-	// return hex.EncodeToString(structhash.Sha1(input, 1))
-
-	// h, err := hashstructure.Hash(input, nil)
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
-
-	// return strconv.FormatUint(h, 10)
-
 	js, err := json.Marshal(input)
 	if err != nil {
 		log.Fatal(err)
 	}
-	// jsonF, err := json.MarshalIndent(input, "", "  ")
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
-	// fmt.Printf("json = %+v\n", string(jsonF))
+
 	jsonStr := d.rr.replace(d.scenarioID, string(js))
-	// jsonFStr := d.rr.replace(d.scenarioID, string(jsonF))
-	// fmt.Printf("jsonStr = %+v\n", jsonFStr)
 	buf := md5.Sum([]byte(jsonStr))
+
 	return hex.EncodeToString(buf[:])
 }
 

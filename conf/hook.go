@@ -27,19 +27,21 @@ func (h HookCmds) Exec() error {
 			return err
 		}
 	}
+
 	return nil
 }
 
 func (h hookCmd) exec() error {
-
 	if len(h) == 0 {
 		return errors.New("hook command is empty")
 	}
+
 	cmd := h[0]
 	out, err := exec.Command(cmd, h[1:]...).CombinedOutput()
 
 	if err != nil {
 		return &HookError{h, err, out}
 	}
+
 	return nil
 }

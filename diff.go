@@ -14,7 +14,7 @@ func (sa SA) Diff(cfg conf.Config) {
 		return
 	}
 
-	diff, err := awscf.ChSetDiff{sa.cli.Color}.Diff(cfg.ChangeSet())
+	diff, err := awscf.ChSetDiff{Color: sa.cli.Color}.Diff(cfg.ChangeSet())
 	MustSucceed(err)
 
 	sa.cli.Print(diff)

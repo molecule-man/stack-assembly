@@ -41,6 +41,7 @@ func (cp *chSetParams) collect() ([]*cloudformation.Parameter, error) {
 	if len(cp.missingKeys) > 0 {
 		err := &ParametersMissingError{}
 		err.MissingParameters = cp.missingKeys
+
 		return cp.builtPP, err
 	}
 
@@ -59,6 +60,7 @@ func (cp *chSetParams) add(bodyParam *cloudformation.TemplateParameter) {
 			ParameterKey:   aws.String(paramKey),
 			ParameterValue: aws.String(v),
 		})
+
 		return
 	}
 

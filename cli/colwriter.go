@@ -55,6 +55,7 @@ func (cw *ColWriter) Flush() error {
 	for i, line := range lines {
 		outputLines[i] = cw.sprintLine(line)
 	}
+
 	output := strings.Join(outputLines, "\n")
 	buf = []byte(output)
 	buf = append(buf, lastBytes...)
@@ -75,14 +76,18 @@ func (cw *ColWriter) sprintLine(line []string) string {
 	}
 
 	cells := make([]string, len(cw.widths))
+
 	for i := range cw.widths {
 		c := ""
 		if i < len(line) {
 			c = line[i]
 		}
+
 		cells[i] = cw.sprintCell(i, c)
 	}
+
 	output := strings.Join(cells, cw.sep)
+
 	if !cw.PadLastColumn {
 		output = strings.TrimRight(output, " ")
 	}
@@ -104,6 +109,7 @@ func (cw *ColWriter) sprintCell(n int, content string) string {
 	for i := 0; i < cw.widths[n]-contentWidth; i++ {
 		content += " "
 	}
+
 	return content
 }
 

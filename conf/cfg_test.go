@@ -55,6 +55,7 @@ func TestParseJSON(t *testing.T) {
     }
   }
 }`
+
 	fpath, cleanup := makeTestFile(t, ".json", jsonContent)
 	defer cleanup()
 
@@ -82,6 +83,7 @@ stacks:
       - sns1
     blocked: []
 `
+
 	fpath, cleanup := makeTestFile(t, ".yaml", yamlContent)
 	defer cleanup()
 
@@ -113,6 +115,7 @@ dependson = [
 ]
 blocked = []
 `
+
 	fpath, cleanup := makeTestFile(t, ".toml", tomlContent)
 	defer cleanup()
 
@@ -122,8 +125,7 @@ blocked = []
 	assert.Equal(t, expectedParsedConfig, actualConfig)
 }
 
-func TestMergeConfigs(t *testing.T) {
-	cfg1 := `
+var mergeTestCfg1 = `
 parameters:
   Param1: val1
 stacks:
@@ -141,7 +143,7 @@ stacks:
     path: path2
     name: name2`
 
-	cfg2 := `
+var mergeTestCfg2 = `
 parameters:
   Param1: overwriten_val1
 stacks:
@@ -158,6 +160,7 @@ stacks:
     blocked:
       - sns2`
 
+func TestMergeConfigs(t *testing.T) {
 	expected := Config{
 		Parameters: map[string]string{
 			"Param1": "overwriten_val1",
@@ -181,10 +184,11 @@ stacks:
 			},
 		},
 	}
-	fpath1, cleanup1 := makeTestFile(t, ".yml", cfg1)
+
+	fpath1, cleanup1 := makeTestFile(t, ".yml", mergeTestCfg1)
 	defer cleanup1()
 
-	fpath2, cleanup2 := makeTestFile(t, ".yml", cfg2)
+	fpath2, cleanup2 := makeTestFile(t, ".yml", mergeTestCfg2)
 	defer cleanup2()
 
 	actual := Config{}

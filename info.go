@@ -86,10 +86,12 @@ func (sa SA) printResources(stack *awscf.Stack) {
 	sa.cli.Print("==== RESOURCES ====")
 
 	w := cli.NewColWriter(sa.cli.Writer, " ")
+
 	for _, res := range resources {
 		fields := []string{res.LogicalID, sa.colorizedStatus(res.Status), res.PhysicalID}
 		fmt.Fprintln(w, strings.Join(fields, "\t"))
 	}
+
 	MustSucceed(w.Flush())
 	sa.cli.Print("")
 }
@@ -98,9 +100,11 @@ func (sa SA) printOutputs(info awscf.StackInfo) {
 	sa.cli.Print("==== OUTPUTS ====")
 
 	w := cli.NewColWriter(sa.cli.Writer, " ")
+
 	for _, out := range info.Outputs() {
 		fmt.Fprintln(w, strings.Join([]string{out.Key, out.Value, out.ExportName}, "\t"))
 	}
+
 	MustSucceed(w.Flush())
 	sa.cli.Print("")
 }
@@ -111,13 +115,16 @@ func (sa SA) printEvents(stack *awscf.Stack) {
 
 	w := cli.NewColWriter(sa.cli.Writer, " ")
 	sa.cli.Print("==== EVENTS ====")
+
 	limit := 10
 	if len(events) < limit {
 		limit = len(events)
 	}
+
 	for _, e := range events[:limit] {
 		fmt.Fprintf(w, "[%s]\t%s\n", e.Timestamp.Format(time.RFC3339), sa.sprintEvent(e))
 	}
+
 	MustSucceed(w.Flush())
 	sa.cli.Print("")
 }

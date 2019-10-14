@@ -113,5 +113,6 @@ func (dg *DepGraph) visit(n node, resolved *[]string) error {
 	dg.nodes[n.id] = n
 
 	*resolved = append(*resolved, n.id)
+
 	return nil
 }

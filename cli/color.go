@@ -106,8 +106,10 @@ func RmColors(str string) string {
 	result := ""
 
 	scanner.Split(onColor)
+
 	for scanner.Scan() {
 		result += scanner.Text()
 	}
+
 	return result
 }

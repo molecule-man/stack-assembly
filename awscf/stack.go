@@ -31,6 +31,7 @@ func (se StackEvents) Reversed() StackEvents {
 	for i, j := 0, len(se)-1; i < j; i, j = i+1, j-1 {
 		se[i], se[j] = se[j], se[i]
 	}
+
 	return se
 }
 
@@ -65,6 +66,7 @@ func (s *Stack) Info() (StackInfo, error) {
 
 	info.awsStack = stack
 	s.cachedInfo = &info
+
 	return info, err
 }
 
@@ -77,6 +79,7 @@ func (s *Stack) describe() (*cloudformation.Stack, error) {
 		if strings.Contains(err.Error(), "does not exist") {
 			return nil, ErrStackDoesntExist
 		}
+
 		return nil, err
 	}
 
@@ -109,6 +112,7 @@ func (s *Stack) Delete() error {
 		StackName: aws.String(s.Name),
 	}
 	ctx := aws.BackgroundContext()
+
 	return s.cf.WaitUntilStackDeleteCompleteWithContext(ctx, &waitInput, func(w *request.Waiter) {
 		w.MaxAttempts = 900
 		w.Delay = request.ConstantWaiterDelay(2 * time.Second)
@@ -176,6 +180,7 @@ func (s *Stack) Resources() ([]StackResource, error) {
 		if r.PhysicalResourceId != nil {
 			resource.PhysicalID = *r.PhysicalResourceId
 		}
+
 		if r.ResourceStatusReason != nil {
 			resource.StatusReason = *r.ResourceStatusReason
 		}
@@ -215,6 +220,7 @@ func (s *Stack) EventsTrack() *EventsTrack {
 	if s.eventsTrack == nil {
 		s.eventsTrack = &EventsTrack{stack: s}
 	}
+
 	return s.eventsTrack
 }
 
@@ -254,5 +260,6 @@ func (s *Stack) applyPolicy(policy string) error {
 		StackName:       aws.String(s.Name),
 		StackPolicyBody: aws.String(policy),
 	})
+
 	return err
 }

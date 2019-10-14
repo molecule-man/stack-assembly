@@ -24,6 +24,7 @@ func (et *EventsTrack) FreshEvents() (StackEvents, error) {
 		}
 
 		et.trackingStarted = true
+
 		return emptyEvents, nil
 	}
 
@@ -32,6 +33,7 @@ func (et *EventsTrack) FreshEvents() (StackEvents, error) {
 	}
 
 	freshEvents := make(StackEvents, 0, len(events))
+
 	for _, e := range events {
 		if _, ok := et.seenEvents[e.ID]; !ok {
 			freshEvents = append(freshEvents, e)

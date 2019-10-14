@@ -8,11 +8,41 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+type resolveTC struct {
+	name string
+	deps map[string][]string
+}
+
+func (tc resolveTC) assertHasAllNodes(t *testing.T, resolvedSeq []string) {
+	expected := make([]string, 0, len(tc.deps))
+
+	for k := range tc.deps {
+		expected = append(expected, k)
+	}
+
+	sort.Strings(expected)
+
+	actual := make([]string, len(resolvedSeq))
+	copy(actual, resolvedSeq)
+	sort.Strings(actual)
+
+	assert.Equal(t, expected, actual, "resolved sequence doesn't have all the provided nodes")
+}
+
+func (tc resolveTC) assertResolved(t *testing.T, resolvedSeq []string) {
+	processedNodes := make(map[string]bool)
+
+	for _, id := range resolvedSeq {
+		for _, dep := range tc.deps[id] {
+			assert.Containsf(t, processedNodes, dep, "The node %s depends on %s, which is not yet processed. Order: %v", id, dep, resolvedSeq)
+		}
+
+		processedNodes[id] = true
+	}
+}
+
 func TestResolving(t *testing.T) {
-	testCases := []struct {
-		name string
-		deps map[string][]string
-	}{
+	testCases := []resolveTC{
 		{"simple graph", map[string][]string{
 			"5": {"2", "6"},
 			"3": {"1"},
@@ -52,30 +82,8 @@ func TestResolving(t *testing.T) {
 
 			require.NoError(t, err)
 
-			t.Run("Resolved result has all the provided nodes", func(t *testing.T) {
-				expected := make([]string, 0, len(deps))
-				for k := range deps {
-					expected = append(expected, k)
-				}
-				sort.Strings(expected)
-
-				actual := make([]string, len(resolved))
-				copy(actual, resolved)
-				sort.Strings(actual)
-
-				assert.Equal(t, expected, actual)
-			})
-
-			t.Run("Resolved nodes are ordered correctly", func(t *testing.T) {
-				processedNodes := make(map[string]bool)
-
-				for _, id := range resolved {
-					for _, dep := range deps[id] {
-						assert.Containsf(t, processedNodes, dep, "The node %s depends on %s, which is not yet processed. Order: %v", id, dep, resolved)
-					}
-					processedNodes[id] = true
-				}
-			})
+			tc.assertHasAllNodes(t, resolved)
+			tc.assertResolved(t, resolved)
 		})
 	}
 }

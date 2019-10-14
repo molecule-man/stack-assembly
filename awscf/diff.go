@@ -22,6 +22,7 @@ func (d ChSetDiff) Diff(chSet *ChangeSet) (string, error) {
 	if err != nil {
 		return "", err
 	}
+
 	if len(paramsDiff) > 0 {
 		diffs = append(diffs, d.colorizeDiff(paramsDiff))
 	}
@@ -30,6 +31,7 @@ func (d ChSetDiff) Diff(chSet *ChangeSet) (string, error) {
 	if err != nil {
 		return "", err
 	}
+
 	if len(tagsDiff) > 0 {
 		diffs = append(diffs, d.colorizeDiff(tagsDiff))
 	}
@@ -38,6 +40,7 @@ func (d ChSetDiff) Diff(chSet *ChangeSet) (string, error) {
 	if err != nil {
 		return "", err
 	}
+
 	if len(bodyDiff) > 0 {
 		diffs = append(diffs, d.colorizeDiff(bodyDiff))
 	}
@@ -59,6 +62,7 @@ func diffBody(chSet *ChangeSet) (string, error) {
 		if err != nil {
 			return "", err
 		}
+
 		oldName = "old/" + chSet.Stack().Name
 	}
 
@@ -80,6 +84,7 @@ func diffParameters(chSet *ChangeSet) (string, error) {
 	}
 
 	newParams := make([]string, 0, len(awsParams))
+
 	for _, p := range awsParams {
 		line := aws.StringValue(p.ParameterKey) + ": " + aws.StringValue(p.ParameterValue) + "\n"
 		newParams = append(newParams, line)
@@ -179,7 +184,6 @@ func (d ChSetDiff) colorizeDiff(diff string) string {
 		case strings.HasPrefix(line, "-"):
 			colorized[i] = d.Color.Red(line)
 		}
-
 	}
 
 	return strings.Join(colorized, "\n")

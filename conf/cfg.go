@@ -28,20 +28,6 @@ type AwsConfig struct {
 	Endpoint string
 }
 
-func (ac *AwsConfig) merge(otherCfg AwsConfig) {
-	if ac.Region == "" {
-		ac.Region = otherCfg.Region
-	}
-
-	if ac.Profile == "" {
-		ac.Profile = otherCfg.Profile
-	}
-
-	if ac.Endpoint == "" {
-		ac.Endpoint = otherCfg.Endpoint
-	}
-}
-
 // Config is a struct holding stacks configurations
 type Config struct {
 	Name       string
@@ -86,6 +72,7 @@ func (cfg Config) StackConfigsSortedByExecOrder() ([]Config, error) {
 	for i, id := range orderedIds {
 		stackCfgs[i] = cfg.Stacks[id]
 	}
+
 	return stackCfgs, nil
 }
 
@@ -171,10 +158,12 @@ func (l Loader) InitConfig(cfg *Config) error {
 func (l Loader) parseBodies(id string, stackCfg *Config) error {
 	for i, nestedStack := range stackCfg.Stacks {
 		nestedStack := nestedStack
+
 		err := l.parseBodies(i, &nestedStack)
 		if err != nil {
 			return err
 		}
+
 		stackCfg.Stacks[i] = nestedStack
 	}
 
@@ -192,6 +181,7 @@ func (l Loader) parseBodies(id string, stackCfg *Config) error {
 	if err != nil {
 		return err
 	}
+
 	defer f.Close()
 
 	buf, err := ioutil.ReadAll(f)
@@ -221,11 +211,13 @@ func (l Loader) decodeConfigs(mainConfig *Config, cfgFiles []string) error {
 	}
 
 	mainRawCfg := make(map[string]interface{})
+
 	for _, cf := range cfgFiles {
 		extraRawCfg := make(map[string]interface{})
 		if err := l.parseFile(cf, &extraRawCfg); err != nil {
 			return fmt.Errorf("error occurred while parsing config file %s: %v", cf, err)
 		}
+
 		merged := merge(mainRawCfg, extraRawCfg)
 		mainRawCfg = merged.(map[string]interface{})
 	}
@@ -300,6 +292,7 @@ func (l Loader) parseFile(filename string, cfg *map[string]interface{}) error {
 	if err != nil {
 		return err
 	}
+
 	defer f.Close()
 
 	ext := strings.ToLower(filepath.Ext(filename))
@@ -321,6 +314,7 @@ func (l Loader) parseFile(filename string, cfg *map[string]interface{}) error {
 func merge(x1, x2 interface{}) interface{} {
 	x1 = normalizeRawCfgEntry(x1)
 	x2 = normalizeRawCfgEntry(x2)
+
 	switch x1 := x1.(type) {
 	case map[string]interface{}:
 		return mergeMaps(x1, x2)
@@ -329,14 +323,17 @@ func merge(x1, x2 interface{}) interface{} {
 		if !ok {
 			return x1
 		}
+
 		return x2
 	case nil:
 		x2, ok := x2.(map[string]interface{})
 		if ok {
 			return x2
 		}
+
 		return x1
 	}
+
 	return x2
 }
 
@@ -345,6 +342,7 @@ func mergeMaps(x1 map[string]interface{}, i2 interface{}) interface{} {
 	if !ok {
 		return x1
 	}
+
 	for k, v2 := range x2 {
 		if v1, ok := x1[k]; ok {
 			x1[k] = merge(v1, v2)
@@ -352,6 +350,7 @@ func mergeMaps(x1 map[string]interface{}, i2 interface{}) interface{} {
 			x1[k] = v2
 		}
 	}
+
 	return x1
 }
 
@@ -360,9 +359,11 @@ func normalizeRawCfgEntry(src interface{}) interface{} {
 	if !ok {
 		return src
 	}
+
 	trg := map[string]interface{}{}
 	for k, v := range x {
 		trg[fmt.Sprintf("%v", k)] = v
 	}
+
 	return trg
 }

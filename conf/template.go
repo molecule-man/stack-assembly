@@ -21,6 +21,7 @@ type tplData struct {
 func (l Loader) applyTemplating(cfg *Config) error {
 	var err error
 	*cfg, err = l.templatizeStackConfig(*cfg, tplData{Params: map[string]string{}})
+
 	return err
 }
 
@@ -115,8 +116,10 @@ func templatizeMap(m *map[string]string, data tplData) error {
 		if err := parseTpl(&parsed, v, data); err != nil {
 			return err
 		}
+
 		(*m)[k] = parsed
 	}
+
 	return nil
 }
 
@@ -134,6 +137,7 @@ func parseTpl(parsed *string, tpl string, data interface{}) error {
 	if err != nil {
 		return err
 	}
+
 	var buff bytes.Buffer
 
 	if err := t.Execute(&buff, data); err != nil {
@@ -141,5 +145,6 @@ func parseTpl(parsed *string, tpl string, data interface{}) error {
 	}
 
 	*parsed = buff.String()
+
 	return nil
 }

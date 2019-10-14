@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/molecule-man/stack-assembly/awscf"
 	"github.com/molecule-man/stack-assembly/cli"
 	"github.com/molecule-man/stack-assembly/conf"
 )
@@ -31,9 +32,9 @@ func (a *deleteAction) delete(cfg conf.Config) error {
 	}
 
 	for _, s := range ss {
-		err := a.delete(s)
-		if err != nil {
-			return err
+		nestedErr := a.delete(s)
+		if nestedErr != nil {
+			return nestedErr
 		}
 	}
 
@@ -55,58 +56,14 @@ func (a *deleteAction) delete(cfg conf.Config) error {
 
 	logger.Warnf("Stack %s is about to be deleted", cfg.Name)
 
-	skip := false
+	err = a.ask(stack)
 
-	if !a.nonInteractive {
-		continueDelete := false
-		for !continueDelete && !skip {
-			var actionErr error
-
-			err = a.cli.Prompt([]cli.PromptCmd{{
-				Description:   "[d]elete",
-				TriggerInputs: []string{"d", "delete"},
-				Action: func() {
-					continueDelete = true
-				},
-			}, {
-				Description:   "[a]ll (delete all without asking again)",
-				TriggerInputs: []string{"a", "all"},
-				Action: func() {
-					a.nonInteractive = true
-					continueDelete = true
-				},
-			}, {
-				Description:   "[i]nfo (show stack info)",
-				TriggerInputs: []string{"i", "info"},
-				Action: func() {
-					actionErr = a.sa.Info(stack)
-				},
-			}, {
-				Description:   "[s]kip",
-				TriggerInputs: []string{"s", "skip"},
-				Action: func() {
-					skip = true
-				},
-			}, {
-				Description:   "[q]uit",
-				TriggerInputs: []string{"q", "quit"},
-				Action: func() {
-					a.cli.Error("Interrupted by user")
-					actionErr = errors.New("deletion is canceled")
-				},
-			}})
-			if err != cli.ErrPromptCommandIsNotKnown {
-				MustSucceed(err)
-			}
-
-			if actionErr != nil {
-				return actionErr
-			}
-		}
+	if err == errSkipDelete {
+		return nil
 	}
 
-	if skip {
-		return nil
+	if err != nil {
+		return err
 	}
 
 	err = stack.Delete()
@@ -115,5 +72,62 @@ func (a *deleteAction) delete(cfg conf.Config) error {
 	}
 
 	logger.Print(a.cli.Color.Success("Stack is deleted successfully"))
+
 	return nil
 }
+
+func (a *deleteAction) ask(stack *awscf.Stack) error {
+	if a.nonInteractive {
+		return nil
+	}
+
+	continueDelete := false
+	for !continueDelete {
+		var actionErr error
+
+		err := a.cli.Prompt([]cli.PromptCmd{{
+			Description:   "[d]elete",
+			TriggerInputs: []string{"d", "delete"},
+			Action: func() {
+				continueDelete = true
+			},
+		}, {
+			Description:   "[a]ll (delete all without asking again)",
+			TriggerInputs: []string{"a", "all"},
+			Action: func() {
+				a.nonInteractive = true
+				continueDelete = true
+			},
+		}, {
+			Description:   "[i]nfo (show stack info)",
+			TriggerInputs: []string{"i", "info"},
+			Action: func() {
+				actionErr = a.sa.Info(stack)
+			},
+		}, {
+			Description:   "[s]kip",
+			TriggerInputs: []string{"s", "skip"},
+			Action: func() {
+				actionErr = errSkipDelete
+			},
+		}, {
+			Description:   "[q]uit",
+			TriggerInputs: []string{"q", "quit"},
+			Action: func() {
+				a.cli.Error("Interrupted by user")
+				actionErr = errors.New("deletion is canceled")
+			},
+		}})
+		if err != nil && err != cli.ErrPromptCommandIsNotKnown {
+			return err
+		}
+
+		if actionErr != nil {
+			return actionErr
+		}
+	}
+
+	return nil
+}
+
+var errSkipDelete = errors.New("deletion skipped")

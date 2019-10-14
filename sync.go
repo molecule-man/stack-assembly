@@ -23,75 +23,15 @@ func (sa SA) syncOne(stackCfg conf.Config, root conf.Config, nonInteractive bool
 
 		logger.Info("Synchronizing template")
 
-		cs := stackCfg.ChangeSet()
-		chSet, err := cs.Register()
-
-		if paramerr, ok := err.(*awscf.ParametersMissingError); ok {
-			logger.Warn(paramerr.Error())
-			for _, p := range paramerr.MissingParameters {
-				response, rerr := sa.cli.Ask("Enter %s: ", p)
-				MustSucceed(rerr)
-				cs.WithParameter(p, response)
-			}
-
-			chSet, err = cs.Register()
-		}
-
-		if err == awscf.ErrNoChange {
-			logger.Info("No changes to be synchronized")
-		} else {
-			if err != nil {
-				return err
-			}
-
-			logger.Infof("Change set is created: %s", chSet.ID)
-
-			sa.showChanges(chSet.Changes)
-
-			if !nonInteractive {
-				err = sa.letUserChooseNextAction(cs)
-				if err != nil {
-					return err
-				}
-			}
-
-			if chSet.IsUpdate {
-				err = stackCfg.Hooks.PreUpdate.Exec()
-			} else {
-				err = stackCfg.Hooks.PreCreate.Exec()
-			}
-
-			if err != nil {
-				return err
-			}
-
-			wait := sa.showEvents(cs.Stack(), logger)
-
-			err = chSet.Exec()
-
-			wait <- true
-			<-wait
-
-			if err != nil {
-				return err
-			}
-
-			if chSet.IsUpdate {
-				err = stackCfg.Hooks.PostUpdate.Exec()
-			} else {
-				err = stackCfg.Hooks.PostCreate.Exec()
-			}
-			if err != nil {
-				return err
-			}
-
-			logger.Print(sa.cli.Color.Success("Synchronization is complete"))
+		err := sa.exec(stackCfg, logger, nonInteractive)
+		if err != nil {
+			return err
 		}
 
 		for _, r := range stackCfg.Blocked {
 			logger.Infof("Blocking resource %s", r)
-			err := cs.Stack().BlockResource(r)
 
+			err = stackCfg.Stack().BlockResource(r)
 			if err != nil {
 				return err
 			}
@@ -111,6 +51,84 @@ func (sa SA) syncOne(stackCfg conf.Config, root conf.Config, nonInteractive bool
 	}
 
 	return stackCfg.Hooks.Post.Exec()
+}
+
+func (sa SA) exec(stackCfg conf.Config, logger *cli.Logger, nonInteractive bool) error {
+	cs := stackCfg.ChangeSet()
+	chSet, err := sa.register(cs, logger)
+
+	if err == awscf.ErrNoChange {
+		logger.Info("No changes to be synchronized")
+		return nil
+	}
+
+	if err != nil {
+		return err
+	}
+
+	logger.Infof("Change set is created: %s", chSet.ID)
+
+	sa.showChanges(chSet.Changes)
+
+	if !nonInteractive {
+		err = sa.letUserChooseNextAction(cs)
+		if err != nil {
+			return err
+		}
+	}
+
+	if chSet.IsUpdate {
+		err = stackCfg.Hooks.PreUpdate.Exec()
+	} else {
+		err = stackCfg.Hooks.PreCreate.Exec()
+	}
+
+	if err != nil {
+		return err
+	}
+
+	wait := sa.showEvents(cs.Stack(), logger)
+
+	err = chSet.Exec()
+
+	wait <- true
+	<-wait
+
+	if err != nil {
+		return err
+	}
+
+	if chSet.IsUpdate {
+		err = stackCfg.Hooks.PostUpdate.Exec()
+	} else {
+		err = stackCfg.Hooks.PostCreate.Exec()
+	}
+
+	if err != nil {
+		return err
+	}
+
+	logger.Print(sa.cli.Color.Success("Synchronization is complete"))
+
+	return nil
+}
+
+func (sa SA) register(cs *awscf.ChangeSet, logger *cli.Logger) (*awscf.ChangeSetHandle, error) {
+	chSet, err := cs.Register()
+
+	if paramerr, ok := err.(*awscf.ParametersMissingError); ok {
+		logger.Warn(paramerr.Error())
+
+		for _, p := range paramerr.MissingParameters {
+			response, rerr := sa.cli.Ask("Enter %s: ", p)
+			MustSucceed(rerr)
+			cs.WithParameter(p, response)
+		}
+
+		chSet, err = cs.Register()
+	}
+
+	return chSet, err
 }
 
 func (sa SA) showEvents(stack *awscf.Stack, logger *cli.Logger) chan bool {
@@ -154,6 +172,7 @@ func (sa SA) showChanges(changes []awscf.Change) {
 
 		for _, c := range changes {
 			action := sa.cli.Color.Neutral(c.Action)
+
 			switch strings.ToLower(c.Action) {
 			case "add":
 				action = sa.cli.Color.Success(c.Action)
@@ -165,8 +184,8 @@ func (sa SA) showChanges(changes []awscf.Change) {
 			if c.ReplacementNeeded {
 				repl = sa.cli.Color.Fail(fmt.Sprintf("%t", c.ReplacementNeeded))
 			}
-			t.Row(action, c.ResourceType, c.LogicalResourceID, repl)
 
+			t.Row(action, c.ResourceType, c.LogicalResourceID, repl)
 		}
 
 		sa.cli.Print(t.Render())
@@ -175,7 +194,9 @@ func (sa SA) showChanges(changes []awscf.Change) {
 
 func (sa SA) letUserChooseNextAction(chSet *awscf.ChangeSet) error {
 	var actionErr error
+
 	continueSync := false
+
 	for !continueSync && actionErr == nil {
 		err := sa.cli.Prompt([]cli.PromptCmd{
 			{

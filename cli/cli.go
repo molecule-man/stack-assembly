@@ -54,9 +54,11 @@ func (cli CLI) Warnf(format string, args ...interface{}) {
 
 func (cli CLI) Prompt(commands []PromptCmd) error {
 	cli.Print("*** Commands ***")
+
 	for _, c := range commands {
 		cli.Print("  " + c.Description)
 	}
+
 	response, err := cli.Ask("What now> ")
 	if err != nil {
 		return err
@@ -72,6 +74,7 @@ func (cli CLI) Prompt(commands []PromptCmd) error {
 	}
 
 	cli.Warnf("Command %s is not known\n", response)
+
 	return nil
 }
 
