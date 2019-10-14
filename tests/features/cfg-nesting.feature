@@ -1,5 +1,6 @@
 Feature: nested
 
+    @mock
     Scenario: nested stacks (1 level)
         Given file "cfg.yaml" exists:
             """
@@ -29,6 +30,7 @@ Feature: nested
         Then stack "stastest-1-%scenarioid%" should have status "CREATE_COMPLETE"
         And stack "stastest-2-%scenarioid%" should have status "CREATE_COMPLETE"
 
+    @mock
     Scenario: nested stacks (2 levels)
         Given file "cfg.yaml" exists:
             """
@@ -59,6 +61,7 @@ Feature: nested
         Then stack "stastest-1-%scenarioid%" should have status "CREATE_COMPLETE"
         And stack "stastest-2-%scenarioid%" should have status "CREATE_COMPLETE"
 
+    @mock
     Scenario: stack on root level
         Given file "cfg.yaml" exists:
             """
@@ -85,7 +88,7 @@ Feature: nested
         Then stack "stastest-1-%scenarioid%" should have status "CREATE_COMPLETE"
         And stack "stastest-2-%scenarioid%" should have status "CREATE_COMPLETE"
 
-    @short
+    @short @nomock
     Scenario: aws settings are propagated down the tree
         Given file "cfg.yaml" exists:
             """
@@ -156,6 +159,7 @@ Feature: nested
             "us-east-1"
             """
 
+    @mock
     Scenario: executing specific nested stack
         Given file "cfg.yaml" exists:
             """
@@ -184,6 +188,7 @@ Feature: nested
         Then stack "stastest-app-%scenarioid%" should have status "CREATE_COMPLETE"
         But stack "stastest-staging-%scenarioid%" should not exist
 
+    @mock
     Scenario: I delete nested stack
         Given file "cfg.yaml" exists:
             """

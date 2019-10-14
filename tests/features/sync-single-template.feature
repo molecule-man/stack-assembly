@@ -1,6 +1,6 @@
 Feature: stas deploy only single template
 
-    @short
+    @short @mock
     Scenario: deploy single template
         Given file "tpl.yaml" exists:
             """
@@ -13,7 +13,7 @@ Feature: stas deploy only single template
         When I successfully run "deploy --no-interaction stastest-%scenarioid% tpl.yaml"
         Then stack "stastest-%scenarioid%" should have status "CREATE_COMPLETE"
 
-    @short
+    @short @mock
     Scenario: deploy single template with parameters
         Given file "tpl.yaml" exists:
             """

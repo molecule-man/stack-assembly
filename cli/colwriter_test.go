@@ -6,7 +6,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/molecule-man/stack-assembly/cli/color"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -33,6 +32,8 @@ func TestColWriter(t *testing.T) {
 func TestColWriterWithColors(t *testing.T) {
 	buf := bytes.NewBuffer([]byte{})
 	writer := NewColWriter(buf, " | ")
+
+	color := Color{}
 
 	fmt.Fprintln(writer, color.Fail("red")+"\t"+color.Success("green"))
 	fmt.Fprintln(writer, color.Neutral("cyan")+"\t"+color.Warn("multi")+" "+color.Fail("color"))

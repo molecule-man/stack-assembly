@@ -5,13 +5,17 @@ import (
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/molecule-man/stack-assembly/cli/color"
+	"github.com/molecule-man/stack-assembly/cli"
 	"github.com/pmezard/go-difflib/difflib"
 )
 
 const defaultDiffName = "/dev/null"
 
-func Diff(chSet *ChangeSet) (string, error) {
+type ChSetDiff struct {
+	Color cli.Color
+}
+
+func (d ChSetDiff) Diff(chSet *ChangeSet) (string, error) {
 	diffs := []string{}
 
 	paramsDiff, err := diffParameters(chSet)
@@ -19,7 +23,7 @@ func Diff(chSet *ChangeSet) (string, error) {
 		return "", err
 	}
 	if len(paramsDiff) > 0 {
-		diffs = append(diffs, colorizeDiff(paramsDiff))
+		diffs = append(diffs, d.colorizeDiff(paramsDiff))
 	}
 
 	tagsDiff, err := diffTags(chSet)
@@ -27,7 +31,7 @@ func Diff(chSet *ChangeSet) (string, error) {
 		return "", err
 	}
 	if len(tagsDiff) > 0 {
-		diffs = append(diffs, colorizeDiff(tagsDiff))
+		diffs = append(diffs, d.colorizeDiff(tagsDiff))
 	}
 
 	bodyDiff, err := diffBody(chSet)
@@ -35,7 +39,7 @@ func Diff(chSet *ChangeSet) (string, error) {
 		return "", err
 	}
 	if len(bodyDiff) > 0 {
-		diffs = append(diffs, colorizeDiff(bodyDiff))
+		diffs = append(diffs, d.colorizeDiff(bodyDiff))
 	}
 
 	return strings.Join(diffs, "\n"), nil
@@ -157,8 +161,8 @@ func diffTags(chSet *ChangeSet) (string, error) {
 	})
 }
 
-func colorizeDiff(diff string) string {
-	if color.NoColor {
+func (d ChSetDiff) colorizeDiff(diff string) string {
+	if d.Color.Disabled {
 		return diff
 	}
 
@@ -167,13 +171,13 @@ func colorizeDiff(diff string) string {
 	for i, line := range colorized {
 		switch {
 		case strings.HasPrefix(line, "+++"), strings.HasPrefix(line, "---"):
-			colorized[i] = color.Yellow(line)
+			colorized[i] = d.Color.Yellow(line)
 		case strings.HasPrefix(line, "@@"):
-			colorized[i] = color.Cyan(line)
+			colorized[i] = d.Color.Cyan(line)
 		case strings.HasPrefix(line, "+"):
-			colorized[i] = color.Green(line)
+			colorized[i] = d.Color.Green(line)
 		case strings.HasPrefix(line, "-"):
-			colorized[i] = color.Red(line)
+			colorized[i] = d.Color.Red(line)
 		}
 
 	}

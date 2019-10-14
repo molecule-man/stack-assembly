@@ -3,6 +3,7 @@ package awscf
 import (
 	"errors"
 	"fmt"
+	"sort"
 	"strconv"
 	"time"
 
@@ -163,10 +164,17 @@ func (cs *ChangeSet) awsParameters() ([]*cloudformation.Parameter, error) {
 func (cs *ChangeSet) awsTags() []*cloudformation.Tag {
 	awsTags := make([]*cloudformation.Tag, 0, len(cs.tags))
 
-	for k, v := range cs.tags {
+	keys := make([]string, 0, len(cs.tags))
+	for k := range cs.tags {
+		keys = append(keys, k)
+	}
+
+	sort.Strings(keys)
+
+	for _, k := range keys {
 		awsTags = append(awsTags, &cloudformation.Tag{
 			Key:   aws.String(k),
-			Value: aws.String(v),
+			Value: aws.String(cs.tags[k]),
 		})
 	}
 	return awsTags

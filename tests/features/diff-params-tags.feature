@@ -1,6 +1,6 @@
 Feature: stas diff tags and parameters
 
-    @short
+    @short @mock
     Scenario: diff stack where body, parameters and tags are changed
         Given file "cfg.yaml" exists:
             """

@@ -6,6 +6,7 @@ package depgraph
 import (
 	"errors"
 	"fmt"
+	"sort"
 )
 
 type node struct {
@@ -57,7 +58,15 @@ func (dg *DepGraph) Add(id string, dependsOn []string) {
 func (dg *DepGraph) Resolve() ([]string, error) {
 	resolved := make([]string, 0, len(dg.nodes))
 
-	for id, n := range dg.nodes {
+	ids := make([]string, 0, len(dg.nodes))
+	for id := range dg.nodes {
+		ids = append(ids, id)
+	}
+
+	sort.Strings(ids)
+
+	for _, id := range ids {
+		n := dg.nodes[id]
 
 		if n.id == "" {
 			return resolved, fmt.Errorf("bad input to dependency resolver. Node with id '%s' has not been registered", id)
@@ -73,6 +82,7 @@ func (dg *DepGraph) Resolve() ([]string, error) {
 	for i, j := 0, len(resolved)-1; i < j; i, j = i+1, j-1 {
 		resolved[i], resolved[j] = resolved[j], resolved[i]
 	}
+
 	return resolved, nil
 }
 
@@ -87,6 +97,9 @@ func (dg *DepGraph) visit(n node, resolved *[]string) error {
 
 	n.markedTemp = true
 	dg.nodes[n.id] = n
+
+	// tbh, not needed in generarl. Only needed for reproducible tests
+	sort.Strings(n.next)
 
 	for _, nextID := range n.next {
 		err := dg.visit(dg.nodes[nextID], resolved)

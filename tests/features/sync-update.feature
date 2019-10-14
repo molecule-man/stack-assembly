@@ -1,5 +1,6 @@
 Feature: stas sync update
 
+    @mock
     Scenario: sync create and then update
         Given file "cfg.yaml" exists:
             """

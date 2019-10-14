@@ -5,8 +5,6 @@ import (
 	"io"
 	"strings"
 	"unicode/utf8"
-
-	"github.com/molecule-man/stack-assembly/cli/color"
 )
 
 type colWriterLine []string
@@ -67,14 +65,6 @@ func (cw *ColWriter) Flush() error {
 	return err
 }
 
-func (cw *ColWriter) TotalWidth() int {
-	sum := 0
-	for _, w := range cw.widths {
-		sum += w
-	}
-	return sum
-}
-
 func (cw *ColWriter) sprintLine(line []string) string {
 	if cw.SprintLineFunc != nil {
 		output := cw.SprintLineFunc(line, cw.widths)
@@ -107,8 +97,8 @@ func (cw *ColWriter) sprintLine(line []string) string {
 func (cw *ColWriter) sprintCell(n int, content string) string {
 	contentWidth := cw.width(content)
 
-	if color.HasColors(content) && !strings.HasSuffix(content, color.CodeReset()) {
-		content += color.CodeReset()
+	if HasColors(content) && !strings.HasSuffix(content, ResetCode) {
+		content += ResetCode
 	}
 
 	for i := 0; i < cw.widths[n]-contentWidth; i++ {
@@ -129,7 +119,7 @@ func (cw *ColWriter) updateWidth(i int, cell string) {
 }
 
 func (cw *ColWriter) width(cell string) int {
-	return utf8.RuneCount([]byte(color.RmColors(cell)))
+	return utf8.RuneCount([]byte(RmColors(cell)))
 }
 
 func NewColWriter(w io.Writer, sep string) *ColWriter {

@@ -3,6 +3,7 @@
 package tests
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -16,6 +17,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -24,8 +26,15 @@ import (
 	"github.com/DATA-DOG/godog/gherkin"
 	expect "github.com/Netflix/go-expect"
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
+	"github.com/aws/aws-sdk-go/service/cloudformation/cloudformationiface"
+	assembly "github.com/molecule-man/stack-assembly"
+	saaws "github.com/molecule-man/stack-assembly/aws"
+	"github.com/molecule-man/stack-assembly/aws/mock"
+	"github.com/molecule-man/stack-assembly/cli"
+	"github.com/molecule-man/stack-assembly/cmd/commands"
+	"github.com/molecule-man/stack-assembly/conf"
+	"github.com/spf13/afero"
 	"github.com/stretchr/testify/assert"
 	yaml "gopkg.in/yaml.v2"
 )
@@ -59,9 +68,10 @@ func TestMain(m *testing.M) {
 }
 
 type feature struct {
-	scenarioID string
-	testDir    string
-	featurID   string
+	scenarioName string
+	scenarioID   string
+	testDir      string
+	featureID    string
 
 	lastOutput string
 	lastErr    error
@@ -69,8 +79,10 @@ type feature struct {
 	console *expect.Console
 	lastCmd *exec.Cmd
 	cancel  context.CancelFunc
+	wg      *sync.WaitGroup
 
-	cf *cloudformation.CloudFormation
+	cf cloudformationiface.CloudFormationAPI
+	fs vfs
 }
 
 func (f *feature) assertEgual(expected, actual interface{}, msgAndArgs ...interface{}) error {
@@ -80,17 +92,26 @@ func (f *feature) assertEgual(expected, actual interface{}, msgAndArgs ...interf
 }
 
 func (f *feature) fileExists(fname string, content *gherkin.DocString) error {
-	fpath := filepath.Join(f.testDir, fname)
-	dir, _ := filepath.Split(fpath)
+	dir, _ := filepath.Split(fname)
 
-	err := os.MkdirAll(dir, 0700)
+	err := f.fs.MkdirAll(dir, 0700)
 	if err != nil {
 		return err
 	}
 
 	c := f.replaceParameters(content.Content)
 
-	return ioutil.WriteFile(fpath, []byte(c), 0700)
+	file, err := f.fs.Create(fname)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+	_, err = file.WriteString(c)
+	if err != nil {
+		return err
+	}
+
+	return file.Sync()
 }
 
 func (f *feature) iSuccessfullyRun(cmd string) error {
@@ -100,7 +121,7 @@ func (f *feature) iSuccessfullyRun(cmd string) error {
 	}
 
 	if f.lastErr != nil {
-		return fmt.Errorf("err: %v, output:\n%s", err, string(f.lastOutput))
+		return fmt.Errorf("err: %v, output:\n%s", err, f.lastOutput)
 	}
 
 	return nil
@@ -129,7 +150,7 @@ func (f *feature) stackShouldNotExist(stackName string) error {
 	})
 
 	if err == nil {
-		return fmt.Errorf("Stack %s is not supposed to exist", s)
+		return fmt.Errorf("stack %s is not supposed to exist", s)
 	}
 
 	if !strings.Contains(err.Error(), "does not exist") {
@@ -143,16 +164,25 @@ func (f *feature) iModifyFile(fname string, content *gherkin.DocString) error {
 }
 
 func (f *feature) iRun(cmd string) error {
-	bin, err := filepath.Abs("../bin/stas")
-	if err != nil {
-		return err
+	buf := bytes.NewBuffer([]byte{})
+	cli := &cli.CLI{
+		Reader:  buf,
+		Writer:  buf,
+		Errorer: buf,
 	}
 
-	c := exec.Command(bin, strings.Split(f.replaceParameters(cmd), " ")...)
-	c.Dir = f.testDir
+	c := commands.Commands{
+		SA:        assembly.New(cli),
+		Cli:       cli,
+		CfgLoader: conf.NewLoader(f.fs, mock.New(f.scenarioName, f.featureID, f.scenarioID)),
+	}
+	root := c.RootCmd()
+	root.SetArgs(strings.Split(f.replaceParameters(cmd), " "))
+	root.SetOutput(buf)
 
-	out, err := c.CombinedOutput()
-	f.lastOutput = string(out)
+	err := root.Execute()
+
+	f.lastOutput = buf.String()
 	f.lastErr = err
 
 	return nil
@@ -286,26 +316,27 @@ func (f *feature) iLaunched(cmdInstruction string) error {
 		return err
 	}
 
-	bin, err := filepath.Abs("../bin/stas")
-	if err != nil {
-		return err
+	cli := &cli.CLI{
+		Reader:  c.Tty(),
+		Writer:  c.Tty(),
+		Errorer: c.Tty(),
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 25*time.Second)
-	f.cancel = cancel
-	cmd := exec.CommandContext(ctx, bin, strings.Split(f.replaceParameters(cmdInstruction), " ")...)
-	cmd.Dir = f.testDir
-
-	cmd.Stdin = c.Tty()
-	cmd.Stdout = c.Tty()
-	cmd.Stderr = c.Tty()
-
-	err = cmd.Start()
-	if err != nil {
-		return err
+	co := commands.Commands{
+		SA:        assembly.New(cli),
+		Cli:       cli,
+		CfgLoader: conf.NewLoader(f.fs, mock.New(f.scenarioName, f.featureID, f.scenarioID)),
 	}
+	root := co.RootCmd()
+	root.SetArgs(strings.Split(f.replaceParameters(cmdInstruction), " "))
+	root.SetOutput(c.Tty())
 
-	f.lastCmd = cmd
+	f.wg = &sync.WaitGroup{}
+	f.wg.Add(1)
+	go func() {
+		f.lastErr = root.Execute()
+		f.wg.Done()
+	}()
 	f.console = c
 
 	return nil
@@ -329,16 +360,33 @@ func (f *feature) iEnter(s string) error {
 }
 
 func (f *feature) launchedProgramShouldExitWithZeroStatus() error {
+	if err := f.waitLaunched(); err != nil {
+		return err
+	}
+	return f.lastErr
+}
+
+func (f *feature) waitLaunched() error {
 	defer f.console.Close()
-	defer f.cancel()
-	return f.lastCmd.Wait()
+	c := make(chan struct{})
+	go func() {
+		defer close(c)
+		f.wg.Wait()
+	}()
+
+	select {
+	case <-c:
+		return nil
+	case <-time.After(20 * time.Second):
+		return fmt.Errorf("test %s timed out", f.scenarioID)
+	}
 }
 
 func (f *feature) launchedProgramShouldExitWithNonZeroStatus() error {
-	defer f.console.Close()
-	defer f.cancel()
-	err := f.lastCmd.Wait()
-	if err == nil {
+	if err := f.waitLaunched(); err != nil {
+		return err
+	}
+	if f.lastErr == nil {
 		return errors.New("program returned zero exit code")
 	}
 	return nil
@@ -355,17 +403,22 @@ func (f *feature) tagValue(stack *cloudformation.Stack, tagKey string) string {
 
 func (f *feature) replaceParameters(s string) string {
 	s = strings.Replace(s, "%scenarioid%", f.scenarioID, -1)
-	s = strings.Replace(s, "%featureid%", f.featurID, -1)
+	s = strings.Replace(s, "%featureid%", f.featureID, -1)
 	s = strings.Replace(s, "%aws_profile%", os.Getenv("AWS_PROFILE"), -1)
+	s = strings.Replace(s, "%testdir%", f.testDir, -1)
 
 	return s
 }
 
 func (f *feature) fileShouldContainExactly(fname string, content *gherkin.DocString) error {
-	fpath := filepath.Join(f.testDir, fname)
 	c := f.replaceParameters(content.Content)
 
-	buf, err := ioutil.ReadFile(fpath)
+	file, err := f.fs.Open(fname)
+	if err != nil {
+		return err
+	}
+
+	buf, err := ioutil.ReadAll(file)
 	if err != nil {
 		return err
 	}
@@ -377,13 +430,10 @@ func (f *feature) fileShouldContainExactly(fname string, content *gherkin.DocStr
 }
 
 func FeatureContext(s *godog.Suite) {
-	testDir := "./.tmp"
 	f := feature{}
 
-	sess := session.Must(session.NewSession())
-	cf := cloudformation.New(sess, (&aws.Config{}).WithMaxRetries(8))
-
-	f.cf = cf
+	cfg := saaws.Config{}
+	cfg.Profile = os.Getenv("AWS_PROFILE")
 
 	s.Step(`^file "([^"]*)" exists:$`, f.fileExists)
 	s.Step(`^I successfully run "([^"]*)"$`, f.iSuccessfullyRun)
@@ -407,27 +457,36 @@ func FeatureContext(s *godog.Suite) {
 
 	s.BeforeScenario(func(gs interface{}) {
 		scenario := gs.(*gherkin.Scenario)
-		prefix := re.ReplaceAllString(scenario.Name, "-")
-		f.scenarioID = fmt.Sprintf("%.80s-%d", prefix, rand.Int63())
-		f.testDir = filepath.Join(testDir, "stas_test_"+f.scenarioID)
+		f.scenarioName = re.ReplaceAllString(scenario.Name, "-")
+		f.scenarioID = fmt.Sprintf("%.80s-%d", f.scenarioName, rand.Int63())
+
+		f.cf = mock.New(f.scenarioName, f.featureID, f.scenarioID).Must(cfg).CF
+		f.testDir = filepath.Join(".tmp", "stas_test_"+f.scenarioID)
+		f.fs = vfs{
+			afero.NewBasePathFs(afero.NewOsFs(), f.testDir),
+		}
 	})
 	s.AfterScenario(func(interface{}, error) {
-		os.RemoveAll(f.testDir)
+		f.fs.RemoveAll(".")
 	})
 
 	s.BeforeFeature(func(*gherkin.Feature) {
-		f.featurID = strconv.FormatInt(rand.Int63(), 10)
+		f.featureID = strconv.FormatInt(rand.Int63(), 10)
 	})
 
 	s.AfterFeature(func(*gherkin.Feature) {
-		stacks, err := cf.DescribeStacks(&cloudformation.DescribeStacksInput{})
+		if mock.IsMockEnabled() {
+			return
+		}
+
+		stacks, err := f.cf.DescribeStacks(&cloudformation.DescribeStacksInput{})
 		if err != nil {
 			panic(err)
 		}
 
 		for _, s := range stacks.Stacks {
-			if f.tagValue(s, "STAS_TEST") == f.featurID {
-				cf.DeleteStack(&cloudformation.DeleteStackInput{
+			if f.tagValue(s, "STAS_TEST") == f.featureID {
+				f.cf.DeleteStack(&cloudformation.DeleteStackInput{
 					StackName: s.StackName,
 				})
 			}
@@ -442,3 +501,9 @@ type assertionResult struct {
 func (a *assertionResult) Errorf(format string, args ...interface{}) {
 	a.err = fmt.Errorf(format, args...)
 }
+
+type vfs struct {
+	afero.Fs
+}
+
+func (fs vfs) Open(name string) (conf.ReadSeekCloser, error) { return fs.Fs.Open(name) }

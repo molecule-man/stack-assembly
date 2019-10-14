@@ -1,25 +1,29 @@
 package assembly
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/molecule-man/stack-assembly/cli"
-	"github.com/molecule-man/stack-assembly/cli/color"
 	"github.com/molecule-man/stack-assembly/conf"
 )
 
-func Delete(cfg conf.Config, nonInteractive bool) {
-	action := &deleteAction{nonInteractive}
-	action.delete(cfg)
+func (sa *SA) Delete(cfg conf.Config, nonInteractive bool) error {
+	action := &deleteAction{sa, sa.cli, nonInteractive}
+	return action.delete(cfg)
 }
 
 type deleteAction struct {
+	sa             *SA
+	cli            *cli.CLI
 	nonInteractive bool
 }
 
-func (a *deleteAction) delete(cfg conf.Config) {
+func (a *deleteAction) delete(cfg conf.Config) error {
 	ss, err := cfg.StackConfigsSortedByExecOrder()
-	MustSucceed(err)
+	if err != nil {
+		return err
+	}
 
 	// reverse order of stack configs
 	for i, j := 0, len(ss)-1; i < j; i, j = i+1, j-1 {
@@ -27,14 +31,17 @@ func (a *deleteAction) delete(cfg conf.Config) {
 	}
 
 	for _, s := range ss {
-		Delete(s, a.nonInteractive)
+		err := a.delete(s)
+		if err != nil {
+			return err
+		}
 	}
 
 	if cfg.Name == "" {
-		return
+		return nil
 	}
 
-	logger := cli.PrefixedLogger(fmt.Sprintf("[%s] ", cfg.Name))
+	logger := a.cli.PrefixedLogger(fmt.Sprintf("[%s] ", cfg.Name))
 
 	stack := cfg.Stack()
 
@@ -43,7 +50,7 @@ func (a *deleteAction) delete(cfg conf.Config) {
 
 	if !exists {
 		logger.Info("Stack doesn't exist")
-		return
+		return nil
 	}
 
 	logger.Warnf("Stack %s is about to be deleted", cfg.Name)
@@ -53,7 +60,9 @@ func (a *deleteAction) delete(cfg conf.Config) {
 	if !a.nonInteractive {
 		continueDelete := false
 		for !continueDelete && !skip {
-			err = cli.Prompt([]cli.PromptCmd{{
+			var actionErr error
+
+			err = a.cli.Prompt([]cli.PromptCmd{{
 				Description:   "[d]elete",
 				TriggerInputs: []string{"d", "delete"},
 				Action: func() {
@@ -70,7 +79,7 @@ func (a *deleteAction) delete(cfg conf.Config) {
 				Description:   "[i]nfo (show stack info)",
 				TriggerInputs: []string{"i", "info"},
 				Action: func() {
-					Info(stack)
+					actionErr = a.sa.Info(stack)
 				},
 			}, {
 				Description:   "[s]kip",
@@ -82,21 +91,29 @@ func (a *deleteAction) delete(cfg conf.Config) {
 				Description:   "[q]uit",
 				TriggerInputs: []string{"q", "quit"},
 				Action: func() {
-					cli.Error("Interrupted by user")
-					Terminate("deletion is canceled")
+					a.cli.Error("Interrupted by user")
+					actionErr = errors.New("deletion is canceled")
 				},
 			}})
 			if err != cli.ErrPromptCommandIsNotKnown {
 				MustSucceed(err)
 			}
+
+			if actionErr != nil {
+				return actionErr
+			}
 		}
 	}
 
 	if skip {
-		return
+		return nil
 	}
 
 	err = stack.Delete()
-	MustSucceed(err)
-	logger.Print(color.Success("Stack is deleted successfully"))
+	if err != nil {
+		return err
+	}
+
+	logger.Print(a.cli.Color.Success("Stack is deleted successfully"))
+	return nil
 }

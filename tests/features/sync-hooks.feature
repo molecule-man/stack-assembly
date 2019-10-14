@@ -1,13 +1,14 @@
 Feature: stas sync with hooks
 
+    @mock
     Scenario: sync executes all the possible hooks
         Given file "cfg.yaml" exists:
             """
             hooks:
               pre:
-                - ["sh", "-c", "echo root pre executed > hooks.log"]
+                - ["sh", "-c", "echo root pre executed > %testdir%/hooks.log"]
               post:
-                - ["sh", "-c", "echo root post executed >> hooks.log"]
+                - ["sh", "-c", "echo root post executed >> %testdir%/hooks.log"]
             stacks:
               stack1:
                 name: stastest-hooks-%scenarioid%
@@ -16,17 +17,17 @@ Feature: stas sync with hooks
                   STAS_TEST: '%featureid%'
                 hooks:
                   pre:
-                    - ["sh", "-c", "echo stack pre executed >> hooks.log"]
+                    - ["sh", "-c", "echo stack pre executed >> %testdir%/hooks.log"]
                   post:
-                    - ["sh", "-c", "echo stack post executed >> hooks.log"]
+                    - ["sh", "-c", "echo stack post executed >> %testdir%/hooks.log"]
                   precreate:
-                    - ["sh", "-c", "echo stack precreate executed >> hooks.log"]
+                    - ["sh", "-c", "echo stack precreate executed >> %testdir%/hooks.log"]
                   postcreate:
-                    - ["sh", "-c", "echo stack postcreate executed >> hooks.log"]
+                    - ["sh", "-c", "echo stack postcreate executed >> %testdir%/hooks.log"]
                   preupdate:
-                    - ["sh", "-c", "echo stack preupdate executed >> hooks.log"]
+                    - ["sh", "-c", "echo stack preupdate executed >> %testdir%/hooks.log"]
                   postupdate:
-                    - ["sh", "-c", "echo stack postupdate executed >> hooks.log"]
+                    - ["sh", "-c", "echo stack postupdate executed >> %testdir%/hooks.log"]
             """
         And file "tpls/stack1.yml" exists:
             """

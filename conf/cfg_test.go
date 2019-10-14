@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/molecule-man/stack-assembly/aws"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -58,7 +59,7 @@ func TestParseJSON(t *testing.T) {
 	defer cleanup()
 
 	actualConfig := Config{}
-	err := decodeConfigs(&actualConfig, []string{fpath})
+	err := loader().decodeConfigs(&actualConfig, []string{fpath})
 	require.NoError(t, err)
 	assert.Equal(t, expectedParsedConfig, actualConfig)
 }
@@ -85,7 +86,7 @@ stacks:
 	defer cleanup()
 
 	actualConfig := Config{}
-	err := decodeConfigs(&actualConfig, []string{fpath})
+	err := loader().decodeConfigs(&actualConfig, []string{fpath})
 	require.NoError(t, err)
 	assert.Equal(t, expectedParsedConfig, actualConfig)
 }
@@ -116,7 +117,7 @@ blocked = []
 	defer cleanup()
 
 	actualConfig := Config{}
-	err := decodeConfigs(&actualConfig, []string{fpath})
+	err := loader().decodeConfigs(&actualConfig, []string{fpath})
 	require.NoError(t, err)
 	assert.Equal(t, expectedParsedConfig, actualConfig)
 }
@@ -187,7 +188,7 @@ stacks:
 	defer cleanup2()
 
 	actual := Config{}
-	err := decodeConfigs(&actual, []string{fpath1, fpath2})
+	err := loader().decodeConfigs(&actual, []string{fpath1, fpath2})
 	require.NoError(t, err)
 	assert.Equal(t, expected, actual)
 }
@@ -204,4 +205,8 @@ func makeTestFile(t *testing.T, ext, content string) (string, func()) {
 	return fpath, func() {
 		os.Remove(fpath)
 	}
+}
+
+func loader() *Loader {
+	return NewLoader(&OsFS{}, &aws.Provider{})
 }

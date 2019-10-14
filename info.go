@@ -7,107 +7,117 @@ import (
 
 	"github.com/molecule-man/stack-assembly/awscf"
 	"github.com/molecule-man/stack-assembly/cli"
-	"github.com/molecule-man/stack-assembly/cli/color"
 	"github.com/molecule-man/stack-assembly/conf"
 )
 
-func colorizedStatus(status string) string {
+func (sa SA) colorizedStatus(status string) string {
 	switch {
 	case strings.HasSuffix(status, "COMPLETE"):
-		return color.Success(status)
+		return sa.cli.Color.Success(status)
 	case strings.HasSuffix(status, "IN_PROGRESS"):
-		return color.Neutral(status)
+		return sa.cli.Color.Neutral(status)
 	case strings.Contains(status, "ROLLBACK"), strings.Contains(status, "FAILED"):
-		return color.Fail(status)
+		return sa.cli.Color.Fail(status)
 	}
 
 	return status
 }
 
-func sprintEvent(e awscf.StackEvent) string {
-	return fmt.Sprintf("%s\t%s\t%s\t%s", e.ResourceType, colorizedStatus(e.Status), e.LogicalResourceID, e.StatusReason)
+func (sa SA) sprintEvent(e awscf.StackEvent) string {
+	return fmt.Sprintf("%s\t%s\t%s\t%s", e.ResourceType, sa.colorizedStatus(e.Status), e.LogicalResourceID, e.StatusReason)
 }
 
-func Info(stack *awscf.Stack) {
+func (sa SA) Info(stack *awscf.Stack) error {
 	exists, err := stack.Exists()
-	MustSucceed(err)
+	if err != nil {
+		return err
+	}
 
 	if !exists {
-		return
+		return nil
 	}
 
 	info, err := stack.Info()
-	MustSucceed(err)
+	if err != nil {
+		return err
+	}
 
-	printStackDetails(stack.Name, info)
-	printResources(stack)
-	printOutputs(info)
-	printEvents(stack)
+	sa.printStackDetails(stack.Name, info)
+	sa.printResources(stack)
+	sa.printOutputs(info)
+	sa.printEvents(stack)
 
-	cli.Print("")
+	sa.cli.Print("")
+
+	return nil
 }
 
-func InfoAll(cfg conf.Config) {
+func (sa SA) InfoAll(cfg conf.Config) error {
 	ss, err := cfg.StackConfigsSortedByExecOrder()
-	MustSucceed(err)
+	if err != nil {
+		return err
+	}
 
 	for _, s := range ss {
-		InfoAll(s)
+		err = sa.InfoAll(s)
+		if err != nil {
+			return err
+		}
 	}
 
 	if cfg.Name == "" {
-		return
+		return nil
 	}
 
-	Info(cfg.Stack())
+	return sa.Info(cfg.Stack())
 }
 
-func printStackDetails(name string, info awscf.StackInfo) {
-	cli.Print("######################################")
-	cli.Print(fmt.Sprintf("STACK:\t%s", name))
-	cli.Print(fmt.Sprintf("STATUS:\t%s %s", colorizedStatus(info.Status()), info.StatusDescription()))
-	cli.Print("")
+func (sa SA) printStackDetails(name string, info awscf.StackInfo) {
+	sa.cli.Print("######################################")
+	sa.cli.Print(fmt.Sprintf("STACK:\t%s", name))
+	sa.cli.Print(fmt.Sprintf("STATUS:\t%s %s", sa.colorizedStatus(info.Status()), info.StatusDescription()))
+	sa.cli.Print("")
 }
 
-func printResources(stack *awscf.Stack) {
+func (sa SA) printResources(stack *awscf.Stack) {
 	resources, err := stack.Resources()
 	MustSucceed(err)
 
-	cli.Print("==== RESOURCES ====")
+	sa.cli.Print("==== RESOURCES ====")
 
-	w := cli.NewColWriter(cli.Output, " ")
+	w := cli.NewColWriter(sa.cli.Writer, " ")
 	for _, res := range resources {
-		fields := []string{res.LogicalID, colorizedStatus(res.Status), res.PhysicalID}
+		fields := []string{res.LogicalID, sa.colorizedStatus(res.Status), res.PhysicalID}
 		fmt.Fprintln(w, strings.Join(fields, "\t"))
 	}
 	MustSucceed(w.Flush())
-	cli.Print("")
+	sa.cli.Print("")
 }
 
-func printOutputs(info awscf.StackInfo) {
-	cli.Print("==== OUTPUTS ====")
+func (sa SA) printOutputs(info awscf.StackInfo) {
+	sa.cli.Print("==== OUTPUTS ====")
 
-	w := cli.NewColWriter(cli.Output, " ")
+	w := cli.NewColWriter(sa.cli.Writer, " ")
 	for _, out := range info.Outputs() {
 		fmt.Fprintln(w, strings.Join([]string{out.Key, out.Value, out.ExportName}, "\t"))
 	}
 	MustSucceed(w.Flush())
-	cli.Print("")
+	sa.cli.Print("")
 }
 
-func printEvents(stack *awscf.Stack) {
+func (sa SA) printEvents(stack *awscf.Stack) {
 	events, err := stack.Events()
 	MustSucceed(err)
 
-	w := cli.NewColWriter(cli.Output, " ")
-	cli.Print("==== EVENTS ====")
+	w := cli.NewColWriter(sa.cli.Writer, " ")
+	sa.cli.Print("==== EVENTS ====")
 	limit := 10
 	if len(events) < limit {
 		limit = len(events)
 	}
 	for _, e := range events[:limit] {
-		fmt.Fprintf(w, "[%s]\t%s\n", e.Timestamp.Format(time.RFC3339), sprintEvent(e))
+		fmt.Fprintf(w, "[%s]\t%s\n", e.Timestamp.Format(time.RFC3339), sa.sprintEvent(e))
 	}
 	MustSucceed(w.Flush())
-	cli.Print("")
+	sa.cli.Print("")
 }

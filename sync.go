@@ -8,19 +8,18 @@ import (
 
 	"github.com/molecule-man/stack-assembly/awscf"
 	"github.com/molecule-man/stack-assembly/cli"
-	"github.com/molecule-man/stack-assembly/cli/color"
 	"github.com/molecule-man/stack-assembly/conf"
 )
 
-func Sync(cfg conf.Config, nonInteractive bool) {
-	syncOne(cfg, cfg, nonInteractive)
+func (sa SA) Sync(cfg conf.Config, nonInteractive bool) error {
+	return sa.syncOne(cfg, cfg, nonInteractive)
 }
 
-func syncOne(stackCfg conf.Config, root conf.Config, nonInteractive bool) {
+func (sa SA) syncOne(stackCfg conf.Config, root conf.Config, nonInteractive bool) error {
 	MustSucceed(stackCfg.Hooks.Pre.Exec())
 
 	if stackCfg.Body != "" {
-		logger := cli.PrefixedLogger(fmt.Sprintf("[%s] ", stackCfg.Name))
+		logger := sa.cli.PrefixedLogger(fmt.Sprintf("[%s] ", stackCfg.Name))
 
 		logger.Info("Synchronizing template")
 
@@ -30,7 +29,7 @@ func syncOne(stackCfg conf.Config, root conf.Config, nonInteractive bool) {
 		if paramerr, ok := err.(*awscf.ParametersMissingError); ok {
 			logger.Warn(paramerr.Error())
 			for _, p := range paramerr.MissingParameters {
-				response, rerr := cli.Ask("Enter %s: ", p)
+				response, rerr := sa.cli.Ask("Enter %s: ", p)
 				MustSucceed(rerr)
 				cs.WithParameter(p, response)
 			}
@@ -41,58 +40,80 @@ func syncOne(stackCfg conf.Config, root conf.Config, nonInteractive bool) {
 		if err == awscf.ErrNoChange {
 			logger.Info("No changes to be synchronized")
 		} else {
-			MustSucceed(err)
+			if err != nil {
+				return err
+			}
 
 			logger.Infof("Change set is created: %s", chSet.ID)
 
-			showChanges(chSet.Changes)
+			sa.showChanges(chSet.Changes)
 
 			if !nonInteractive {
-				letUserChooseNextAction(cs)
+				err = sa.letUserChooseNextAction(cs)
+				if err != nil {
+					return err
+				}
 			}
 
 			if chSet.IsUpdate {
-				MustSucceed(stackCfg.Hooks.PreUpdate.Exec())
+				err = stackCfg.Hooks.PreUpdate.Exec()
 			} else {
-				MustSucceed(stackCfg.Hooks.PreCreate.Exec())
+				err = stackCfg.Hooks.PreCreate.Exec()
 			}
 
-			wait := showEvents(cs.Stack(), logger)
+			if err != nil {
+				return err
+			}
+
+			wait := sa.showEvents(cs.Stack(), logger)
 
 			err = chSet.Exec()
 
 			wait <- true
 			<-wait
 
-			MustSucceed(err)
+			if err != nil {
+				return err
+			}
 
 			if chSet.IsUpdate {
-				MustSucceed(stackCfg.Hooks.PostUpdate.Exec())
+				err = stackCfg.Hooks.PostUpdate.Exec()
 			} else {
-				MustSucceed(stackCfg.Hooks.PostCreate.Exec())
+				err = stackCfg.Hooks.PostCreate.Exec()
 			}
-			logger.Print(color.Success("Synchronization is complete"))
+			if err != nil {
+				return err
+			}
+
+			logger.Print(sa.cli.Color.Success("Synchronization is complete"))
 		}
 
 		for _, r := range stackCfg.Blocked {
 			logger.Infof("Blocking resource %s", r)
 			err := cs.Stack().BlockResource(r)
 
-			MustSucceed(err)
+			if err != nil {
+				return err
+			}
 		}
 	}
 
 	nestedStacks, err := stackCfg.StackConfigsSortedByExecOrder()
-	MustSucceed(err)
-
-	for _, nestedStack := range nestedStacks {
-		syncOne(nestedStack, root, nonInteractive)
+	if err != nil {
+		return err
 	}
 
-	MustSucceed(stackCfg.Hooks.Post.Exec())
+	for _, nestedStack := range nestedStacks {
+		err := sa.syncOne(nestedStack, root, nonInteractive)
+		if err != nil {
+			return err
+		}
+	}
+
+	return stackCfg.Hooks.Post.Exec()
 }
 
-func showEvents(stack *awscf.Stack, logger *cli.Logger) chan bool {
+func (sa SA) showEvents(stack *awscf.Stack, logger *cli.Logger) chan bool {
 	wait := make(chan bool)
 
 	if _, err := stack.EventsTrack().FreshEvents(); err != nil {
@@ -100,7 +121,7 @@ func showEvents(stack *awscf.Stack, logger *cli.Logger) chan bool {
 	}
 
 	go func() {
-		writer := cli.NewColWriter(cli.Output, " ")
+		writer := cli.NewColWriter(sa.cli.Writer, " ")
 
 		for {
 			events, err := stack.EventsTrack().FreshEvents()
@@ -109,7 +130,7 @@ func showEvents(stack *awscf.Stack, logger *cli.Logger) chan bool {
 			}
 
 			for _, e := range events.Reversed() {
-				logger.Fprint(writer, sprintEvent(e))
+				logger.Fprint(writer, sa.sprintEvent(e))
 			}
 			writer.Flush()
 
@@ -126,36 +147,37 @@ func showEvents(stack *awscf.Stack, logger *cli.Logger) chan bool {
 	return wait
 }
 
-func showChanges(changes []awscf.Change) {
+func (sa SA) showChanges(changes []awscf.Change) {
 	if len(changes) > 0 {
 		t := cli.NewTable()
 		t.Header("Action", "Resource Type", "Resource ID", "Replacement needed")
 
 		for _, c := range changes {
-			action := color.Neutral(c.Action)
+			action := sa.cli.Color.Neutral(c.Action)
 			switch strings.ToLower(c.Action) {
 			case "add":
-				action = color.Success(c.Action)
+				action = sa.cli.Color.Success(c.Action)
 			case "remove":
-				action = color.Fail(c.Action)
+				action = sa.cli.Color.Fail(c.Action)
 			}
 
-			repl := color.Success(fmt.Sprintf("%t", c.ReplacementNeeded))
+			repl := sa.cli.Color.Success(fmt.Sprintf("%t", c.ReplacementNeeded))
 			if c.ReplacementNeeded {
-				repl = color.Fail(fmt.Sprintf("%t", c.ReplacementNeeded))
+				repl = sa.cli.Color.Fail(fmt.Sprintf("%t", c.ReplacementNeeded))
 			}
 			t.Row(action, c.ResourceType, c.LogicalResourceID, repl)
 
 		}
 
-		cli.Print(t.Render())
+		sa.cli.Print(t.Render())
 	}
 }
 
-func letUserChooseNextAction(chSet *awscf.ChangeSet) {
+func (sa SA) letUserChooseNextAction(chSet *awscf.ChangeSet) error {
+	var actionErr error
 	continueSync := false
-	for !continueSync {
-		err := cli.Prompt([]cli.PromptCmd{
+	for !continueSync && actionErr == nil {
+		err := sa.cli.Prompt([]cli.PromptCmd{
 			{
 				Description:   "[s]ync",
 				TriggerInputs: []string{"s", "sync"},
@@ -167,18 +189,20 @@ func letUserChooseNextAction(chSet *awscf.ChangeSet) {
 				Description:   "[d]iff",
 				TriggerInputs: []string{"d", "diff"},
 				Action: func() {
-					diff, derr := awscf.Diff(chSet)
-					MustSucceed(derr)
+					diff, derr := awscf.ChSetDiff{Color: sa.cli.Color}.Diff(chSet)
+					actionErr = derr
 
-					cli.Print(diff)
+					if derr == nil {
+						sa.cli.Print(diff)
+					}
 				},
 			},
 			{
 				Description:   "[q]uit",
 				TriggerInputs: []string{"q", "quit"},
 				Action: func() {
-					cli.Error("Interrupted by user")
-					MustSucceed(errors.New("sync is canceled"))
+					sa.cli.Error("Interrupted by user")
+					actionErr = errors.New("sync is canceled")
 				},
 			},
 		})
@@ -186,4 +210,6 @@ func letUserChooseNextAction(chSet *awscf.ChangeSet) {
 			MustSucceed(err)
 		}
 	}
+
+	return actionErr
 }

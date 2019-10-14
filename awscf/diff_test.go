@@ -5,13 +5,13 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/molecule-man/stack-assembly/cli/color"
+	"github.com/molecule-man/stack-assembly/cli"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestDiffWhenStackExists(t *testing.T) {
-	color.NoColor = true
+	d := ChSetDiff{cli.Color{Disabled: true}}
 	oldTplBody := `
 parameters:
   param1: old_val1
@@ -25,7 +25,7 @@ parameters:
 	cf.body = oldTplBody
 	chSet := NewStack(cf, "teststack").ChangeSet(newTplBody)
 
-	diff, err := Diff(chSet)
+	diff, err := d.Diff(chSet)
 	require.NoError(t, err)
 
 	expected := `
@@ -41,7 +41,7 @@ parameters:
 }
 
 func TestDiffWhenStackDoesntExist(t *testing.T) {
-	color.NoColor = true
+	d := ChSetDiff{cli.Color{Disabled: true}}
 	newTplBody := `
 parameters:
   param1: val1
@@ -51,7 +51,7 @@ parameters:
 	cf.describeErr = errors.New("stack does not exist")
 	chSet := NewStack(cf, "teststack").ChangeSet(newTplBody)
 
-	diff, err := Diff(chSet)
+	diff, err := d.Diff(chSet)
 	require.NoError(t, err)
 
 	expected := `
