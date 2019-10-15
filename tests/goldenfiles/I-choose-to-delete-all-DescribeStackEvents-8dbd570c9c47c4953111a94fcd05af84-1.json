@@ -1,0 +1,25 @@
+{
+  "err": null,
+  "input": {
+    "NextToken": null,
+    "StackName": "stastest-1-%SCENARIO_ID%"
+  },
+  "output": {
+    "NextToken": null,
+    "StackEvents": [
+      {
+        "ClientRequestToken": null,
+        "EventId": "96347ea0-ef22-11e9-8849-0a07909a05bc",
+        "LogicalResourceId": "stastest-1-%SCENARIO_ID%",
+        "PhysicalResourceId": "arn:aws:cloudformation:%AWS_REGION%:%AWS_ACC_ID%:stack/stastest-1-%SCENARIO_ID%/9634ccc0-ef22-11e9-8849-0a07909a05bc",
+        "ResourceProperties": null,
+        "ResourceStatus": "REVIEW_IN_PROGRESS",
+        "ResourceStatusReason": "User Initiated",
+        "ResourceType": "AWS::CloudFormation::Stack",
+        "StackId": "arn:aws:cloudformation:%AWS_REGION%:%AWS_ACC_ID%:stack/stastest-1-%SCENARIO_ID%/9634ccc0-ef22-11e9-8849-0a07909a05bc",
+        "StackName": "stastest-1-%SCENARIO_ID%",
+        "Timestamp": "2019-10-15T08:05:43.99Z"
+      }
+    ]
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "err": null,
+  "input": {
+    "TemplateBody": "Parameters:\n  Env:\n    Type: String\n    Default: dev\n\nResources:\n  EcsCluster:\n    Type: AWS::ECS::Cluster\n    Properties:\n      ClusterName: !Sub \"${AWS::StackName}-${Env}\"",
+    "TemplateURL": null
+  },
+  "output": {
+    "Capabilities": null,
+    "CapabilitiesReason": null,
+    "DeclaredTransforms": null,
+    "Description": null,
+    "Parameters": [
+      {
+        "DefaultValue": "dev",
+        "Description": null,
+        "NoEcho": false,
+        "ParameterKey": "Env"
+      }
+    ]
+  }
+}

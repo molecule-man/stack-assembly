@@ -1,0 +1,41 @@
+{
+  "err": null,
+  "input": {
+    "Capabilities": [],
+    "ChangeSetName": "%CHST_ID-2%",
+    "ChangeSetType": "UPDATE",
+    "ClientToken": null,
+    "Description": null,
+    "NotificationARNs": null,
+    "Parameters": null,
+    "ResourceTypes": null,
+    "RoleARN": null,
+    "RollbackConfiguration": {
+      "MonitoringTimeInMinutes": 1,
+      "RollbackTriggers": [
+        {
+          "Arn": "arn:aws:cloudwatch:%AWS_REGION%:%AWS_ACC_ID%:alarm:stastest-%SCENARIO_ID%",
+          "Type": "AWS::CloudWatch::Alarm"
+        }
+      ]
+    },
+    "StackName": "stastest-%SCENARIO_ID%",
+    "Tags": [
+      {
+        "Key": "STAS_TEST",
+        "Value": "%FEATURE_ID%"
+      },
+      {
+        "Key": "sometag",
+        "Value": "foo"
+      }
+    ],
+    "TemplateBody": "Resources:\n  RollbackAlarm:\n    Type: AWS::CloudWatch::Alarm\n    Properties:\n      AlarmName: !Ref AWS::StackName\n      Namespace: !Sub \"${AWS::StackName}-whatever\"\n      MetricName: Errors\n      Statistic: Maximum\n      Period: '60'\n      EvaluationPeriods: '1'\n      Threshold: 0\n      ComparisonOperator: GreaterThanThreshold\n      ActionsEnabled: yes\n      # the next config keeps alarm in `ALARM` state always\n      TreatMissingData: breaching",
+    "TemplateURL": null,
+    "UsePreviousTemplate": null
+  },
+  "output": {
+    "Id": "arn:aws:cloudformation:%AWS_REGION%:%AWS_ACC_ID%:changeSet/%CHST_ID-2%/4d623ba6-f8a3-449c-8063-dc1f532d4170",
+    "StackId": "arn:aws:cloudformation:%AWS_REGION%:%AWS_ACC_ID%:stack/stastest-%SCENARIO_ID%/0cebe1f0-ef23-11e9-b375-0276cc331c40"
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "err": {
+    "Code": "ResourceNotReady",
+    "Err": "ResourceNotReady: failed waiting for successful resource state",
+    "Msg": "failed waiting for successful resource state"
+  },
+  "input": {
+    "ChangeSetName": "arn:aws:cloudformation:%AWS_REGION%:%AWS_ACC_ID%:changeSet/%CHST_ID-2%/850ab817-de6e-4a9d-93ec-86d8ccc249ab",
+    "NextToken": null,
+    "StackName": null
+  },
+  "output": ""
+}

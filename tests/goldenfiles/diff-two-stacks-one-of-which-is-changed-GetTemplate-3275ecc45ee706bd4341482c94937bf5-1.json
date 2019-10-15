@@ -1,0 +1,15 @@
+{
+  "err": null,
+  "input": {
+    "ChangeSetName": null,
+    "StackName": "stastest-diff2-%SCENARIO_ID%",
+    "TemplateStage": null
+  },
+  "output": {
+    "StagesAvailable": [
+      "Original",
+      "Processed"
+    ],
+    "TemplateBody": "Resources:\n  EcsCluster:\n    Type: AWS::ECS::Cluster\n    Properties:\n      ClusterName: stastest2-%SCENARIO_ID%"
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "err": null,
+  "input": {
+    "TemplateBody": "Resources:\n  \"Fn::Transform\":\n    - Name: 'AWS::Include'\n      Parameters:\n        Location: 's3://non-existent-bucket-%SCENARIO_ID%/non-existent-tpl.yml'",
+    "TemplateURL": null
+  },
+  "output": {
+    "Capabilities": null,
+    "CapabilitiesReason": null,
+    "DeclaredTransforms": null,
+    "Description": null,
+    "Parameters": null
+  }
+}

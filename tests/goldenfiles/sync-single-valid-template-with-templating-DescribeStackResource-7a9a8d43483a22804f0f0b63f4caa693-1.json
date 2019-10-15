@@ -1,0 +1,25 @@
+{
+  "err": null,
+  "input": {
+    "LogicalResourceId": "Cluster",
+    "StackName": "stack-tpl-dev-%SCENARIO_ID%"
+  },
+  "output": {
+    "StackResourceDetail": {
+      "Description": null,
+      "DriftInformation": {
+        "LastCheckTimestamp": null,
+        "StackResourceDriftStatus": "NOT_CHECKED"
+      },
+      "LastUpdatedTimestamp": "2019-10-15T08:07:51.219Z",
+      "LogicalResourceId": "Cluster",
+      "Metadata": "{}",
+      "PhysicalResourceId": "stastest-dev-%SCENARIO_ID%",
+      "ResourceStatus": "CREATE_COMPLETE",
+      "ResourceStatusReason": null,
+      "ResourceType": "AWS::ECS::Cluster",
+      "StackId": "arn:aws:cloudformation:%AWS_REGION%:%AWS_ACC_ID%:stack/stack-tpl-dev-%SCENARIO_ID%/de9209b0-ef22-11e9-b20c-0290198c1bb6",
+      "StackName": "stack-tpl-dev-%SCENARIO_ID%"
+    }
+  }
+}

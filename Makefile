@@ -25,6 +25,10 @@ testaccwip: BUILD_ARGS = -tags acceptance
 testaccwip: testacc
 testaccwip: cleanup
 
+testaccall: BUILD_ARGS = -tags acceptance
+testaccall: testacc
+testaccall: cleanup
+
 testaccmock: GODOG_ARGS = --godog.tags=mock
 # testaccmock: BUILD_ARGS = -tags awsmock,acceptance -race -timeout 2s -coverpkg $(shell go list ./... | paste -sd ',' -) -coverprofile=/tmp/cover.out
 testaccmock: BUILD_ARGS = -tags awsmock,acceptance -race -timeout 2s

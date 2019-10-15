@@ -33,7 +33,8 @@ func (p WriteProvider) New(cfg aws.Config) (*aws.AWS, error) {
 	}
 
 	d := newDumper(p.testID, p.featureID, p.scenarioID)
-	d.addReplacement(raws.AccountID, "ACC_ID")
+	d.addReplacement(raws.AccountID, "AWS_ACC_ID")
+	d.addReplacement(raws.Region, "AWS_REGION")
 
 	cf := &CloudFormation{realCF: raws.CF, dumper: d}
 

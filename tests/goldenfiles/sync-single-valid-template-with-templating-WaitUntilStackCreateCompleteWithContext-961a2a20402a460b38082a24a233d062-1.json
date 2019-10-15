@@ -1,0 +1,8 @@
+{
+  "err": null,
+  "input": {
+    "NextToken": null,
+    "StackName": "stack-tpl-dev-%SCENARIO_ID%"
+  },
+  "output": ""
+}

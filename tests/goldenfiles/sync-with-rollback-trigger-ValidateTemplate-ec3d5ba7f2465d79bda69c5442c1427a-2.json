@@ -1,0 +1,14 @@
+{
+  "err": null,
+  "input": {
+    "TemplateBody": "Resources:\n  RollbackAlarm:\n    Type: AWS::CloudWatch::Alarm\n    Properties:\n      AlarmName: !Ref AWS::StackName\n      Namespace: !Sub \"${AWS::StackName}-whatever\"\n      MetricName: Errors\n      Statistic: Maximum\n      Period: '60'\n      EvaluationPeriods: '1'\n      Threshold: 0\n      ComparisonOperator: GreaterThanThreshold\n      ActionsEnabled: yes\n      # the next config keeps alarm in `ALARM` state always\n      TreatMissingData: breaching",
+    "TemplateURL": null
+  },
+  "output": {
+    "Capabilities": null,
+    "CapabilitiesReason": null,
+    "DeclaredTransforms": null,
+    "Description": null,
+    "Parameters": null
+  }
+}

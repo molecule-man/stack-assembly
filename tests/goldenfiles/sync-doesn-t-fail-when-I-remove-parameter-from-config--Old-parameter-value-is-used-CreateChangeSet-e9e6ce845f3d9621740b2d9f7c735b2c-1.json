@@ -1,0 +1,42 @@
+{
+  "err": null,
+  "input": {
+    "Capabilities": [],
+    "ChangeSetName": "%CHST_ID-2%",
+    "ChangeSetType": "UPDATE",
+    "ClientToken": null,
+    "Description": null,
+    "NotificationARNs": null,
+    "Parameters": [
+      {
+        "ParameterKey": "Env",
+        "ParameterValue": "prod",
+        "ResolvedValue": null,
+        "UsePreviousValue": null
+      },
+      {
+        "ParameterKey": "Password",
+        "ParameterValue": null,
+        "ResolvedValue": null,
+        "UsePreviousValue": true
+      }
+    ],
+    "ResourceTypes": null,
+    "RoleARN": null,
+    "RollbackConfiguration": null,
+    "StackName": "stastest-rmparam-%SCENARIO_ID%",
+    "Tags": [
+      {
+        "Key": "STAS_TEST",
+        "Value": "%FEATURE_ID%"
+      }
+    ],
+    "TemplateBody": "Parameters:\n  Env:\n    Type: String\n  Password:\n    Type: String\n    NoEcho: true\n\nResources:\n  MyeSecret:\n    Type: 'AWS::SecretsManager::Secret'\n    Properties:\n      Name: !Sub \"${AWS::StackName}-secret-${Env}\"\n      SecretString: !Sub '{\"password\":\"${Password}\"}'",
+    "TemplateURL": null,
+    "UsePreviousTemplate": null
+  },
+  "output": {
+    "Id": "arn:aws:cloudformation:%AWS_REGION%:%AWS_ACC_ID%:changeSet/%CHST_ID-2%/d55a6890-5890-437f-9397-24f35d5c9559",
+    "StackId": "arn:aws:cloudformation:%AWS_REGION%:%AWS_ACC_ID%:stack/stastest-rmparam-%SCENARIO_ID%/ce930960-ef22-11e9-a50d-0aac5439e4be"
+  }
+}

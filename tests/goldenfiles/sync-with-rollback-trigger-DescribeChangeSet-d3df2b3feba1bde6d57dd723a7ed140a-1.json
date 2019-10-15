@@ -1,0 +1,43 @@
+{
+  "err": null,
+  "input": {
+    "ChangeSetName": "arn:aws:cloudformation:%AWS_REGION%:%AWS_ACC_ID%:changeSet/%CHST_ID-2%/d456458d-7755-4eec-948a-15c8e61e954c",
+    "NextToken": null,
+    "StackName": null
+  },
+  "output": {
+    "Capabilities": null,
+    "ChangeSetId": "arn:aws:cloudformation:%AWS_REGION%:%AWS_ACC_ID%:changeSet/%CHST_ID-2%/d456458d-7755-4eec-948a-15c8e61e954c",
+    "ChangeSetName": "%CHST_ID-2%",
+    "Changes": null,
+    "CreationTime": "2019-10-15T08:07:33.904Z",
+    "Description": null,
+    "ExecutionStatus": "AVAILABLE",
+    "NextToken": null,
+    "NotificationARNs": null,
+    "Parameters": null,
+    "RollbackConfiguration": {
+      "MonitoringTimeInMinutes": 1,
+      "RollbackTriggers": [
+        {
+          "Arn": "arn:aws:cloudwatch:%AWS_REGION%:%AWS_ACC_ID%:alarm:stastest-%SCENARIO_ID%",
+          "Type": "AWS::CloudWatch::Alarm"
+        }
+      ]
+    },
+    "StackId": "arn:aws:cloudformation:%AWS_REGION%:%AWS_ACC_ID%:stack/stastest-%SCENARIO_ID%/d1c50f70-ef22-11e9-8daf-029e8e947a9c",
+    "StackName": "stastest-%SCENARIO_ID%",
+    "Status": "CREATE_COMPLETE",
+    "StatusReason": null,
+    "Tags": [
+      {
+        "Key": "sometag",
+        "Value": "foo"
+      },
+      {
+        "Key": "STAS_TEST",
+        "Value": "%FEATURE_ID%"
+      }
+    ]
+  }
+}

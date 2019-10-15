@@ -1,0 +1,15 @@
+{
+  "err": {
+    "Code": "ValidationError",
+    "Err": "ValidationError: Stack with id stastest-staging-%SCENARIO_ID% does not exist\n\tstatus code: 400, request id: 7f65204a-d6b4-48fc-aa1f-2a2e846ec536",
+    "Msg": "Stack with id stastest-staging-%SCENARIO_ID% does not exist"
+  },
+  "input": {
+    "NextToken": null,
+    "StackName": "stastest-staging-%SCENARIO_ID%"
+  },
+  "output": {
+    "NextToken": null,
+    "Stacks": null
+  }
+}

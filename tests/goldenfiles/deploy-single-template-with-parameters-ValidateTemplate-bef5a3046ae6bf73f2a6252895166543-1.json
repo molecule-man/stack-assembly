@@ -1,0 +1,21 @@
+{
+  "err": null,
+  "input": {
+    "TemplateBody": "Parameters:\n  version:\n    Type: String\nResources:\n  Cluster:\n    Type: AWS::ECS::Cluster\n    Properties:\n      ClusterName: !Sub \"${AWS::StackName}-${version}\"",
+    "TemplateURL": null
+  },
+  "output": {
+    "Capabilities": null,
+    "CapabilitiesReason": null,
+    "DeclaredTransforms": null,
+    "Description": null,
+    "Parameters": [
+      {
+        "DefaultValue": null,
+        "Description": null,
+        "NoEcho": false,
+        "ParameterKey": "version"
+      }
+    ]
+  }
+}
