@@ -1,6 +1,6 @@
 Feature: stas sync with templating
 
-    @short
+    @short @mock
     Scenario: sync single valid template with templating
         Given file "cfg.yaml" exists:
             """
@@ -37,7 +37,7 @@ Feature: stas sync with templating
                 NAME: stastest-dev-%scenarioid%
             """
 
-    @short
+    @short @mock
     Scenario: use `Exec` function in a template
         Given file "cfg.yaml" exists:
             """

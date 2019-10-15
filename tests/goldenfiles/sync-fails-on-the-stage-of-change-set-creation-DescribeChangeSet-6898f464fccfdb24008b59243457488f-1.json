@@ -1,0 +1,34 @@
+{
+  "err": null,
+  "input": {
+    "ChangeSetName": "arn:aws:cloudformation:%AWS_REGION%:%AWS_ACC_ID%:changeSet/%CHST_ID%/53d111c8-47e8-4983-8fbc-e3607b1f0923",
+    "NextToken": null,
+    "StackName": null
+  },
+  "output": {
+    "Capabilities": null,
+    "ChangeSetId": "arn:aws:cloudformation:%AWS_REGION%:%AWS_ACC_ID%:changeSet/%CHST_ID%/53d111c8-47e8-4983-8fbc-e3607b1f0923",
+    "ChangeSetName": "%CHST_ID%",
+    "Changes": null,
+    "CreationTime": "2019-10-15T08:07:01.189Z",
+    "Description": null,
+    "ExecutionStatus": "UNAVAILABLE",
+    "NextToken": null,
+    "NotificationARNs": null,
+    "Parameters": null,
+    "RollbackConfiguration": {
+      "MonitoringTimeInMinutes": null,
+      "RollbackTriggers": null
+    },
+    "StackId": "arn:aws:cloudformation:%AWS_REGION%:%AWS_ACC_ID%:stack/stastest-fail1-%SCENARIO_ID%/c43ba300-ef22-11e9-bccd-02abe6210ac8",
+    "StackName": "stastest-fail1-%SCENARIO_ID%",
+    "Status": "FAILED",
+    "StatusReason": "Transform AWS::Include failed with: S3 bucket [non-existent-bucket-%SCENARIO_ID%] does not exist.",
+    "Tags": [
+      {
+        "Key": "STAS_TEST",
+        "Value": "%FEATURE_ID%"
+      }
+    ]
+  }
+}

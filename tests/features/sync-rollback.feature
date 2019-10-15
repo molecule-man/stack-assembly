@@ -1,5 +1,6 @@
 Feature: stas sync with rollback trigger
 
+    @nomock @todo-fix-in-mock
     Scenario: sync with rollback trigger
         Given file "cfg.yaml" exists:
             """

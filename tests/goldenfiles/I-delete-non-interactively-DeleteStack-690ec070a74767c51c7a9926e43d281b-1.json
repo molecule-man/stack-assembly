@@ -1,0 +1,10 @@
+{
+  "err": null,
+  "input": {
+    "ClientRequestToken": null,
+    "RetainResources": null,
+    "RoleARN": null,
+    "StackName": "stastest-I-choose-to-quit-while-deleting-stack-1331157665917400869"
+  },
+  "output": {}
+}

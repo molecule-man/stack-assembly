@@ -5,8 +5,6 @@ import (
 	"io"
 	"strings"
 	"unicode/utf8"
-
-	"github.com/molecule-man/stack-assembly/cli/color"
 )
 
 type colWriterLine []string
@@ -57,6 +55,7 @@ func (cw *ColWriter) Flush() error {
 	for i, line := range lines {
 		outputLines[i] = cw.sprintLine(line)
 	}
+
 	output := strings.Join(outputLines, "\n")
 	buf = []byte(output)
 	buf = append(buf, lastBytes...)
@@ -65,14 +64,6 @@ func (cw *ColWriter) Flush() error {
 	cw.buf = bytes.NewBuffer([]byte{})
 
 	return err
-}
-
-func (cw *ColWriter) TotalWidth() int {
-	sum := 0
-	for _, w := range cw.widths {
-		sum += w
-	}
-	return sum
 }
 
 func (cw *ColWriter) sprintLine(line []string) string {
@@ -85,14 +76,18 @@ func (cw *ColWriter) sprintLine(line []string) string {
 	}
 
 	cells := make([]string, len(cw.widths))
+
 	for i := range cw.widths {
 		c := ""
 		if i < len(line) {
 			c = line[i]
 		}
+
 		cells[i] = cw.sprintCell(i, c)
 	}
+
 	output := strings.Join(cells, cw.sep)
+
 	if !cw.PadLastColumn {
 		output = strings.TrimRight(output, " ")
 	}
@@ -107,13 +102,14 @@ func (cw *ColWriter) sprintLine(line []string) string {
 func (cw *ColWriter) sprintCell(n int, content string) string {
 	contentWidth := cw.width(content)
 
-	if color.HasColors(content) && !strings.HasSuffix(content, color.CodeReset()) {
-		content += color.CodeReset()
+	if HasColors(content) && !strings.HasSuffix(content, ResetCode) {
+		content += ResetCode
 	}
 
 	for i := 0; i < cw.widths[n]-contentWidth; i++ {
 		content += " "
 	}
+
 	return content
 }
 
@@ -129,7 +125,7 @@ func (cw *ColWriter) updateWidth(i int, cell string) {
 }
 
 func (cw *ColWriter) width(cell string) int {
-	return utf8.RuneCount([]byte(color.RmColors(cell)))
+	return utf8.RuneCount([]byte(RmColors(cell)))
 }
 
 func NewColWriter(w io.Writer, sep string) *ColWriter {

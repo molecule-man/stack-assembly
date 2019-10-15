@@ -1,5 +1,6 @@
 Feature: stas sync block
 
+    @nomock
     Scenario: sync should fail when blocked resource is modified
         Given file "cfg.yaml" exists:
             """

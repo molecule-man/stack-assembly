@@ -1,30 +1,25 @@
 package conf
 
 import (
-	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io/ioutil"
-	"net/http"
-	"os"
 	"path/filepath"
 	"strings"
-	"time"
 
 	"github.com/BurntSushi/toml"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
+	"github.com/aws/aws-sdk-go/service/cloudformation/cloudformationiface"
 	"github.com/mitchellh/mapstructure"
+	"github.com/molecule-man/stack-assembly/aws"
 	"github.com/molecule-man/stack-assembly/awscf"
 	"github.com/molecule-man/stack-assembly/depgraph"
-	"github.com/spf13/viper"
 	yaml "gopkg.in/yaml.v2"
 )
 
 type settingsConfig struct {
-	Aws AwsConfig
+	Aws aws.Config
 }
 
 type AwsConfig struct {
@@ -57,6 +52,8 @@ type Config struct {
 	Settings     settingsConfig `json:",omitempty" yaml:",omitempty" toml:",omitempty"`
 
 	Stacks map[string]Config `json:",omitempty" yaml:",omitempty" toml:",omitempty"`
+
+	aws awsProv
 }
 
 func (cfg Config) StackConfigsSortedByExecOrder() ([]Config, error) {
@@ -75,6 +72,7 @@ func (cfg Config) StackConfigsSortedByExecOrder() ([]Config, error) {
 	for i, id := range orderedIds {
 		stackCfgs[i] = cfg.Stacks[id]
 	}
+
 	return stackCfgs, nil
 }
 
@@ -108,17 +106,8 @@ func (cfg Config) ChangeSet() *awscf.ChangeSet {
 
 func (cfg *Config) initAwsSettings() {
 	for i, s := range cfg.Stacks {
-		if s.Settings.Aws.Region == "" {
-			s.Settings.Aws.Region = cfg.Settings.Aws.Region
-		}
-
-		if s.Settings.Aws.Profile == "" {
-			s.Settings.Aws.Profile = cfg.Settings.Aws.Profile
-		}
-
-		if s.Settings.Aws.Endpoint == "" {
-			s.Settings.Aws.Endpoint = cfg.Settings.Aws.Endpoint
-		}
+		s.Settings.Aws.Merge(cfg.Settings.Aws)
+		s.aws = cfg.aws
 
 		s.initAwsSettings()
 
@@ -126,80 +115,55 @@ func (cfg *Config) initAwsSettings() {
 	}
 }
 
-func (cfg Config) cf() *cloudformation.CloudFormation {
-	if cf, ok := cfPool[cfg.Settings.Aws]; ok {
-		return cf
-	}
-
-	sess := cfg.awsSession()
-
-	cf := cloudformation.New(sess)
-	cfPool[cfg.Settings.Aws] = cf
-
-	return cf
+func (cfg Config) cf() cloudformationiface.CloudFormationAPI {
+	return cfg.aws.Must(cfg.Settings.Aws).CF
 }
 
-func (cfg Config) awsSession() *session.Session {
-	if sess, ok := sessPool[cfg.Settings.Aws]; ok {
-		return sess
-	}
-
-	opts := session.Options{}
-
-	if cfg.Settings.Aws.Profile != "" {
-		opts.Profile = cfg.Settings.Aws.Profile
-	}
-
-	awsCfg := aws.Config{}
-	awsCfg.MaxRetries = aws.Int(7)
-
-	if cfg.Settings.Aws.Region != "" {
-		awsCfg.Region = aws.String(cfg.Settings.Aws.Region)
-	}
-
-	awsCfg.Endpoint = aws.String(cfg.Settings.Aws.Endpoint)
-
-	httpClient := http.Client{
-		Timeout: 2 * time.Second,
-	}
-	awsCfg.HTTPClient = &httpClient
-
-	opts.Config = awsCfg
-
-	sess := session.Must(session.NewSessionWithOptions(opts))
-	sessPool[cfg.Settings.Aws] = sess
-
-	return sess
+type awsProv interface {
+	Must(cfg aws.Config) *aws.AWS
+	New(cfg aws.Config) (*aws.AWS, error)
 }
 
-func LoadConfig(cfgFiles []string) (Config, error) {
-	cfg, err := decodeConfigs(cfgFiles)
+func NewLoader(fs FileSystem, awsProvider awsProv) *Loader {
+	return &Loader{fs, awsProvider}
+}
+
+type Loader struct {
+	fs  FileSystem
+	aws awsProv
+}
+
+func (l Loader) LoadConfig(cfgFiles []string, cfg *Config) error {
+	err := l.decodeConfigs(cfg, cfgFiles)
 	if err != nil {
-		return cfg, err
+		return err
 	}
 
-	err = parseBodies("root", &cfg)
-	if err != nil {
-		return cfg, err
-	}
+	return l.InitConfig(cfg)
+}
 
-	err = initEnvSettings(&cfg.Settings)
+func (l Loader) InitConfig(cfg *Config) error {
+	cfg.aws = l.aws
+
+	err := l.parseBodies("root", cfg)
 	if err != nil {
-		return cfg, err
+		return err
 	}
 
 	cfg.initAwsSettings()
 
-	return cfg, applyTemplating(&cfg)
+	return l.applyTemplating(cfg)
 }
 
-func parseBodies(id string, stackCfg *Config) error {
+func (l Loader) parseBodies(id string, stackCfg *Config) error {
 	for i, nestedStack := range stackCfg.Stacks {
 		nestedStack := nestedStack
-		err := parseBodies(i, &nestedStack)
+
+		err := l.parseBodies(i, &nestedStack)
 		if err != nil {
 			return err
 		}
+
 		stackCfg.Stacks[i] = nestedStack
 	}
 
@@ -213,7 +177,14 @@ func parseBodies(id string, stackCfg *Config) error {
 		return nil
 	}
 
-	buf, err := ioutil.ReadFile(stackCfg.Path)
+	f, err := l.fs.Open(stackCfg.Path)
+	if err != nil {
+		return err
+	}
+
+	defer f.Close()
+
+	buf, err := ioutil.ReadAll(f)
 	if err != nil {
 		return err
 	}
@@ -223,9 +194,7 @@ func parseBodies(id string, stackCfg *Config) error {
 	return nil
 }
 
-func decodeConfigs(cfgFiles []string) (Config, error) {
-	mainConfig := Config{}
-
+func (l Loader) decodeConfigs(mainConfig *Config, cfgFiles []string) error {
 	if len(cfgFiles) == 0 {
 		tryCfgFiles := []string{
 			"stack-assembly.yaml",
@@ -234,7 +203,7 @@ func decodeConfigs(cfgFiles []string) (Config, error) {
 			"stack-assembly.json",
 		}
 		for _, f := range tryCfgFiles {
-			if _, err := os.Stat(f); err == nil {
+			if _, err := l.fs.Stat(f); err == nil {
 				cfgFiles = []string{f}
 				break
 			}
@@ -242,11 +211,13 @@ func decodeConfigs(cfgFiles []string) (Config, error) {
 	}
 
 	mainRawCfg := make(map[string]interface{})
+
 	for _, cf := range cfgFiles {
 		extraRawCfg := make(map[string]interface{})
-		if err := parseFile(cf, &extraRawCfg); err != nil {
-			return mainConfig, fmt.Errorf("error occured while parsing config file %s: %v", cf, err)
+		if err := l.parseFile(cf, &extraRawCfg); err != nil {
+			return fmt.Errorf("error occurred while parsing config file %s: %v", cf, err)
 		}
+
 		merged := merge(mainRawCfg, extraRawCfg)
 		mainRawCfg = merged.(map[string]interface{})
 	}
@@ -259,25 +230,25 @@ func decodeConfigs(cfgFiles []string) (Config, error) {
 		definitions, ok := d.(map[string]interface{})
 
 		if !ok {
-			return mainConfig, errors.New("error occured while parsing config: `definitions` should be map")
+			return errors.New("error occurred while parsing config: `definitions` should be map")
 		}
 
 		if err := inheritDefinitions(&mainRawCfg, definitions); err != nil {
-			return mainConfig, fmt.Errorf("error occured while parsing config: %v", err)
+			return fmt.Errorf("error occurred while parsing config: %v", err)
 		}
 	}
 
 	config := mapstructure.DecoderConfig{
 		ErrorUnused: true,
-		Result:      &mainConfig,
+		Result:      mainConfig,
 	}
 
 	decoder, err := mapstructure.NewDecoder(&config)
 	if err != nil {
-		return mainConfig, err
+		return err
 	}
 
-	return mainConfig, decoder.Decode(mainRawCfg)
+	return decoder.Decode(mainRawCfg)
 }
 
 func inheritDefinitions(cfg *map[string]interface{}, definitions map[string]interface{}) error {
@@ -316,30 +287,12 @@ func inheritDefinitions(cfg *map[string]interface{}, definitions map[string]inte
 	return nil
 }
 
-func initEnvSettings(settings *settingsConfig) error {
-	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
-	viper.AutomaticEnv()
-
-	viper.SetConfigType("json")
-	buf := bytes.Buffer{}
-	enc := json.NewEncoder(&buf)
-
-	if err := enc.Encode(settings); err != nil {
-		return err
-	}
-
-	if err := viper.ReadConfig(&buf); err != nil {
-		return err
-	}
-
-	return viper.Unmarshal(settings)
-}
-
-func parseFile(filename string, cfg *map[string]interface{}) error {
-	f, err := os.Open(filename)
+func (l Loader) parseFile(filename string, cfg *map[string]interface{}) error {
+	f, err := l.fs.Open(filename)
 	if err != nil {
 		return err
 	}
+
 	defer f.Close()
 
 	ext := strings.ToLower(filepath.Ext(filename))
@@ -361,6 +314,7 @@ func parseFile(filename string, cfg *map[string]interface{}) error {
 func merge(x1, x2 interface{}) interface{} {
 	x1 = normalizeRawCfgEntry(x1)
 	x2 = normalizeRawCfgEntry(x2)
+
 	switch x1 := x1.(type) {
 	case map[string]interface{}:
 		return mergeMaps(x1, x2)
@@ -369,14 +323,17 @@ func merge(x1, x2 interface{}) interface{} {
 		if !ok {
 			return x1
 		}
+
 		return x2
 	case nil:
 		x2, ok := x2.(map[string]interface{})
 		if ok {
 			return x2
 		}
+
 		return x1
 	}
+
 	return x2
 }
 
@@ -385,6 +342,7 @@ func mergeMaps(x1 map[string]interface{}, i2 interface{}) interface{} {
 	if !ok {
 		return x1
 	}
+
 	for k, v2 := range x2 {
 		if v1, ok := x1[k]; ok {
 			x1[k] = merge(v1, v2)
@@ -392,6 +350,7 @@ func mergeMaps(x1 map[string]interface{}, i2 interface{}) interface{} {
 			x1[k] = v2
 		}
 	}
+
 	return x1
 }
 
@@ -400,12 +359,11 @@ func normalizeRawCfgEntry(src interface{}) interface{} {
 	if !ok {
 		return src
 	}
+
 	trg := map[string]interface{}{}
 	for k, v := range x {
 		trg[fmt.Sprintf("%v", k)] = v
 	}
+
 	return trg
 }
-
-var cfPool = map[AwsConfig]*cloudformation.CloudFormation{}
-var sessPool = map[AwsConfig]*session.Session{}

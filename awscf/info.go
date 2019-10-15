@@ -68,6 +68,7 @@ func (si StackInfo) HasParameter(k string) bool {
 			return true
 		}
 	}
+
 	return false
 }
 
@@ -87,6 +88,7 @@ func (si StackInfo) Tags() []KeyVal {
 // Outputs returns the "outputs" of a stack
 func (si StackInfo) Outputs() []StackOutput {
 	outputs := make([]StackOutput, len(si.awsStack.Outputs))
+
 	for i, o := range si.awsStack.Outputs {
 		out := StackOutput{
 			Key:         aws.StringValue(o.OutputKey),

@@ -33,6 +33,7 @@ func TestOnlyRequiredParametersAreSubmitted(t *testing.T) {
 		{ParameterKey: aws.String("foo"), ParameterValue: aws.String("fooval")},
 		{ParameterKey: aws.String("bar"), ParameterValue: aws.String("barval")},
 	}
+
 	require.NotNil(t, cf.createChangeSetInput)
 	assert.Equal(t, expected, cf.createChangeSetInput.Parameters)
 }
@@ -79,13 +80,12 @@ func TestEventTracking(t *testing.T) {
 		},
 	}
 
-	capturedEvents := []StackEvent{}
-
 	stack := NewStack(cf, "mystack")
 	cs, err := stack.ChangeSet("body").Register()
 	require.NoError(t, err)
 
 	wg.Add(1)
+
 	go func() {
 		for _, i := range []string{"4", "5", "6"} {
 			time.Sleep(1 * time.Millisecond)
@@ -97,31 +97,41 @@ func TestEventTracking(t *testing.T) {
 	}()
 
 	stop := make(chan bool)
-	trackingFinished := make(chan bool)
-	go func() {
-		for {
-			events, err := stack.EventsTrack().FreshEvents()
-			require.NoError(t, err)
-			for _, e := range events.Reversed() {
-				capturedEvents = append(capturedEvents, e)
-			}
-			select {
-			case <-stop:
-				trackingFinished <- true
-				return
-			default:
-				time.Sleep(6 * time.Millisecond)
-			}
-		}
-	}()
+	captured := make(chan StackEvent, 1000)
+
+	go track(t, stack, captured, stop)
 
 	require.NoError(t, cs.Exec())
 	stop <- true
-	<-trackingFinished
+
+	capturedEvents := []StackEvent{}
+
+	for e := range captured {
+		capturedEvents = append(capturedEvents, e)
+	}
 
 	expected := []StackEvent{{ID: "4"}, {ID: "5"}, {ID: "6"}}
 
 	assert.Equal(t, expected, capturedEvents)
+}
+
+func track(t *testing.T, stack *Stack, eventsCh chan<- StackEvent, cancel <-chan bool) {
+	for {
+		events, err := stack.EventsTrack().FreshEvents()
+		require.NoError(t, err)
+
+		for _, e := range events.Reversed() {
+			eventsCh <- e
+		}
+
+		select {
+		case <-cancel:
+			close(eventsCh)
+			return
+		default:
+			time.Sleep(6 * time.Millisecond)
+		}
+	}
 }
 
 type cfMock struct {
@@ -161,6 +171,7 @@ func (cf *cfMock) DescribeStacks(*cloudformation.DescribeStacksInput) (*cloudfor
 func (cf *cfMock) GetTemplate(*cloudformation.GetTemplateInput) (*cloudformation.GetTemplateOutput, error) {
 	out := cloudformation.GetTemplateOutput{}
 	out.TemplateBody = aws.String(cf.body)
+
 	return &out, cf.err
 }
 
@@ -174,6 +185,7 @@ func (cf *cfMock) DescribeStackEvents(input *cloudformation.DescribeStackEventsI
 	if cf.describeStackEventsFunc != nil {
 		return cf.describeStackEventsFunc()
 	}
+
 	return &cloudformation.DescribeStackEventsOutput{}, cf.err
 }
 
@@ -197,5 +209,6 @@ func (cf *cfMock) WaitUntilStackUpdateCompleteWithContext(aws.Context, *cloudfor
 	if cf.waitStackFunc != nil {
 		return cf.waitStackFunc()
 	}
+
 	return nil
 }

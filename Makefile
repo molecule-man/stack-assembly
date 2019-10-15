@@ -6,7 +6,7 @@ export GO111MODULE
 GO_TEST = $(shell command -v gotest || echo "go test")
 
 build:
-	go build -o bin/stas cmd/main.go
+	go build $(BUILD_ARGS) -o bin/stas cmd/main.go
 
 test:
 	${GO_TEST} ./...
@@ -15,18 +15,34 @@ testrace:
 	${GO_TEST} -race ./...
 
 run-acctest:
-	go test -tags acceptance -v ./tests $(GODOG_ARGS)
+	go test $(BUILD_ARGS) -v ./tests $(GODOG_ARGS)
 
 testacc: clean-testcache
-testacc: build
 testacc: run-acctest
-testacc: cleanup
 
 testaccwip: GODOG_ARGS = --godog.tags=wip --godog.concurrency=1 --godog.format=pretty
+testaccwip: BUILD_ARGS = -tags acceptance
 testaccwip: testacc
+testaccwip: cleanup
+
+testaccall: BUILD_ARGS = -tags acceptance
+testaccall: testacc
+testaccall: cleanup
+
+testaccmock: GODOG_ARGS = --godog.tags=mock
+# testaccmock: BUILD_ARGS = -tags awsmock,acceptance -race -timeout 2s -coverpkg $(shell go list ./... | paste -sd ',' -) -coverprofile=/tmp/cover.out
+testaccmock: BUILD_ARGS = -tags awsmock,acceptance -race -timeout 2s
+testaccmock: testacc
+
+testaccnomock: GODOG_ARGS = --godog.tags=nomock
+testaccnomock: BUILD_ARGS = -tags acceptance
+testaccnomock: testacc
+testaccnomock: cleanup
 
 testaccshort: GODOG_ARGS = --godog.tags=short
+testaccshort: BUILD_ARGS = -tags acceptance
 testaccshort: testacc
+testaccshort: cleanup
 
 clean-testcache:
 	go clean -testcache ./...

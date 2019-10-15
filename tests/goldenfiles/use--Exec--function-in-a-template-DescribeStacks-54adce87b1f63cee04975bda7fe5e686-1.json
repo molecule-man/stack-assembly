@@ -1,0 +1,15 @@
+{
+  "err": {
+    "Code": "ValidationError",
+    "Err": "ValidationError: Stack with id stastest-tplexec-%SCENARIO_ID% does not exist\n\tstatus code: 400, request id: 2f770ca8-7b88-4c03-848f-c052e60b030b",
+    "Msg": "Stack with id stastest-tplexec-%SCENARIO_ID% does not exist"
+  },
+  "input": {
+    "NextToken": null,
+    "StackName": "stastest-tplexec-%SCENARIO_ID%"
+  },
+  "output": {
+    "NextToken": null,
+    "Stacks": null
+  }
+}

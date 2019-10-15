@@ -1,0 +1,8 @@
+{
+  "err": null,
+  "input": {
+    "NextToken": null,
+    "StackName": "stastest-tplexec-%SCENARIO_ID%"
+  },
+  "output": ""
+}

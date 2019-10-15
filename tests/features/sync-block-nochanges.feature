@@ -1,5 +1,6 @@
 Feature: stas sync block stack when there are no changes
 
+    @nomock
     Scenario: blocking happens even if there are no changes in body
         Given file "cfg.yaml" exists:
             """

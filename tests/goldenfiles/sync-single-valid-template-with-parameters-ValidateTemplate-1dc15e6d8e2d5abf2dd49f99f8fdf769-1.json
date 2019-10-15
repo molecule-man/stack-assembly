@@ -1,0 +1,33 @@
+{
+  "err": null,
+  "input": {
+    "TemplateBody": "Parameters:\n  Env:\n    Type: String\n  Cluster1:\n    Type: String\n  Cluster2:\n    Type: String\nResources:\n  EcsCluster1:\n    Type: AWS::ECS::Cluster\n    Properties:\n      ClusterName: !Sub \"${Cluster1}-${Env}\"\n  EcsCluster2:\n    Type: AWS::ECS::Cluster\n    Properties:\n      ClusterName: !Ref Cluster2",
+    "TemplateURL": null
+  },
+  "output": {
+    "Capabilities": null,
+    "CapabilitiesReason": null,
+    "DeclaredTransforms": null,
+    "Description": null,
+    "Parameters": [
+      {
+        "DefaultValue": null,
+        "Description": null,
+        "NoEcho": false,
+        "ParameterKey": "Cluster1"
+      },
+      {
+        "DefaultValue": null,
+        "Description": null,
+        "NoEcho": false,
+        "ParameterKey": "Cluster2"
+      },
+      {
+        "DefaultValue": null,
+        "Description": null,
+        "NoEcho": false,
+        "ParameterKey": "Env"
+      }
+    ]
+  }
+}

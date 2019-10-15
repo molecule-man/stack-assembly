@@ -1,0 +1,27 @@
+{
+  "err": null,
+  "input": {
+    "TemplateBody": "Parameters:\n  User:\n    Type: String\n  Password:\n    Type: String\n    NoEcho: true\n\nResources:\n  MyeSecret:\n    Type: 'AWS::SecretsManager::Secret'\n    Properties:\n      Name: !Sub \"${AWS::StackName}-secret\"\n      SecretString: !Sub '{\"user\": \"${User}\", \"password\":\"${Password}\"}'",
+    "TemplateURL": null
+  },
+  "output": {
+    "Capabilities": null,
+    "CapabilitiesReason": null,
+    "DeclaredTransforms": null,
+    "Description": null,
+    "Parameters": [
+      {
+        "DefaultValue": null,
+        "Description": null,
+        "NoEcho": false,
+        "ParameterKey": "User"
+      },
+      {
+        "DefaultValue": null,
+        "Description": null,
+        "NoEcho": true,
+        "ParameterKey": "Password"
+      }
+    ]
+  }
+}

@@ -22,17 +22,20 @@ func NewTable() *Table {
 		if strings.HasPrefix(line, "-") {
 			line = strings.Replace(line, "|", "+", -1)
 			line = strings.Replace(line, " ", "-", -1)
+
 			return "+-" + line + "-+"
 		}
 
 		return "| " + line + " |"
 	}
+
 	return &Table{buf: buf, w: w}
 }
 
 func (t *Table) Header(cells ...string) *Table {
 	t.Row(cells...)
 	fmt.Fprintln(t.w, "-")
+
 	return t
 }
 
@@ -40,8 +43,10 @@ func (t *Table) Row(cells ...string) *Table {
 	if t.currentRow == 0 {
 		fmt.Fprintln(t.w, "-")
 	}
+
 	fmt.Fprintln(t.w, strings.Join(cells, "\t"))
 	t.currentRow++
+
 	return t
 }
 

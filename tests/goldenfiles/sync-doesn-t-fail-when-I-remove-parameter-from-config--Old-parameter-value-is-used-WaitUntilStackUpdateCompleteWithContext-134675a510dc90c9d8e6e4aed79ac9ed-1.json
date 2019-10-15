@@ -1,0 +1,8 @@
+{
+  "err": null,
+  "input": {
+    "NextToken": null,
+    "StackName": "stastest-rmparam-%SCENARIO_ID%"
+  },
+  "output": ""
+}

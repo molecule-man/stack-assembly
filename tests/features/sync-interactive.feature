@@ -19,7 +19,7 @@ Feature: stas sync in interactive mode
                         ClusterName: stastest-%scenarioid%
             """
 
-    @short
+    @short @mock
     Scenario: confirm syncing
         Given I launched "sync -c cfg.yaml --nocolor"
         And terminal shows:
@@ -40,7 +40,7 @@ Feature: stas sync in interactive mode
         Then launched program should exit with zero status
         And stack "stastest-%scenarioid%" should have status "CREATE_COMPLETE"
 
-    @short
+    @short @mock
     Scenario: reject syncing
         Given I launched "sync -c cfg.yaml"
         And terminal shows:
@@ -54,11 +54,11 @@ Feature: stas sync in interactive mode
             """
         And terminal shows:
             """
-            sync is cancelled
+            sync is canceled
             """
         And launched program should exit with non zero status
 
-    @short
+    @short @mock
     Scenario: show diff
         Given I launched "sync -c cfg.yaml"
         And terminal shows:

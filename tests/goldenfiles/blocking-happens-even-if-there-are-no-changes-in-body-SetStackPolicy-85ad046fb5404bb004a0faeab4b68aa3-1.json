@@ -1,0 +1,9 @@
+{
+  "err": null,
+  "input": {
+    "StackName": "stastest-block-%SCENARIO_ID%",
+    "StackPolicyBody": "{\n\t\t\"Statement\" : [{\n\t\t\t\"Effect\" : \"Deny\",\n\t\t\t\"Action\" : [\n\t\t\t\t\"Update:Replace\",\n\t\t\t\t\"Update:Delete\"\n\t\t\t],\n\t\t\t\"Principal\": \"*\",\n\t\t\t\"Resource\" : \"LogicalResourceId/EcsCluster1\"\n\t\t}]\n\t}",
+    "StackPolicyURL": null
+  },
+  "output": {}
+}

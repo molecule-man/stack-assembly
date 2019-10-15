@@ -1,0 +1,8 @@
+{
+  "err": null,
+  "input": {
+    "NextToken": null,
+    "StackName": "stastest-diff2-%SCENARIO_ID%"
+  },
+  "output": ""
+}

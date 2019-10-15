@@ -1,0 +1,12 @@
+{
+  "err": {
+    "Code": "ResourceNotReady",
+    "Err": "ResourceNotReady: failed waiting for successful resource state",
+    "Msg": "failed waiting for successful resource state"
+  },
+  "input": {
+    "NextToken": null,
+    "StackName": "stastest-block-%SCENARIO_ID%"
+  },
+  "output": ""
+}

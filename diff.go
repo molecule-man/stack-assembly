@@ -2,21 +2,20 @@ package assembly
 
 import (
 	"github.com/molecule-man/stack-assembly/awscf"
-	"github.com/molecule-man/stack-assembly/cli"
 	"github.com/molecule-man/stack-assembly/conf"
 )
 
-func Diff(cfg conf.Config) {
+func (sa SA) Diff(cfg conf.Config) {
 	for _, childCfg := range cfg.Stacks {
-		Diff(childCfg)
+		sa.Diff(childCfg)
 	}
 
 	if cfg.Body == "" {
 		return
 	}
 
-	diff, err := awscf.Diff(cfg.ChangeSet())
+	diff, err := awscf.ChSetDiff{Color: sa.cli.Color}.Diff(cfg.ChangeSet())
 	MustSucceed(err)
 
-	cli.Print(diff)
+	sa.cli.Print(diff)
 }

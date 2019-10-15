@@ -6,9 +6,8 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/aws/aws-sdk-go/aws"
+	awssdk "github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
-	"github.com/aws/aws-sdk-go/service/sts"
 )
 
 type tplData struct {
@@ -19,14 +18,15 @@ type tplData struct {
 	Params map[string]string
 }
 
-func applyTemplating(cfg *Config) error {
+func (l Loader) applyTemplating(cfg *Config) error {
 	var err error
-	*cfg, err = templatizeStackConfig(*cfg, tplData{Params: map[string]string{}})
+	*cfg, err = l.templatizeStackConfig(*cfg, tplData{Params: map[string]string{}})
+
 	return err
 }
 
-func templatizeStackConfig(cfg Config, data tplData) (Config, error) {
-	if err := updateAwsSettings(&data, cfg); err != nil {
+func (l Loader) templatizeStackConfig(cfg Config, data tplData) (Config, error) {
+	if err := l.updateAwsSettings(&data, cfg); err != nil {
 		return cfg, err
 	}
 
@@ -53,7 +53,7 @@ func templatizeStackConfig(cfg Config, data tplData) (Config, error) {
 	}
 
 	for i, nestedCfg := range cfg.Stacks {
-		templatizedCfg, err := templatizeStackConfig(nestedCfg, data)
+		templatizedCfg, err := l.templatizeStackConfig(nestedCfg, data)
 		if err != nil {
 			return cfg, err
 		}
@@ -64,15 +64,15 @@ func templatizeStackConfig(cfg Config, data tplData) (Config, error) {
 	return cfg, nil
 }
 
-func updateAwsSettings(data *tplData, cfg Config) error {
-	sess := cfg.awsSession()
-	callerIdent, err := sts.New(sess).GetCallerIdentity(&sts.GetCallerIdentityInput{})
+func (l Loader) updateAwsSettings(data *tplData, cfg Config) error {
+	awsSetup, err := l.aws.New(cfg.Settings.Aws)
+
 	if err != nil {
 		return err
 	}
 
-	data.AWS.Region = aws.StringValue(sess.Config.Region)
-	data.AWS.AccountID = aws.StringValue(callerIdent.Account)
+	data.AWS.Region = awsSetup.Region
+	data.AWS.AccountID = awsSetup.AccountID
 
 	return nil
 }
@@ -83,7 +83,7 @@ func templatizeRollbackConfig(rlbCfg *cloudformation.RollbackConfiguration, data
 	}
 
 	for _, t := range rlbCfg.RollbackTriggers {
-		err := parseTpl(t.Arn, aws.StringValue(t.Arn), data)
+		err := parseTpl(t.Arn, awssdk.StringValue(t.Arn), data)
 		if err != nil {
 			return err
 		}
@@ -116,8 +116,10 @@ func templatizeMap(m *map[string]string, data tplData) error {
 		if err := parseTpl(&parsed, v, data); err != nil {
 			return err
 		}
+
 		(*m)[k] = parsed
 	}
+
 	return nil
 }
 
@@ -135,6 +137,7 @@ func parseTpl(parsed *string, tpl string, data interface{}) error {
 	if err != nil {
 		return err
 	}
+
 	var buff bytes.Buffer
 
 	if err := t.Execute(&buff, data); err != nil {
@@ -142,5 +145,6 @@ func parseTpl(parsed *string, tpl string, data interface{}) error {
 	}
 
 	*parsed = buff.String()
+
 	return nil
 }

@@ -3,6 +3,7 @@ package awscf
 import (
 	"errors"
 	"fmt"
+	"sort"
 	"strconv"
 	"time"
 
@@ -56,9 +57,11 @@ func (cs *ChangeSet) WithRollback(rollbackCfg *cloudformation.RollbackConfigurat
 
 func (cs *ChangeSet) WithCapabilities(capabilities []string) *ChangeSet {
 	cs.capabilities = make([]*string, 0, len(capabilities))
+
 	for _, c := range capabilities {
 		cs.capabilities = append(cs.capabilities, aws.String(c))
 	}
+
 	return cs
 }
 
@@ -140,6 +143,7 @@ func (cs *ChangeSet) wait(id *string) error {
 			return fmt.Errorf("[%s] %s. Status: %s, StatusReason: %s", *setInfo.ChangeSetId, err.Error(), *setInfo.Status, *setInfo.StatusReason)
 		}
 	}
+
 	return err
 }
 
@@ -163,12 +167,20 @@ func (cs *ChangeSet) awsParameters() ([]*cloudformation.Parameter, error) {
 func (cs *ChangeSet) awsTags() []*cloudformation.Tag {
 	awsTags := make([]*cloudformation.Tag, 0, len(cs.tags))
 
-	for k, v := range cs.tags {
+	keys := make([]string, 0, len(cs.tags))
+	for k := range cs.tags {
+		keys = append(keys, k)
+	}
+
+	sort.Strings(keys)
+
+	for _, k := range keys {
 		awsTags = append(awsTags, &cloudformation.Tag{
 			Key:   aws.String(k),
-			Value: aws.String(v),
+			Value: aws.String(cs.tags[k]),
 		})
 	}
+
 	return awsTags
 }
 
@@ -223,10 +235,10 @@ func (csh ChangeSetHandle) changes(store *[]Change, nextToken *string) error {
 	}
 
 	if *setInfo.Status == cloudformation.ChangeSetStatusFailed {
-
 		if *setInfo.StatusReason == noChangeStatus {
 			return ErrNoChange
 		}
+
 		return errors.New(*setInfo.StatusReason)
 	}
 
@@ -237,6 +249,7 @@ func (csh ChangeSetHandle) changes(store *[]Change, nextToken *string) error {
 			ResourceType:      aws.StringValue(awsChange.ResourceType),
 			LogicalResourceID: aws.StringValue(awsChange.LogicalResourceId),
 		}
+
 		if aws.StringValue(awsChange.Replacement) == "True" {
 			ch.ReplacementNeeded = true
 		}

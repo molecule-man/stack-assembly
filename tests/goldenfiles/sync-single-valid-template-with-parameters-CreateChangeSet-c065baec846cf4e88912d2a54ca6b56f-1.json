@@ -1,0 +1,48 @@
+{
+  "err": null,
+  "input": {
+    "Capabilities": [],
+    "ChangeSetName": "%CHST_ID%",
+    "ChangeSetType": "CREATE",
+    "ClientToken": null,
+    "Description": null,
+    "NotificationARNs": null,
+    "Parameters": [
+      {
+        "ParameterKey": "Cluster1",
+        "ParameterValue": "cluster1-%SCENARIO_ID%",
+        "ResolvedValue": null,
+        "UsePreviousValue": null
+      },
+      {
+        "ParameterKey": "Cluster2",
+        "ParameterValue": "cluster2-%SCENARIO_ID%",
+        "ResolvedValue": null,
+        "UsePreviousValue": null
+      },
+      {
+        "ParameterKey": "Env",
+        "ParameterValue": "dev",
+        "ResolvedValue": null,
+        "UsePreviousValue": null
+      }
+    ],
+    "ResourceTypes": null,
+    "RoleARN": null,
+    "RollbackConfiguration": null,
+    "StackName": "stastest-param-%SCENARIO_ID%",
+    "Tags": [
+      {
+        "Key": "STAS_TEST",
+        "Value": "%FEATURE_ID%"
+      }
+    ],
+    "TemplateBody": "Parameters:\n  Env:\n    Type: String\n  Cluster1:\n    Type: String\n  Cluster2:\n    Type: String\nResources:\n  EcsCluster1:\n    Type: AWS::ECS::Cluster\n    Properties:\n      ClusterName: !Sub \"${Cluster1}-${Env}\"\n  EcsCluster2:\n    Type: AWS::ECS::Cluster\n    Properties:\n      ClusterName: !Ref Cluster2",
+    "TemplateURL": null,
+    "UsePreviousTemplate": null
+  },
+  "output": {
+    "Id": "arn:aws:cloudformation:%AWS_REGION%:%AWS_ACC_ID%:changeSet/%CHST_ID%/548e984d-8d3b-420b-9f0f-8f9a860677a3",
+    "StackId": "arn:aws:cloudformation:%AWS_REGION%:%AWS_ACC_ID%:stack/stastest-param-%SCENARIO_ID%/e45c6de0-ef22-11e9-947c-0233b49b0800"
+  }
+}

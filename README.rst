@@ -9,6 +9,11 @@ and letting the user to view and confirm changes to be deployed.
 
 .. class:: no-web
 
+    |build|
+
+
+.. class:: no-web
+
     .. image:: demo.gif
         :alt: stack-assembly in action
         :width: 100%
@@ -160,11 +165,14 @@ Usage
       -h, --help   help for sync
 
     Global Flags:
-      -c, --configs strings   Alternative config file(s). Default: stack-assembly.yaml
-      -n, --no-interaction    Do not ask any interactive questions
-          --nocolor           Disables color output
-      -p, --profile string    AWS named profile (default "default")
-      -r, --region string     AWS region
+      -c, --configs strings            Alternative config file(s). Default: stack-assembly.yaml
+      -n, --no-interaction             Do not ask any interactive questions
+          --nocolor                    Disables color output
+      -p, --profile string             AWS named profile (default "default")
+      -r, --region string              AWS region
+      -v, --var -v myParam=someValue   Additional variables to use as parameters in config.
+                                       Example: -v myParam=someValue
+
 
 Specifying multiple config files
 --------------------------------
@@ -492,3 +500,7 @@ TODO
 * Github support.
 * Add ci.
 * Add possibility to introspect aws resources??
+
+.. |build| image:: https://circleci.com/gh/molecule-man/stack-assembly.svg?style=svg
+    :target: https://circleci.com/gh/molecule-man/stack-assembly
+    :alt: Build status of the master branch

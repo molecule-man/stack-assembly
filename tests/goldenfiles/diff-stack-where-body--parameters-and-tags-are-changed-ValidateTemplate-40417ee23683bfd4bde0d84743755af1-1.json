@@ -1,0 +1,21 @@
+{
+  "err": null,
+  "input": {
+    "TemplateBody": "Parameters:\n  env:\n    Type: String\nResources:\n  EcsCluster:\n    Type: AWS::ECS::Cluster\n    Properties:\n      ClusterName: !Sub \"stastest-${env}-%SCENARIO_ID%\"",
+    "TemplateURL": null
+  },
+  "output": {
+    "Capabilities": null,
+    "CapabilitiesReason": null,
+    "DeclaredTransforms": null,
+    "Description": null,
+    "Parameters": [
+      {
+        "DefaultValue": null,
+        "Description": null,
+        "NoEcho": false,
+        "ParameterKey": "env"
+      }
+    ]
+  }
+}
