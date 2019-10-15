@@ -9,6 +9,11 @@ and letting the user to view and confirm changes to be deployed.
 
 .. class:: no-web
 
+    |build|
+
+
+.. class:: no-web
+
     .. image:: demo.gif
         :alt: stack-assembly in action
         :width: 100%
@@ -495,3 +500,7 @@ TODO
 * Github support.
 * Add ci.
 * Add possibility to introspect aws resources??
+
+.. |build| image:: https://circleci.com/gh/molecule-man/stack-assembly.svg?style=svg
+    :target: https://circleci.com/gh/molecule-man/stack-assembly
+    :alt: Build status of the master branch
