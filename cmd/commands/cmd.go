@@ -42,8 +42,6 @@ func (c *Commands) RootCmd() *cobra.Command {
 	rootCmd.PersistentFlags().StringVarP(&c.cfg.Settings.Aws.Profile, "profile", "p", defaultProfile, "AWS named profile")
 	rootCmd.PersistentFlags().StringVarP(&c.cfg.Settings.Aws.Region, "region", "r", os.Getenv("AWS_REGION"), "AWS region")
 
-	// rootCmd.PersistentFlags().StringSliceVarP(&c.cfgFiles, "configs", "c", []string{},
-	// 	"Alternative config file(s). Default: stack-assembly.yaml")
 	rootCmd.PersistentFlags().BoolVar(&c.Cli.Color.Disabled, "nocolor", false,
 		"Disables color output")
 	rootCmd.PersistentFlags().BoolVarP(c.nonInteractive, "no-interaction", "n", false,
@@ -59,6 +57,7 @@ func (c *Commands) RootCmd() *cobra.Command {
 		c.diffCmd(),
 		c.deleteCmd(),
 		c.dumpConfigCmd(),
+		c.cloudformationCmd(),
 	)
 
 	return rootCmd
@@ -225,6 +224,68 @@ func (c Commands) dumpConfigCmd() *cobra.Command {
 	addConfigFlag(dumpCmd, &cfgFiles)
 
 	return dumpCmd
+}
+
+func (c Commands) cloudformationCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "cloudformation",
+		Short: "Drop-in replacement of several aws cloudformation commands",
+	}
+
+	cmd.AddCommand(
+		c.cloudformationDeployCmd(),
+	)
+
+	return cmd
+}
+
+func (c Commands) cloudformationDeployCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "deploy",
+		Short: "Drop-in replacement of aws cloudformation deploy command",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if err := c.CfgLoader.InitConfig(c.cfg); err != nil {
+				return err
+			}
+			// c.dumpCfg("json")
+			return c.SA.Sync(*c.cfg, *c.nonInteractive)
+		},
+	}
+
+	cmd.Flags().StringVar(&c.cfg.Name, "stack-name", "", "Stack name")
+
+	cmd.Flags().StringVar(&c.cfg.Path, "template-file", "",
+		"Path to cloudformation template file")
+
+	cmd.Flags().StringToStringVar(
+		&c.cfg.Parameters, "parameter-overrides", map[string]string{},
+		"A list of parameter structures that specify input parameters for your stack template")
+
+	cmd.Flags().StringToStringVar(
+		&c.cfg.Tags, "tags", map[string]string{},
+		"A list of tags to associate with the stack that is created or updated")
+
+	cmd.Flags().StringSliceVar(
+		&c.cfg.Capabilities, "capabilities", []string{},
+		`A list of capabilities that you must specify before AWS
+Cloudformation can create certain stacks. E.g. CAPABILITY_IAM`)
+
+	cmd.Flags().StringVar(
+		&c.cfg.RoleARN, "role-arn", "",
+		"ARN of an IAM role that AWS CloudFormation assumes when executing the change set")
+
+	cmd.Flags().StringSliceVar(
+		&c.cfg.NotificationARNs, "notification-arns", []string{},
+		"SNS topic ARNs that AWS CloudFormation associates with the stack.")
+
+	cmd.Flags().Bool("fail-on-empty-changeset", false, "This flag is ignored")
+	cmd.Flags().Bool("no-fail-on-empty-changeset", true, "This flag is ignored")
+	cmd.Flags().Bool("no-execute-changeset", false, "This flag is ignored")
+
+	assembly.MustSucceed(cmd.MarkFlagRequired("stack-name"))
+	assembly.MustSucceed(cmd.MarkFlagRequired("template-file"))
+
+	return cmd
 }
 
 func (c Commands) dumpCfg(format string) {

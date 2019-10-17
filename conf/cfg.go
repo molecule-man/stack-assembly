@@ -48,8 +48,10 @@ type Config struct {
 
 	RollbackConfiguration *cloudformation.RollbackConfiguration `json:",omitempty" yaml:",omitempty" toml:",omitempty"`
 
-	Capabilities []string       `json:",omitempty" yaml:",omitempty" toml:",omitempty"`
-	Settings     settingsConfig `json:",omitempty" yaml:",omitempty" toml:",omitempty"`
+	RoleARN          string         `json:",omitempty" yaml:",omitempty" toml:",omitempty"`
+	NotificationARNs []string       `json:",omitempty" yaml:",omitempty" toml:",omitempty"`
+	Capabilities     []string       `json:",omitempty" yaml:",omitempty" toml:",omitempty"`
+	Settings         settingsConfig `json:",omitempty" yaml:",omitempty" toml:",omitempty"`
 
 	Stacks map[string]Config `json:",omitempty" yaml:",omitempty" toml:",omitempty"`
 
@@ -101,7 +103,9 @@ func (cfg Config) ChangeSet() *awscf.ChangeSet {
 		WithParameters(cfg.Parameters).
 		WithTags(cfg.Tags).
 		WithRollback(cfg.RollbackConfiguration).
-		WithCapabilities(cfg.Capabilities)
+		WithCapabilities(cfg.Capabilities).
+		WithRoleARN(cfg.RoleARN).
+		WithNotificationARNs(cfg.NotificationARNs)
 }
 
 func (cfg *Config) initAwsSettings() {

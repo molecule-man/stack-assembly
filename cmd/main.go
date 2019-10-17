@@ -2,7 +2,10 @@
 package main
 
 import (
+	"errors"
+	"log"
 	"os"
+	"os/exec"
 
 	assembly "github.com/molecule-man/stack-assembly"
 	"github.com/molecule-man/stack-assembly/aws"
@@ -26,5 +29,30 @@ func main() {
 			&aws.Provider{},
 		),
 	}
+
+	if len(os.Args) > 1 && os.Args[1] == "--aws" {
+		os.Args = append(os.Args[:1], os.Args[2:]...)
+		_, _, err := cmd.RootCmd().Find(os.Args[1:])
+
+		if err != nil {
+			c := exec.Command("aws", os.Args[1:]...)
+			c.Env = os.Environ()
+			c.Stdin = os.Stdin
+			c.Stdout = os.Stdout
+			c.Stderr = os.Stderr
+
+			if execErr := c.Run(); execErr != nil {
+				var exitErr *exec.ExitError
+				if errors.As(execErr, &exitErr) {
+					os.Exit(exitErr.ExitCode())
+				} else {
+					log.Fatalf("aws exited unexpectedly: %v", execErr)
+				}
+			}
+
+			return
+		}
+	}
+
 	assembly.MustSucceed(cmd.RootCmd().Execute())
 }
