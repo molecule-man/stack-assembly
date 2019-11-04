@@ -10,7 +10,6 @@ import (
 
 	"github.com/BurntSushi/toml"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
-	"github.com/aws/aws-sdk-go/service/cloudformation/cloudformationiface"
 	"github.com/mitchellh/mapstructure"
 	"github.com/molecule-man/stack-assembly/aws"
 	"github.com/molecule-man/stack-assembly/awscf"
@@ -19,13 +18,8 @@ import (
 )
 
 type settingsConfig struct {
-	Aws aws.Config
-}
-
-type AwsConfig struct {
-	Region   string
-	Profile  string
-	Endpoint string
+	Aws        aws.Config
+	S3Settings aws.S3Settings
 }
 
 // Config is a struct holding stacks configurations
@@ -94,7 +88,13 @@ func (cfg Config) ChangeSets() ([]*awscf.ChangeSet, error) {
 }
 
 func (cfg Config) Stack() *awscf.Stack {
-	return awscf.NewStack(cfg.cf(), cfg.Name)
+	prov := cfg.aws.Must(cfg.Settings.Aws)
+
+	return awscf.NewStack(
+		cfg.Name,
+		prov.CF,
+		aws.NewS3Uploader(prov.S3UploadManager, cfg.Settings.S3Settings),
+	)
 }
 
 func (cfg Config) ChangeSet() *awscf.ChangeSet {
@@ -113,14 +113,12 @@ func (cfg *Config) initAwsSettings() {
 		s.Settings.Aws.Merge(cfg.Settings.Aws)
 		s.aws = cfg.aws
 
+		s.Settings.S3Settings.Merge(cfg.Settings.S3Settings)
+
 		s.initAwsSettings()
 
 		cfg.Stacks[i] = s
 	}
-}
-
-func (cfg Config) cf() cloudformationiface.CloudFormationAPI {
-	return cfg.aws.Must(cfg.Settings.Aws).CF
 }
 
 type awsProv interface {

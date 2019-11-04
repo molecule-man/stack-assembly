@@ -1,0 +1,29 @@
+{
+  "err": null,
+  "input": {
+    "Capabilities": [],
+    "ChangeSetName": "%CHST_ID-2%",
+    "ChangeSetType": "CREATE",
+    "ClientToken": null,
+    "Description": null,
+    "NotificationARNs": null,
+    "Parameters": null,
+    "ResourceTypes": null,
+    "RoleARN": null,
+    "RollbackConfiguration": null,
+    "StackName": "stastest-%SCENARIO_ID%",
+    "Tags": [
+      {
+        "Key": "STAS_TEST",
+        "Value": "%FEATURE_ID%"
+      }
+    ],
+    "TemplateBody": null,
+    "TemplateURL": "https://stastest-%FEATURE_ID%-1.s3.%AWS_REGION%.amazonaws.com/stack-assembly",
+    "UsePreviousTemplate": null
+  },
+  "output": {
+    "Id": "arn:aws:cloudformation:%AWS_REGION%:%AWS_ACC_ID%:changeSet/%CHST_ID-2%/646a3c62-788e-48f4-ab2e-3f3132fabe34",
+    "StackId": "arn:aws:cloudformation:%AWS_REGION%:%AWS_ACC_ID%:stack/stastest-%SCENARIO_ID%/c1014cf0-fee3-11e9-8783-02e29081c656"
+  }
+}

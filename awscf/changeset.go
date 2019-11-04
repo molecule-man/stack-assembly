@@ -20,7 +20,7 @@ type ChangeSet struct {
 	parameters map[string]string
 	tags       map[string]string
 
-	inptut cloudformation.CreateChangeSetInput
+	input cloudformation.CreateChangeSetInput
 }
 
 // Change is a change that is applied to the stack
@@ -51,18 +51,18 @@ func (cs *ChangeSet) WithTags(tags map[string]string) *ChangeSet {
 }
 
 func (cs *ChangeSet) WithRollback(rollbackCfg *cloudformation.RollbackConfiguration) *ChangeSet {
-	cs.inptut.RollbackConfiguration = rollbackCfg
+	cs.input.RollbackConfiguration = rollbackCfg
 	return cs
 }
 
 func (cs *ChangeSet) WithCapabilities(capabilities []string) *ChangeSet {
-	cs.inptut.Capabilities = aws.StringSlice(capabilities)
+	cs.input.Capabilities = aws.StringSlice(capabilities)
 	return cs
 }
 
 func (cs *ChangeSet) WithRoleARN(arn string) *ChangeSet {
 	if arn != "" {
-		cs.inptut.RoleARN = aws.String(arn)
+		cs.input.RoleARN = aws.String(arn)
 	}
 
 	return cs
@@ -70,7 +70,7 @@ func (cs *ChangeSet) WithRoleARN(arn string) *ChangeSet {
 
 func (cs *ChangeSet) WithNotificationARNs(arns []string) *ChangeSet {
 	if len(arns) > 0 {
-		cs.inptut.NotificationARNs = aws.StringSlice(arns)
+		cs.input.NotificationARNs = aws.StringSlice(arns)
 	}
 
 	return cs
@@ -97,14 +97,24 @@ func (cs *ChangeSet) Register() (*ChangeSetHandle, error) {
 		operation = cloudformation.ChangeSetTypeUpdate
 	}
 
-	cs.inptut.ChangeSetType = aws.String(operation)
-	cs.inptut.ChangeSetName = aws.String("chst-" + strconv.FormatInt(time.Now().UnixNano(), 10))
-	cs.inptut.TemplateBody = aws.String(cs.body)
-	cs.inptut.StackName = aws.String(cs.stack.Name)
-	cs.inptut.Parameters = awsParams
-	cs.inptut.Tags = cs.awsTags()
+	url, err := cs.stack.uploader.Upload(cs.body)
+	if err != nil {
+		return chSet, err
+	}
 
-	output, err := cs.stack.cf.CreateChangeSet(&cs.inptut)
+	if url != "" {
+		cs.input.TemplateURL = aws.String(url)
+	} else {
+		cs.input.TemplateBody = aws.String(cs.body)
+	}
+
+	cs.input.ChangeSetType = aws.String(operation)
+	cs.input.ChangeSetName = aws.String("chst-" + strconv.FormatInt(time.Now().UnixNano(), 10))
+	cs.input.StackName = aws.String(cs.stack.Name)
+	cs.input.Parameters = awsParams
+	cs.input.Tags = cs.awsTags()
+
+	output, err := cs.stack.cf.CreateChangeSet(&cs.input)
 
 	if err != nil {
 		return chSet, err

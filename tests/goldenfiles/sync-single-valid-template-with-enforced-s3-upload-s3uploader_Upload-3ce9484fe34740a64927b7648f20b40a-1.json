@@ -1,0 +1,39 @@
+{
+  "err": null,
+  "input": {
+    "ACL": null,
+    "Body": {},
+    "Bucket": "stastest-%FEATURE_ID%-1",
+    "CacheControl": null,
+    "ContentDisposition": null,
+    "ContentEncoding": null,
+    "ContentLanguage": null,
+    "ContentMD5": null,
+    "ContentType": null,
+    "Expires": null,
+    "GrantFullControl": null,
+    "GrantRead": null,
+    "GrantReadACP": null,
+    "GrantWriteACP": null,
+    "Key": "stack-assembly",
+    "Metadata": null,
+    "ObjectLockLegalHoldStatus": null,
+    "ObjectLockMode": null,
+    "ObjectLockRetainUntilDate": null,
+    "RequestPayer": null,
+    "SSECustomerAlgorithm": null,
+    "SSECustomerKey": null,
+    "SSECustomerKeyMD5": null,
+    "SSEKMSEncryptionContext": null,
+    "SSEKMSKeyId": null,
+    "ServerSideEncryption": null,
+    "StorageClass": null,
+    "Tagging": null,
+    "WebsiteRedirectLocation": null
+  },
+  "output": {
+    "Location": "https://stastest-%FEATURE_ID%-1.s3.%AWS_REGION%.amazonaws.com/stack-assembly",
+    "UploadID": "",
+    "VersionID": null
+  }
+}

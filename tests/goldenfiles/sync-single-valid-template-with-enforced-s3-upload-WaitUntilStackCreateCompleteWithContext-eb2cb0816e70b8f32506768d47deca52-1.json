@@ -1,0 +1,8 @@
+{
+  "err": null,
+  "input": {
+    "NextToken": null,
+    "StackName": "stastest-bucket-%SCENARIO_ID%"
+  },
+  "output": ""
+}

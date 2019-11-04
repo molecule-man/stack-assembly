@@ -1,9 +1,9 @@
 .PHONY: vendor
 
-GO111MODULE := on
-export GO111MODULE
-
 GO_TEST = $(shell command -v gotest || echo "go test")
+
+STACKS = aws cloudformation describe-stacks \
+		| jq '.Stacks[] | select((.StackName | startswith("stastest-")) or (.Tags[].Key == "STAS_TEST")) | .StackId' -r
 
 build:
 	go build $(BUILD_ARGS) -o bin/stas cmd/main.go
@@ -50,17 +50,19 @@ clean-testcache:
 test-nocache: clean-testcache
 test-nocache: test
 
-cleanup:
-	aws cloudformation describe-stacks \
-		| jq '.Stacks[] | select(.Tags[].Key == "STAS_TEST") | .StackId' -r \
+cleanup: purgebuckets
+cleanup: rmstacks
+
+rmstacks:
+	$(STACKS) \
 		| xargs -r -l aws cloudformation delete-stack --stack-name
-	aws cloudformation describe-stacks \
-		| jq '.Stacks[] | select(.StackName | startswith("stastest-")) | .StackId' -r \
-		| xargs -r -l aws cloudformation delete-stack --stack-name
+
+purgebuckets:
+	$(STACKS) \
+		| xargs -r -l aws cloudformation describe-stack-resources \
+			--query "StackResources[?ResourceType=='AWS::S3::Bucket'].PhysicalResourceId" \
+			--output text --stack-name \
+		| xargs -r -l -I % aws s3 rm s3://% --recursive
 
 lint:
 	golangci-lint run
-
-vendor:
-	rm -rf vendor
-	go mod vendor

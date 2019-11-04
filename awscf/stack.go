@@ -10,6 +10,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/cloudformation/cloudformationiface"
+	saAws "github.com/molecule-man/stack-assembly/aws"
 )
 
 const noChangeStatus = "The submitted information didn't contain changes. " +
@@ -44,12 +45,13 @@ type Stack struct {
 	Name string
 
 	cf          cloudformationiface.CloudFormationAPI
+	uploader    *saAws.S3Uploader
 	cachedInfo  *StackInfo
 	eventsTrack *EventsTrack
 }
 
-func NewStack(cf cloudformationiface.CloudFormationAPI, name string) *Stack {
-	return &Stack{cf: cf, Name: name}
+func NewStack(name string, cf cloudformationiface.CloudFormationAPI, uploader *saAws.S3Uploader) *Stack {
+	return &Stack{Name: name, cf: cf, uploader: uploader}
 }
 
 func (s *Stack) Info() (StackInfo, error) {
