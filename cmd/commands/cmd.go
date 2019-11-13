@@ -37,7 +37,8 @@ func (c *Commands) RootCmd() *cobra.Command {
 	}
 
 	rootCmd := &cobra.Command{
-		Use: "stas <stack name> <template path>",
+		Use:          "stas <stack name> <template path>",
+		SilenceUsage: true,
 	}
 	rootCmd.PersistentFlags().StringVarP(&c.cfg.Settings.Aws.Profile, "profile", "p", defaultProfile, "AWS named profile")
 	rootCmd.PersistentFlags().StringVarP(&c.cfg.Settings.Aws.Region, "region", "r", os.Getenv("AWS_REGION"), "AWS region")
