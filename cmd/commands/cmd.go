@@ -240,6 +240,7 @@ func (c Commands) cloudformationCmd() *cobra.Command {
 	return cmd
 }
 
+//nolint:funlen
 func (c Commands) cloudformationDeployCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "deploy",
@@ -258,13 +259,29 @@ func (c Commands) cloudformationDeployCmd() *cobra.Command {
 	cmd.Flags().StringVar(&c.cfg.Path, "template-file", "",
 		"Path to cloudformation template file")
 
+	cmd.Flags().StringVar(&c.cfg.Settings.S3Settings.BucketName, "s3-bucket", "",
+		`The name of the S3 bucket where this command uploads your
+CloudFormation template. This is required the deployments of
+templates sized greater than 51,200 bytes`)
+
+	cmd.Flags().StringVar(&c.cfg.Settings.S3Settings.Prefix, "s3-prefix", "",
+		`A prefix name that the command adds to the artifacts' name when
+it uploads them to the S3 bucket. The prefix name is a path name
+(folder name) for the S3 bucket.`)
+
+	cmd.Flags().StringVar(&c.cfg.Settings.S3Settings.KMSKeyID, "kms-key-id", "",
+		`The ID of an AWS KMS key that the command uses to encrypt artifacts
+that are at rest in the S3 bucket`)
+
 	cmd.Flags().StringToStringVar(
 		&c.cfg.Parameters, "parameter-overrides", map[string]string{},
-		"A list of parameter structures that specify input parameters for your stack template")
+		`A list of parameter structures that specify input parameters for
+your stack template`)
 
 	cmd.Flags().StringToStringVar(
 		&c.cfg.Tags, "tags", map[string]string{},
-		"A list of tags to associate with the stack that is created or updated")
+		`A list of tags to associate with the stack that is created or
+updated`)
 
 	cmd.Flags().StringSliceVar(
 		&c.cfg.Capabilities, "capabilities", []string{},
@@ -273,7 +290,8 @@ Cloudformation can create certain stacks. E.g. CAPABILITY_IAM`)
 
 	cmd.Flags().StringVar(
 		&c.cfg.RoleARN, "role-arn", "",
-		"ARN of an IAM role that AWS CloudFormation assumes when executing the change set")
+		`ARN of an IAM role that AWS CloudFormation assumes when executing
+the change set`)
 
 	cmd.Flags().StringSliceVar(
 		&c.cfg.NotificationARNs, "notification-arns", []string{},
@@ -282,6 +300,7 @@ Cloudformation can create certain stacks. E.g. CAPABILITY_IAM`)
 	cmd.Flags().Bool("fail-on-empty-changeset", false, "This flag is ignored")
 	cmd.Flags().Bool("no-fail-on-empty-changeset", true, "This flag is ignored")
 	cmd.Flags().Bool("no-execute-changeset", false, "This flag is ignored")
+	cmd.Flags().Bool("force-upload", false, "This flag is ignored")
 
 	assembly.MustSucceed(cmd.MarkFlagRequired("stack-name"))
 	assembly.MustSucceed(cmd.MarkFlagRequired("template-file"))
