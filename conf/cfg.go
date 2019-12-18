@@ -27,6 +27,7 @@ type Config struct {
 	Name       string
 	Path       string
 	Body       string
+	URL        string `json:",omitempty" yaml:",omitempty" toml:",omitempty"`
 	Parameters map[string]string
 	Tags       map[string]string `json:",omitempty" yaml:",omitempty" toml:",omitempty"`
 	DependsOn  []string          `json:",omitempty" yaml:",omitempty" toml:",omitempty"`
@@ -41,10 +42,13 @@ type Config struct {
 	} `json:",omitempty" yaml:",omitempty" toml:",omitempty"`
 
 	RollbackConfiguration *cloudformation.RollbackConfiguration `json:",omitempty" yaml:",omitempty" toml:",omitempty"`
+	UsePreviousTemplate   bool                                  `json:",omitempty" yaml:",omitempty" toml:",omitempty"`
 
 	RoleARN          string         `json:",omitempty" yaml:",omitempty" toml:",omitempty"`
+	ClientToken      string         `json:",omitempty" yaml:",omitempty" toml:",omitempty"`
 	NotificationARNs []string       `json:",omitempty" yaml:",omitempty" toml:",omitempty"`
 	Capabilities     []string       `json:",omitempty" yaml:",omitempty" toml:",omitempty"`
+	ResourceTypes    []string       `json:",omitempty" yaml:",omitempty" toml:",omitempty"`
 	Settings         settingsConfig `json:",omitempty" yaml:",omitempty" toml:",omitempty"`
 
 	Stacks map[string]Config `json:",omitempty" yaml:",omitempty" toml:",omitempty"`
@@ -100,12 +104,16 @@ func (cfg Config) Stack() *awscf.Stack {
 func (cfg Config) ChangeSet() *awscf.ChangeSet {
 	return cfg.Stack().
 		ChangeSet(cfg.Body).
+		WithTemplateURL(cfg.URL).
 		WithParameters(cfg.Parameters).
 		WithTags(cfg.Tags).
 		WithRollback(cfg.RollbackConfiguration).
 		WithCapabilities(cfg.Capabilities).
 		WithRoleARN(cfg.RoleARN).
-		WithNotificationARNs(cfg.NotificationARNs)
+		WithClientToken(cfg.ClientToken).
+		WithNotificationARNs(cfg.NotificationARNs).
+		WithUsePrevTpl(cfg.UsePreviousTemplate).
+		WithResourceTypes(cfg.ResourceTypes)
 }
 
 func (cfg *Config) initAwsSettings() {

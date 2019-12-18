@@ -29,7 +29,7 @@ Feature: stas sync (body test)
             """
         When I run "sync -c cfg.yaml --no-interaction"
         Then exit code should not be zero
-        And output should contain:
+        And error contains:
             """
             not possible to parse config for stack
             """

@@ -3,6 +3,7 @@ package main
 
 import (
 	"os"
+	"strings"
 
 	assembly "github.com/molecule-man/stack-assembly"
 	"github.com/molecule-man/stack-assembly/aws"
@@ -29,5 +30,23 @@ func main() {
 
 	cmd.InvokeAwscliIfNeeded()
 
-	assembly.MustSucceed(cmd.RootCmd().Execute())
+	err := cmd.RootCmd().Execute()
+
+	if err != nil && cmd.IsAwsDropIn() && commands.IsAwsDropInError(err) {
+		yesNo, promptErr := cli.Fask(
+			os.Stderr,
+			"%s\nDo you want to execute corresponding aws cli command [y|n]: ",
+			err.Error(),
+		)
+		assembly.MustSucceed(promptErr)
+
+		yesNo = strings.ToLower(yesNo)
+
+		if yesNo == "y" || yesNo == "yes" {
+			cmd.InvokeAwscli()
+			return
+		}
+	}
+
+	assembly.MustSucceed(err)
 }

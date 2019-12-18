@@ -7,6 +7,7 @@ require (
 	github.com/aws/aws-sdk-go v1.23.3
 	github.com/kr/pretty v0.1.0 // indirect
 	github.com/kr/pty v1.1.8 // indirect
+	github.com/mitchellh/go-wordwrap v1.0.0
 	github.com/mitchellh/mapstructure v1.1.2
 	github.com/pmezard/go-difflib v1.0.0
 	github.com/spf13/afero v1.2.2

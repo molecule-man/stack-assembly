@@ -55,9 +55,9 @@ Feature: stas delete
             """
             Interrupted by user
             """
-        And terminal shows:
+        And launched program should exit with non zero status
+        And error contains:
             """
             deletion is canceled
             """
-        And launched program should exit with non zero status
         And stack "stastest-%scenarioid%" should have status "CREATE_COMPLETE"

@@ -354,6 +354,15 @@ func (f *feature) terminalShows(s *gherkin.DocString) error {
 	return nil
 }
 
+func (f *feature) errorContains(s *gherkin.DocString) error {
+	str := f.replaceParameters(s.Content)
+	if !strings.Contains(f.lastErr.Error(), str) {
+		return fmt.Errorf("error %v doesn't contain %s", f.lastErr, str)
+	}
+
+	return nil
+}
+
 func (f *feature) iEnter(s string) error {
 	_, err := f.console.SendLine(s)
 	return err
@@ -452,6 +461,7 @@ func FeatureContext(s *godog.Suite) {
 	s.Step(`^launched program should exit with zero status$`, f.launchedProgramShouldExitWithZeroStatus)
 	s.Step(`^launched program should exit with non zero status$`, f.launchedProgramShouldExitWithNonZeroStatus)
 	s.Step(`^file "([^"]*)" should contain exactly:$`, f.fileShouldContainExactly)
+	s.Step(`^error contains:$`, f.errorContains)
 
 	re := regexp.MustCompile("\\W")
 

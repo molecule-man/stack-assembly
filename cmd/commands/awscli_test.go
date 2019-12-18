@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -34,4 +35,22 @@ func TestNormalizeParams(t *testing.T) {
 		output := normalizeAwsParams([]string{"--params", "--tags"}, tc.input)
 		assert.Equal(t, tc.expectedOutput, output, "input: %+v", tc.input)
 	}
+}
+
+func TestParseAwsParams(t *testing.T) {
+	params, err := awsParamsToMap([]string{
+		"ParameterKey=foo,ParameterValue=bar",
+		"ParameterKey=doesntmatter,UsePreviousValue=true",
+		"ParameterKey=buz,ParameterValue=buzbuz",
+	})
+	assert.NoError(t, err)
+	assert.Equal(t, map[string]string{"foo": "bar", "buz": "buzbuz"}, params)
+
+	_, err = awsParamsToMap([]string{"ParameterKey=foo,UnknownPiece=bar"})
+	assert.Error(t, err)
+	assert.True(t, errors.Is(err, ErrAwsDropIn))
+
+	_, err = awsParamsToMap([]string{`[{"ParameterKey": "foo", "ParameterValue": "bar"}]`})
+	assert.Error(t, err)
+	assert.True(t, errors.Is(err, ErrAwsDropIn))
 }

@@ -13,12 +13,17 @@ import (
 	yaml "gopkg.in/yaml.v2"
 )
 
+const (
+	wrapFlagLen = 60
+)
+
 type Commands struct {
 	SA             *assembly.SA
 	Cli            *cli.CLI
 	CfgLoader      *conf.Loader
 	cfg            *conf.Config
 	nonInteractive *bool
+	origArgs       []string
 }
 
 func (c *Commands) RootCmd() *cobra.Command {
@@ -37,8 +42,9 @@ func (c *Commands) RootCmd() *cobra.Command {
 	}
 
 	rootCmd := &cobra.Command{
-		Use:          "stas <stack name> <template path>",
-		SilenceUsage: true,
+		Use:           "stas <stack name> <template path>",
+		SilenceUsage:  true,
+		SilenceErrors: true,
 	}
 	rootCmd.PersistentFlags().StringVarP(&c.cfg.Settings.Aws.Profile, "profile", "p", defaultProfile, "AWS named profile")
 	rootCmd.PersistentFlags().StringVarP(&c.cfg.Settings.Aws.Region, "region", "r", os.Getenv("AWS_REGION"), "AWS region")
@@ -235,6 +241,8 @@ func (c Commands) cloudformationCmd() *cobra.Command {
 
 	cmd.AddCommand(
 		c.cloudformationDeployCmd(),
+		c.cloudformationCreateCmd(),
+		c.cloudformationUpdateCmd(),
 	)
 
 	return cmd
@@ -244,7 +252,7 @@ func (c Commands) cloudformationCmd() *cobra.Command {
 func (c Commands) cloudformationDeployCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "deploy",
-		Short: "Drop-in replacement of aws cloudformation deploy command",
+		Short: "Drop-in replacement of `aws cloudformation deploy` command",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := c.CfgLoader.InitConfig(c.cfg); err != nil {
 				return err
@@ -308,6 +316,135 @@ the change set`)
 	return cmd
 }
 
+func (c Commands) cloudformationCreateCmd() *cobra.Command {
+	params := []string{}
+
+	cmd := &cobra.Command{
+		Use:   "create-stack",
+		Short: "Drop-in replacement of `aws cloudformation create-stack` command",
+		Long: cli.WordWrap(80,
+			"Creates a stack. Drop-in replacement of `aws cloudformation create-stack` command\n",
+			"\n",
+			"The following flags are not implemented. If you provide those flags you will be asked ",
+			"if you want to fallback to original aws cli command.\n",
+			" * --rollback-configuration\n",
+			" * --disable-rollback\n",
+			" * --no-disable-rollback\n",
+			" * --timeout-in-minutes\n",
+			" * --on-failure\n",
+			" * --stack-policy-body\n",
+			" * --stack-policy-url\n",
+			" * --enable-termination-protection\n",
+			" * --cli-input-json\n",
+			" * --generate-cli-skeleton\n",
+		),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			var err error
+			if c.cfg.Parameters, err = awsParamsToMap(params); err != nil {
+				return err
+			}
+
+			if err := c.CfgLoader.InitConfig(c.cfg); err != nil {
+				return err
+			}
+			return c.SA.Sync(*c.cfg, *c.nonInteractive)
+		},
+	}
+
+	c.createUpdateFlags(cmd)
+
+	cmd.Flags().StringArrayVar(&params, "parameters", []string{}, flagDescription("List of parameters"))
+
+	assembly.MustSucceed(cmd.MarkFlagRequired("stack-name"))
+
+	return cmd
+}
+
+func (c Commands) cloudformationUpdateCmd() *cobra.Command {
+	params := []string{}
+
+	cmd := &cobra.Command{
+		Use:   "update-stack",
+		Short: "Drop-in replacement of `aws cloudformation update-stack` command",
+		Long: cli.WordWrap(80,
+			"Updates a stack. Drop-in replacement of `aws cloudformation update-stack` command\n",
+			"\n",
+			"The following flags are not implemented. If you provide those flags you will be asked ",
+			"if you want to fallback to original aws cli command.\n",
+			" * --stack-policy-during-update-body\n",
+			" * --stack-policy-during-update-url\n",
+			" * --rollback-configuration\n",
+			" * --stack-policy-body\n",
+			" * --stack-policy-url\n",
+			" * --cli-input-json\n",
+			" * --generate-cli-skeleton\n",
+		),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			var err error
+			if c.cfg.Parameters, err = awsParamsToMap(params); err != nil {
+				return err
+			}
+
+			if err := c.CfgLoader.InitConfig(c.cfg); err != nil {
+				return err
+			}
+			return c.SA.Sync(*c.cfg, *c.nonInteractive)
+		},
+	}
+
+	c.createUpdateFlags(cmd)
+
+	cmd.Flags().StringArrayVar(&params, "parameters", []string{}, flagDescription("List of parameters"))
+
+	cmd.Flags().BoolVar(
+		&c.cfg.UsePreviousTemplate, "use-previous-template", false, flagDescription(
+			"Reuse the existing template that is associated with",
+			"the stack that you are updating."))
+
+	cmd.Flags().Bool("no-use-previous-template", false, "This flag is ignored")
+
+	assembly.MustSucceed(cmd.MarkFlagRequired("stack-name"))
+
+	return cmd
+}
+
+func (c Commands) createUpdateFlags(cmd *cobra.Command) {
+	cmd.Flags().StringVar(&c.cfg.Name, "stack-name", "", flagDescription("Stack name"))
+	cmd.Flags().StringVar(&c.cfg.Body, "template-body", "", flagDescription("Cloudformation template body"))
+	cmd.Flags().StringVar(&c.cfg.URL, "template-url", "", flagDescription("Cloudformation template url (s3)"))
+
+	cmd.Flags().StringSliceVar(
+		&c.cfg.NotificationARNs, "notification-arns", []string{}, flagDescription(
+			"SNS topic ARNs that AWS CloudFormation associates ",
+			"with the stack."))
+
+	cmd.Flags().StringToStringVar(
+		&c.cfg.Tags, "tags", map[string]string{}, flagDescription(
+			"A list of tags to associate with the stack that is ",
+			"created or updated"))
+
+	cmd.Flags().StringSliceVar(
+		&c.cfg.Capabilities, "capabilities", []string{}, flagDescription(
+			"A list of capabilities that you must specify before ",
+			"AWS Cloudformation can create certain stacks. E.g. ",
+			"CAPABILITY_IAM"))
+
+	cmd.Flags().StringVar(
+		&c.cfg.RoleARN, "role-arn", "", flagDescription(
+			"ARN of an IAM role that AWS CloudFormation assumes ",
+			"when executing the change set"))
+
+	cmd.Flags().StringSliceVar(
+		&c.cfg.ResourceTypes, "resource-types", []string{}, flagDescription(
+			"The template resource types that you have permissions",
+			" to work with for this create stack action"))
+
+	cmd.Flags().StringVar(
+		&c.cfg.ClientToken, "client-request-token", "", flagDescription(
+			"A unique identifier for this request. Specify this",
+			" token if you plan to retry requests"))
+}
+
 func (c Commands) dumpCfg(format string) {
 	out := c.Cli.Writer
 
@@ -328,4 +465,8 @@ func (c Commands) dumpCfg(format string) {
 func addConfigFlag(cmd *cobra.Command, val *[]string) {
 	cmd.Flags().StringSliceVarP(val, "configs", "c", []string{},
 		"Alternative config file(s). Default: stack-assembly.yaml")
+}
+
+func flagDescription(text ...string) string {
+	return cli.WordWrap(wrapFlagLen, text...)
 }

@@ -52,11 +52,11 @@ Feature: stas sync in interactive mode
             """
             Interrupted by user
             """
-        And terminal shows:
+        And launched program should exit with non zero status
+        And error contains:
             """
             sync is canceled
             """
-        And launched program should exit with non zero status
 
     @short @mock
     Scenario: show diff

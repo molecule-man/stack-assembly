@@ -17,6 +17,7 @@ import (
 type ChangeSet struct {
 	stack      *Stack
 	body       string
+	url        string
 	parameters map[string]string
 	tags       map[string]string
 
@@ -33,6 +34,14 @@ type Change struct {
 
 func (cs *ChangeSet) Stack() *Stack {
 	return cs.stack
+}
+
+func (cs *ChangeSet) WithTemplateURL(url string) *ChangeSet {
+	if url != "" {
+		cs.url = url
+	}
+
+	return cs
 }
 
 func (cs *ChangeSet) WithParameters(parameters map[string]string) *ChangeSet {
@@ -55,14 +64,38 @@ func (cs *ChangeSet) WithRollback(rollbackCfg *cloudformation.RollbackConfigurat
 	return cs
 }
 
+func (cs *ChangeSet) WithClientToken(token string) *ChangeSet {
+	if token != "" {
+		cs.input.ClientToken = aws.String(token)
+	}
+
+	return cs
+}
+
 func (cs *ChangeSet) WithCapabilities(capabilities []string) *ChangeSet {
 	cs.input.Capabilities = aws.StringSlice(capabilities)
+	return cs
+}
+
+func (cs *ChangeSet) WithResourceTypes(types []string) *ChangeSet {
+	if len(types) > 0 {
+		cs.input.ResourceTypes = aws.StringSlice(types)
+	}
+
 	return cs
 }
 
 func (cs *ChangeSet) WithRoleARN(arn string) *ChangeSet {
 	if arn != "" {
 		cs.input.RoleARN = aws.String(arn)
+	}
+
+	return cs
+}
+
+func (cs *ChangeSet) WithUsePrevTpl(usePrevTpl bool) *ChangeSet {
+	if usePrevTpl {
+		cs.input.UsePreviousTemplate = aws.Bool(true)
 	}
 
 	return cs
@@ -97,15 +130,8 @@ func (cs *ChangeSet) Register() (*ChangeSetHandle, error) {
 		operation = cloudformation.ChangeSetTypeUpdate
 	}
 
-	url, err := cs.stack.uploader.Upload(cs.body)
-	if err != nil {
+	if err = cs.setupTplLocation(); err != nil {
 		return chSet, err
-	}
-
-	if url != "" {
-		cs.input.TemplateURL = aws.String(url)
-	} else {
-		cs.input.TemplateBody = aws.String(cs.body)
 	}
 
 	cs.input.ChangeSetType = aws.String(operation)
@@ -128,6 +154,27 @@ func (cs *ChangeSet) Register() (*ChangeSetHandle, error) {
 	}
 
 	return chSet, chSet.loadChanges()
+}
+
+func (cs *ChangeSet) setupTplLocation() error {
+	if cs.url != "" {
+		cs.input.TemplateURL = aws.String(cs.url)
+		return nil
+	}
+
+	url, err := cs.stack.uploader.Upload(cs.body)
+	if err != nil {
+		return err
+	}
+
+	if url != "" {
+		cs.input.TemplateURL = aws.String(url)
+		return nil
+	}
+
+	cs.input.TemplateBody = aws.String(cs.body)
+
+	return nil
 }
 
 func (cs *ChangeSet) wait(id *string) error {
