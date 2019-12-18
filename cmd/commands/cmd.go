@@ -240,16 +240,15 @@ func (c Commands) cloudformationCmd() *cobra.Command {
 	}
 
 	cmd.AddCommand(
-		c.cloudformationDeployCmd(),
-		c.cloudformationCreateCmd(),
-		c.cloudformationUpdateCmd(),
+		c.cfDeployCmd(),
+		c.cfCreateCmd(),
+		c.cfUpdateCmd(),
 	)
 
 	return cmd
 }
 
-//nolint:funlen
-func (c Commands) cloudformationDeployCmd() *cobra.Command {
+func (c Commands) cfDeployCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "deploy",
 		Short: "Drop-in replacement of `aws cloudformation deploy` command",
@@ -257,58 +256,33 @@ func (c Commands) cloudformationDeployCmd() *cobra.Command {
 			if err := c.CfgLoader.InitConfig(c.cfg); err != nil {
 				return err
 			}
-			// c.dumpCfg("json")
 			return c.SA.Sync(*c.cfg, *c.nonInteractive)
 		},
 	}
 
-	cmd.Flags().StringVar(&c.cfg.Name, "stack-name", "", "Stack name")
-
 	cmd.Flags().StringVar(&c.cfg.Path, "template-file", "",
-		"Path to cloudformation template file")
+		flagDescription("Path to cloudformation template file"))
 
-	cmd.Flags().StringVar(&c.cfg.Settings.S3Settings.BucketName, "s3-bucket", "",
-		`The name of the S3 bucket where this command uploads your
-CloudFormation template. This is required the deployments of
-templates sized greater than 51,200 bytes`)
+	cmd.Flags().StringVar(&c.cfg.Settings.S3Settings.BucketName, "s3-bucket", "", flagDescription(
+		"The name of the S3 bucket where this command uploads your CloudFormation template.",
+		" This is required the deployments of templates sized greater than 51,200 bytes"))
 
-	cmd.Flags().StringVar(&c.cfg.Settings.S3Settings.Prefix, "s3-prefix", "",
-		`A prefix name that the command adds to the artifacts' name when
-it uploads them to the S3 bucket. The prefix name is a path name
-(folder name) for the S3 bucket.`)
+	cmd.Flags().StringVar(&c.cfg.Settings.S3Settings.Prefix, "s3-prefix", "", flagDescription(
+		"A prefix name that the command adds to the artifacts' name when it uploads them to the S3 bucket.",
+		" The prefix name is a path name (folder name) for the S3 bucket."))
 
-	cmd.Flags().StringVar(&c.cfg.Settings.S3Settings.KMSKeyID, "kms-key-id", "",
-		`The ID of an AWS KMS key that the command uses to encrypt artifacts
-that are at rest in the S3 bucket`)
+	cmd.Flags().StringVar(&c.cfg.Settings.S3Settings.KMSKeyID, "kms-key-id", "", flagDescription(
+		"The ID of an AWS KMS key that the command uses to encrypt artifacts that are at rest in the S3 bucket"))
 
-	cmd.Flags().StringToStringVar(
-		&c.cfg.Parameters, "parameter-overrides", map[string]string{},
-		`A list of parameter structures that specify input parameters for
-your stack template`)
-
-	cmd.Flags().StringToStringVar(
-		&c.cfg.Tags, "tags", map[string]string{},
-		`A list of tags to associate with the stack that is created or
-updated`)
-
-	cmd.Flags().StringSliceVar(
-		&c.cfg.Capabilities, "capabilities", []string{},
-		`A list of capabilities that you must specify before AWS
-Cloudformation can create certain stacks. E.g. CAPABILITY_IAM`)
-
-	cmd.Flags().StringVar(
-		&c.cfg.RoleARN, "role-arn", "",
-		`ARN of an IAM role that AWS CloudFormation assumes when executing
-the change set`)
-
-	cmd.Flags().StringSliceVar(
-		&c.cfg.NotificationARNs, "notification-arns", []string{},
-		"SNS topic ARNs that AWS CloudFormation associates with the stack.")
+	cmd.Flags().StringToStringVar(&c.cfg.Parameters, "parameter-overrides", map[string]string{},
+		flagDescription("A list of parameter structures that specify input parameters for your stack template"))
 
 	cmd.Flags().Bool("fail-on-empty-changeset", false, "This flag is ignored")
 	cmd.Flags().Bool("no-fail-on-empty-changeset", true, "This flag is ignored")
 	cmd.Flags().Bool("no-execute-changeset", false, "This flag is ignored")
 	cmd.Flags().Bool("force-upload", false, "This flag is ignored")
+
+	c.cfSharedFlags(cmd)
 
 	assembly.MustSucceed(cmd.MarkFlagRequired("stack-name"))
 	assembly.MustSucceed(cmd.MarkFlagRequired("template-file"))
@@ -316,9 +290,7 @@ the change set`)
 	return cmd
 }
 
-func (c Commands) cloudformationCreateCmd() *cobra.Command {
-	params := []string{}
-
+func (c Commands) cfCreateCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "create-stack",
 		Short: "Drop-in replacement of `aws cloudformation create-stack` command",
@@ -338,31 +310,17 @@ func (c Commands) cloudformationCreateCmd() *cobra.Command {
 			" * --cli-input-json\n",
 			" * --generate-cli-skeleton\n",
 		),
-		RunE: func(cmd *cobra.Command, args []string) error {
-			var err error
-			if c.cfg.Parameters, err = awsParamsToMap(params); err != nil {
-				return err
-			}
-
-			if err := c.CfgLoader.InitConfig(c.cfg); err != nil {
-				return err
-			}
-			return c.SA.Sync(*c.cfg, *c.nonInteractive)
-		},
 	}
+	cmd.RunE = c.cfCreateUpdateFunc(cmd)
 
-	c.createUpdateFlags(cmd)
-
-	cmd.Flags().StringArrayVar(&params, "parameters", []string{}, flagDescription("List of parameters"))
+	c.cfCreateUpdateFlags(cmd)
 
 	assembly.MustSucceed(cmd.MarkFlagRequired("stack-name"))
 
 	return cmd
 }
 
-func (c Commands) cloudformationUpdateCmd() *cobra.Command {
-	params := []string{}
-
+func (c Commands) cfUpdateCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "update-stack",
 		Short: "Drop-in replacement of `aws cloudformation update-stack` command",
@@ -379,27 +337,14 @@ func (c Commands) cloudformationUpdateCmd() *cobra.Command {
 			" * --cli-input-json\n",
 			" * --generate-cli-skeleton\n",
 		),
-		RunE: func(cmd *cobra.Command, args []string) error {
-			var err error
-			if c.cfg.Parameters, err = awsParamsToMap(params); err != nil {
-				return err
-			}
-
-			if err := c.CfgLoader.InitConfig(c.cfg); err != nil {
-				return err
-			}
-			return c.SA.Sync(*c.cfg, *c.nonInteractive)
-		},
 	}
+	cmd.RunE = c.cfCreateUpdateFunc(cmd)
 
-	c.createUpdateFlags(cmd)
-
-	cmd.Flags().StringArrayVar(&params, "parameters", []string{}, flagDescription("List of parameters"))
+	c.cfCreateUpdateFlags(cmd)
 
 	cmd.Flags().BoolVar(
 		&c.cfg.UsePreviousTemplate, "use-previous-template", false, flagDescription(
-			"Reuse the existing template that is associated with",
-			"the stack that you are updating."))
+			"Reuse the existing template that is associated with the stack that you are updating."))
 
 	cmd.Flags().Bool("no-use-previous-template", false, "This flag is ignored")
 
@@ -408,10 +353,42 @@ func (c Commands) cloudformationUpdateCmd() *cobra.Command {
 	return cmd
 }
 
-func (c Commands) createUpdateFlags(cmd *cobra.Command) {
-	cmd.Flags().StringVar(&c.cfg.Name, "stack-name", "", flagDescription("Stack name"))
+func (c Commands) cfCreateUpdateFunc(cmd *cobra.Command) func(*cobra.Command, []string) error {
+	params := []string{}
+	cmd.Flags().StringArrayVar(&params, "parameters", []string{}, flagDescription("List of parameters"))
+
+	return func(cmd *cobra.Command, args []string) error {
+		var err error
+		if c.cfg.Parameters, err = awsParamsToMap(params); err != nil {
+			return err
+		}
+
+		if err := c.CfgLoader.InitConfig(c.cfg); err != nil {
+			return err
+		}
+		return c.SA.Sync(*c.cfg, *c.nonInteractive)
+	}
+}
+
+func (c Commands) cfCreateUpdateFlags(cmd *cobra.Command) {
 	cmd.Flags().StringVar(&c.cfg.Body, "template-body", "", flagDescription("Cloudformation template body"))
 	cmd.Flags().StringVar(&c.cfg.URL, "template-url", "", flagDescription("Cloudformation template url (s3)"))
+
+	cmd.Flags().StringSliceVar(
+		&c.cfg.ResourceTypes, "resource-types", []string{}, flagDescription(
+			"The template resource types that you have permissions",
+			" to work with for this create stack action"))
+
+	cmd.Flags().StringVar(
+		&c.cfg.ClientToken, "client-request-token", "", flagDescription(
+			"A unique identifier for this request. Specify this",
+			" token if you plan to retry requests"))
+
+	c.cfSharedFlags(cmd)
+}
+
+func (c Commands) cfSharedFlags(cmd *cobra.Command) {
+	cmd.Flags().StringVar(&c.cfg.Name, "stack-name", "", flagDescription("Stack name"))
 
 	cmd.Flags().StringSliceVar(
 		&c.cfg.NotificationARNs, "notification-arns", []string{}, flagDescription(
@@ -433,16 +410,6 @@ func (c Commands) createUpdateFlags(cmd *cobra.Command) {
 		&c.cfg.RoleARN, "role-arn", "", flagDescription(
 			"ARN of an IAM role that AWS CloudFormation assumes ",
 			"when executing the change set"))
-
-	cmd.Flags().StringSliceVar(
-		&c.cfg.ResourceTypes, "resource-types", []string{}, flagDescription(
-			"The template resource types that you have permissions",
-			" to work with for this create stack action"))
-
-	cmd.Flags().StringVar(
-		&c.cfg.ClientToken, "client-request-token", "", flagDescription(
-			"A unique identifier for this request. Specify this",
-			" token if you plan to retry requests"))
 }
 
 func (c Commands) dumpCfg(format string) {
