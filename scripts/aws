@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+
+set -e          # exit if any command fails
+set -u          # prevent using an undefined variable
+set -o pipefail # force pipelines to fail on the first non-zero status
+
+STACK_ASSEMBLY_EXE=stas
+FALLBACK_AWS_EXE=$(which -a aws | grep -v "$0" | head -1)
+
+export STAS_SUPPRESS_CMD_NOT_FOUND_ERROR=yes
+
+if ! command -v $STACK_ASSEMBLY_EXE > /dev/null ; then
+    echo "stack-assembly executable (stas) is not found falling back to awscli" >&2
+    $FALLBACK_AWS_EXE "$@"
+    exit $?
+fi
+
+ret=0
+$STACK_ASSEMBLY_EXE "$@" || ret=$?
+
+if ((ret == 4)); then # command is not found
+    $FALLBACK_AWS_EXE "$@"
+    exit $?
+fi
+
+if ((ret == 2 || ret == 3)); then
+    echo "stack-assembly was not able to parse awscli command" >&2
+    while true; do
+        read -p "Do you wish to try the same command with $FALLBACK_AWS_EXE [y|n]? " yn
+        case $yn in
+            [Yy]* ) $FALLBACK_AWS_EXE "$@"; exit $?; break;;
+            [Nn]* ) exit 254;;
+            * ) echo "Please answer yes or no." >&2 ;;
+        esac
+    done
+fi
+
+exit $ret

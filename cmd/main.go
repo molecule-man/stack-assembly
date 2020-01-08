@@ -2,6 +2,7 @@
 package main
 
 import (
+	"errors"
 	"os"
 	"strings"
 
@@ -28,24 +29,38 @@ func main() {
 		),
 	}
 
-	cmd.InvokeAwscliIfNeeded()
+	childCmd, _, err := cmd.RootCmd().Find(os.Args[1:])
 
-	err := cmd.RootCmd().Execute()
+	if err != nil || !childCmd.Runnable() {
+		if os.Getenv("STAS_SUPPRESS_CMD_NOT_FOUND_ERROR") != "yes" {
+			errMsg := "the command is not runnable"
+			if err != nil {
+				errMsg = err.Error()
+			}
 
-	if err != nil && cmd.IsAwsDropIn() && commands.IsAwsDropInError(err) {
-		yesNo, promptErr := cli.Fask(
-			os.Stderr,
-			"%s\nDo you want to execute corresponding aws cli command [y|n]: ",
-			err.Error(),
-		)
-		assembly.MustSucceed(promptErr)
-
-		yesNo = strings.ToLower(yesNo)
-
-		if yesNo == "y" || yesNo == "yes" {
-			cmd.InvokeAwscli()
-			return
+			cli.Error(errMsg)
 		}
+
+		os.Exit(4)
+	}
+
+	cmd.NormalizeAwscliParamsIfNeeded()
+
+	err = cmd.RootCmd().Execute()
+
+	if err != nil {
+		status := 1
+
+		cli.Error(err.Error())
+
+		switch {
+		case errors.Is(err, commands.ErrAwsDropIn):
+			status = 2
+		case strings.HasPrefix(err.Error(), "unknown flag"):
+			status = 3
+		}
+
+		os.Exit(status)
 	}
 
 	assembly.MustSucceed(err)

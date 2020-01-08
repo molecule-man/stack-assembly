@@ -498,7 +498,6 @@ TODO
 
 * Enable user to unblock the blocked resource (interactively).
 * Github support.
-* Add ci.
 * Add possibility to introspect aws resources??
 
 .. |build| image:: https://circleci.com/gh/molecule-man/stack-assembly.svg?style=svg
