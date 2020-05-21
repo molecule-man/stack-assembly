@@ -1,0 +1,10 @@
+{
+  "err": null,
+  "input": {
+    "ClientRequestToken": null,
+    "RetainResources": null,
+    "RoleARN": null,
+    "StackName": "stastest-param-sync-single-valid-template-with-parameters-8712911153466313303"
+  },
+  "output": {}
+}

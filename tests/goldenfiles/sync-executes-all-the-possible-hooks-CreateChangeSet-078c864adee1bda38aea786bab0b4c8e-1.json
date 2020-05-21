@@ -23,7 +23,7 @@
     "UsePreviousTemplate": null
   },
   "output": {
-    "Id": "arn:aws:cloudformation:%AWS_REGION%:%AWS_ACC_ID%:changeSet/%CHST_ID%/317f06d8-d12a-4337-852d-3a3b66e35526",
-    "StackId": "arn:aws:cloudformation:%AWS_REGION%:%AWS_ACC_ID%:stack/stastest-hooks-%SCENARIO_ID%/c5398b00-ef22-11e9-8611-0a6a2f25f2be"
+    "Id": "arn:aws:cloudformation:%AWS_REGION%:%AWS_ACC_ID%:changeSet/%CHST_ID%/1a703f1c-7c6b-41c7-a2b0-126560df1140",
+    "StackId": "arn:aws:cloudformation:%AWS_REGION%:%AWS_ACC_ID%:stack/stastest-hooks-%SCENARIO_ID%/446496b0-9b60-11ea-901a-0abd335268a4"
   }
 }

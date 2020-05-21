@@ -23,7 +23,7 @@
     "UsePreviousTemplate": null
   },
   "output": {
-    "Id": "arn:aws:cloudformation:%AWS_REGION%:%AWS_ACC_ID%:changeSet/%CHST_ID%/01a830d9-37a6-49f0-9583-aa6a0e01df69",
-    "StackId": "arn:aws:cloudformation:%AWS_REGION%:%AWS_ACC_ID%:stack/stastest-block-%SCENARIO_ID%/0cf64230-ef23-11e9-9b98-0a675d25b48e"
+    "Id": "arn:aws:cloudformation:%AWS_REGION%:%AWS_ACC_ID%:changeSet/%CHST_ID%/dc5c55bf-198a-494c-b915-5d2d0bba718c",
+    "StackId": "arn:aws:cloudformation:%AWS_REGION%:%AWS_ACC_ID%:stack/stastest-block-%SCENARIO_ID%/21a468d0-9b60-11ea-af97-06527026dd82"
   }
 }

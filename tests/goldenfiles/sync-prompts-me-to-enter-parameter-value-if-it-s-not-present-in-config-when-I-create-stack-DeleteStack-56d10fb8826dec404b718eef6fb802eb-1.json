@@ -1,0 +1,10 @@
+{
+  "err": null,
+  "input": {
+    "ClientRequestToken": null,
+    "RetainResources": null,
+    "RoleARN": null,
+    "StackName": "stastest-sync-prompts-me-to-enter-parameter-value-if-it-s-not-present-in-config-when-I-up-5980329124705097167"
+  },
+  "output": {}
+}

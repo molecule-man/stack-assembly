@@ -33,7 +33,7 @@
   },
   "output": {
     "Location": "https://stastest-%FEATURE_ID%-1.s3.%AWS_REGION%.amazonaws.com/stack-assembly",
-    "UploadID": "",
-    "VersionID": null
+    "VersionID": null,
+    "UploadID": ""
   }
 }

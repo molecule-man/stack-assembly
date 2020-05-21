@@ -1,7 +1,7 @@
 {
   "err": {
-    "Code": "ResourceNotReady",
     "Err": "ResourceNotReady: failed waiting for successful resource state",
+    "Code": "ResourceNotReady",
     "Msg": "failed waiting for successful resource state"
   },
   "input": {

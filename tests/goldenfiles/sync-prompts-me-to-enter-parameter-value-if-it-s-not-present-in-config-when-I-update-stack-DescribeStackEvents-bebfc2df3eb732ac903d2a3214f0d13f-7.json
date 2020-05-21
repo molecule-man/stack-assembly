@@ -1,0 +1,90 @@
+{
+  "err": null,
+  "input": {
+    "NextToken": null,
+    "StackName": "stastest-%SCENARIO_ID%"
+  },
+  "output": {
+    "NextToken": null,
+    "StackEvents": [
+      {
+        "ClientRequestToken": null,
+        "EventId": "4f1f2bb0-9b60-11ea-9bb7-026ec215cf88",
+        "LogicalResourceId": "stastest-%SCENARIO_ID%",
+        "PhysicalResourceId": "arn:aws:cloudformation:%AWS_REGION%:%AWS_ACC_ID%:stack/stastest-%SCENARIO_ID%/4708dbb0-9b60-11ea-a4d5-0a7e2e210ed2",
+        "ResourceProperties": null,
+        "ResourceStatus": "CREATE_COMPLETE",
+        "ResourceStatusReason": null,
+        "ResourceType": "AWS::CloudFormation::Stack",
+        "StackId": "arn:aws:cloudformation:%AWS_REGION%:%AWS_ACC_ID%:stack/stastest-%SCENARIO_ID%/4708dbb0-9b60-11ea-a4d5-0a7e2e210ed2",
+        "StackName": "stastest-%SCENARIO_ID%",
+        "Timestamp": "2020-05-21T12:40:53.472Z"
+      },
+      {
+        "ClientRequestToken": null,
+        "EventId": "EcsCluster-CREATE_COMPLETE-2020-05-21T12:40:52.129Z",
+        "LogicalResourceId": "EcsCluster",
+        "PhysicalResourceId": "stastest-%SCENARIO_ID%",
+        "ResourceProperties": "{\"ClusterName\":\"stastest-%SCENARIO_ID%\"}",
+        "ResourceStatus": "CREATE_COMPLETE",
+        "ResourceStatusReason": null,
+        "ResourceType": "AWS::ECS::Cluster",
+        "StackId": "arn:aws:cloudformation:%AWS_REGION%:%AWS_ACC_ID%:stack/stastest-%SCENARIO_ID%/4708dbb0-9b60-11ea-a4d5-0a7e2e210ed2",
+        "StackName": "stastest-%SCENARIO_ID%",
+        "Timestamp": "2020-05-21T12:40:52.129Z"
+      },
+      {
+        "ClientRequestToken": null,
+        "EventId": "EcsCluster-CREATE_IN_PROGRESS-2020-05-21T12:40:51.701Z",
+        "LogicalResourceId": "EcsCluster",
+        "PhysicalResourceId": "stastest-%SCENARIO_ID%",
+        "ResourceProperties": "{\"ClusterName\":\"stastest-%SCENARIO_ID%\"}",
+        "ResourceStatus": "CREATE_IN_PROGRESS",
+        "ResourceStatusReason": "Resource creation Initiated",
+        "ResourceType": "AWS::ECS::Cluster",
+        "StackId": "arn:aws:cloudformation:%AWS_REGION%:%AWS_ACC_ID%:stack/stastest-%SCENARIO_ID%/4708dbb0-9b60-11ea-a4d5-0a7e2e210ed2",
+        "StackName": "stastest-%SCENARIO_ID%",
+        "Timestamp": "2020-05-21T12:40:51.701Z"
+      },
+      {
+        "ClientRequestToken": null,
+        "EventId": "EcsCluster-CREATE_IN_PROGRESS-2020-05-21T12:40:47.126Z",
+        "LogicalResourceId": "EcsCluster",
+        "PhysicalResourceId": "",
+        "ResourceProperties": "{\"ClusterName\":\"stastest-%SCENARIO_ID%\"}",
+        "ResourceStatus": "CREATE_IN_PROGRESS",
+        "ResourceStatusReason": null,
+        "ResourceType": "AWS::ECS::Cluster",
+        "StackId": "arn:aws:cloudformation:%AWS_REGION%:%AWS_ACC_ID%:stack/stastest-%SCENARIO_ID%/4708dbb0-9b60-11ea-a4d5-0a7e2e210ed2",
+        "StackName": "stastest-%SCENARIO_ID%",
+        "Timestamp": "2020-05-21T12:40:47.126Z"
+      },
+      {
+        "ClientRequestToken": null,
+        "EventId": "496653b0-9b60-11ea-850f-02f0c9b42810",
+        "LogicalResourceId": "stastest-%SCENARIO_ID%",
+        "PhysicalResourceId": "arn:aws:cloudformation:%AWS_REGION%:%AWS_ACC_ID%:stack/stastest-%SCENARIO_ID%/4708dbb0-9b60-11ea-a4d5-0a7e2e210ed2",
+        "ResourceProperties": null,
+        "ResourceStatus": "CREATE_IN_PROGRESS",
+        "ResourceStatusReason": "User Initiated",
+        "ResourceType": "AWS::CloudFormation::Stack",
+        "StackId": "arn:aws:cloudformation:%AWS_REGION%:%AWS_ACC_ID%:stack/stastest-%SCENARIO_ID%/4708dbb0-9b60-11ea-a4d5-0a7e2e210ed2",
+        "StackName": "stastest-%SCENARIO_ID%",
+        "Timestamp": "2020-05-21T12:40:43.873Z"
+      },
+      {
+        "ClientRequestToken": null,
+        "EventId": "47086680-9b60-11ea-a4d5-0a7e2e210ed2",
+        "LogicalResourceId": "stastest-%SCENARIO_ID%",
+        "PhysicalResourceId": "arn:aws:cloudformation:%AWS_REGION%:%AWS_ACC_ID%:stack/stastest-%SCENARIO_ID%/4708dbb0-9b60-11ea-a4d5-0a7e2e210ed2",
+        "ResourceProperties": null,
+        "ResourceStatus": "REVIEW_IN_PROGRESS",
+        "ResourceStatusReason": "User Initiated",
+        "ResourceType": "AWS::CloudFormation::Stack",
+        "StackId": "arn:aws:cloudformation:%AWS_REGION%:%AWS_ACC_ID%:stack/stastest-%SCENARIO_ID%/4708dbb0-9b60-11ea-a4d5-0a7e2e210ed2",
+        "StackName": "stastest-%SCENARIO_ID%",
+        "Timestamp": "2020-05-21T12:40:39.972Z"
+      }
+    ]
+  }
+}
