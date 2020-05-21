@@ -115,6 +115,10 @@ func (cs *ChangeSet) Register() (*ChangeSetHandle, error) {
 		stackName: cs.stack.Name,
 	}
 
+	if err := cs.setupTplLocation(); err != nil {
+		return chSet, err
+	}
+
 	awsParams, err := cs.awsParameters()
 	if err != nil {
 		return chSet, err
@@ -128,10 +132,6 @@ func (cs *ChangeSet) Register() (*ChangeSetHandle, error) {
 	operation := cloudformation.ChangeSetTypeCreate
 	if chSet.IsUpdate {
 		operation = cloudformation.ChangeSetTypeUpdate
-	}
-
-	if err = cs.setupTplLocation(); err != nil {
-		return chSet, err
 	}
 
 	cs.input.ChangeSetType = aws.String(operation)
@@ -214,9 +214,18 @@ func (cs *ChangeSet) wait(id *string) error {
 }
 
 func (cs *ChangeSet) awsParameters() ([]*cloudformation.Parameter, error) {
-	output, err := cs.stack.cf.ValidateTemplate(&cloudformation.ValidateTemplateInput{
-		TemplateBody: aws.String(cs.body),
-	})
+	input := cloudformation.ValidateTemplateInput{}
+
+	switch {
+	case cs.input.TemplateURL != nil:
+		input.TemplateURL = cs.input.TemplateURL
+	case cs.input.TemplateBody != nil:
+		input.TemplateBody = cs.input.TemplateBody
+	default:
+		input.TemplateBody = &cs.body
+	}
+
+	output, err := cs.stack.cf.ValidateTemplate(&input)
 	if err != nil {
 		return []*cloudformation.Parameter{}, err
 	}

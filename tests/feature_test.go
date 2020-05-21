@@ -121,7 +121,7 @@ func (f *feature) iSuccessfullyRun(cmd string) error {
 	}
 
 	if f.lastErr != nil {
-		return fmt.Errorf("err: %v, output:\n%s", err, f.lastOutput)
+		return fmt.Errorf("err: %v, output:\n%s", f.lastErr, f.lastOutput)
 	}
 
 	return nil
