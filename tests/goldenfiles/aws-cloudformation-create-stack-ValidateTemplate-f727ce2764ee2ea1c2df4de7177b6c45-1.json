@@ -1,0 +1,18 @@
+{
+  "err": {
+    "Err": "ValidationError: Template format error: unsupported structure.\n\tstatus code: 400, request id: 7987d279-2c43-4fa8-a41a-120c6e81b7c6",
+    "Code": "ValidationError",
+    "Msg": "Template format error: unsupported structure."
+  },
+  "input": {
+    "TemplateBody": "file://tpls/cluster.yml",
+    "TemplateURL": null
+  },
+  "output": {
+    "Capabilities": null,
+    "CapabilitiesReason": null,
+    "DeclaredTransforms": null,
+    "Description": null,
+    "Parameters": null
+  }
+}

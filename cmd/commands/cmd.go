@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/BurntSushi/toml"
 	assembly "github.com/molecule-man/stack-assembly"
@@ -362,9 +363,16 @@ func (c Commands) cfCreateUpdateFunc(cmd *cobra.Command) func(*cobra.Command, []
 			return err
 		}
 
+		isFilePrefix := "file://"
+		if strings.HasPrefix(c.cfg.Body, isFilePrefix) {
+			c.cfg.Path = c.cfg.Body[len(isFilePrefix):]
+			c.cfg.Body = ""
+		}
+
 		if err := c.CfgLoader.InitConfig(c.cfg); err != nil {
 			return err
 		}
+
 		return c.SA.Sync(*c.cfg, *c.nonInteractive)
 	}
 }
