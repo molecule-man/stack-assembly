@@ -53,7 +53,7 @@ type Config struct {
 
 	Stacks map[string]Config `json:",omitempty" yaml:",omitempty" toml:",omitempty"`
 
-	aws awsProv
+	aws AwsProv
 }
 
 func (cfg Config) StackConfigsSortedByExecOrder() ([]Config, error) {
@@ -97,7 +97,7 @@ func (cfg Config) Stack() *awscf.Stack {
 	return awscf.NewStack(
 		cfg.Name,
 		prov.CF,
-		aws.NewS3Uploader(prov.S3UploadManager, cfg.Settings.S3Settings),
+		aws.NewS3Uploader(prov.S3UploadManager, prov.S3, cfg.Settings.S3Settings),
 	)
 }
 
@@ -129,18 +129,18 @@ func (cfg *Config) initAwsSettings() {
 	}
 }
 
-type awsProv interface {
+type AwsProv interface {
 	Must(cfg aws.Config) *aws.AWS
 	New(cfg aws.Config) (*aws.AWS, error)
 }
 
-func NewLoader(fs FileSystem, awsProvider awsProv) *Loader {
+func NewLoader(fs FileSystem, awsProvider AwsProv) *Loader {
 	return &Loader{fs, awsProvider}
 }
 
 type Loader struct {
 	fs  FileSystem
-	aws awsProv
+	aws AwsProv
 }
 
 func (l Loader) LoadConfig(cfgFiles []string, cfg *Config) error {

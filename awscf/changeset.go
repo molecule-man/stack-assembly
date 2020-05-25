@@ -259,6 +259,10 @@ func (cs *ChangeSet) awsTags() []*cloudformation.Tag {
 	return awsTags
 }
 
+func (cs *ChangeSet) Close() error {
+	return cs.stack.uploader.Cleanup()
+}
+
 type ChangeSetHandle struct {
 	ID        string
 	Changes   []Change

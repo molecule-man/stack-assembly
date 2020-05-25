@@ -55,8 +55,8 @@ func (sa SA) syncOne(stackCfg conf.Config, root conf.Config, nonInteractive bool
 
 func (sa SA) exec(stackCfg conf.Config, logger *cli.Logger, nonInteractive bool) error {
 	cs := stackCfg.ChangeSet()
-	chSet, err := sa.register(cs, logger)
 
+	chSet, err := sa.register(cs, logger)
 	if err == awscf.ErrNoChange {
 		logger.Info("No changes to be synchronized")
 		return nil
@@ -65,6 +65,12 @@ func (sa SA) exec(stackCfg conf.Config, logger *cli.Logger, nonInteractive bool)
 	if err != nil {
 		return err
 	}
+
+	defer func() {
+		if closeErr := cs.Close(); closeErr != nil {
+			logger.Warnf("Error while cleaning up: %s", closeErr.Error())
+		}
+	}()
 
 	logger.Infof("Change set is created: %s", chSet.ID)
 

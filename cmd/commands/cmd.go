@@ -181,8 +181,7 @@ func (c Commands) diffCmd() *cobra.Command {
 			if err := c.CfgLoader.LoadConfig(cfgFiles, c.cfg); err != nil {
 				return err
 			}
-			c.SA.Diff(*c.cfg)
-			return nil
+			return c.SA.Diff(*c.cfg)
 		},
 	}
 

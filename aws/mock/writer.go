@@ -43,6 +43,7 @@ func (p WriteProvider) New(cfg aws.Config) (*aws.AWS, error) {
 	return &aws.AWS{
 		CF:              cf,
 		S3UploadManager: s3,
+		S3:              raws.S3,
 		AccountID:       raws.AccountID,
 		Region:          raws.Region,
 	}, nil

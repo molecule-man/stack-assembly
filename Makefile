@@ -36,6 +36,7 @@ testaccmock: testacc
 
 testaccnomock: GODOG_ARGS = --godog.tags=nomock
 testaccnomock: BUILD_ARGS = -tags acceptance
+testaccnomock: export STAS_NO_MOCK := yes
 testaccnomock: testacc
 testaccnomock: cleanup
 
@@ -51,6 +52,7 @@ test-nocache: clean-testcache
 test-nocache: test
 
 cleanup: purgebuckets
+cleanup: purgetmpbuckets
 cleanup: rmstacks
 
 rmstacks:
@@ -62,6 +64,11 @@ purgebuckets:
 		| xargs -r -l aws cloudformation describe-stack-resources \
 			--query "StackResources[?ResourceType=='AWS::S3::Bucket'].PhysicalResourceId" \
 			--output text --stack-name \
+		| xargs -r -l -I % aws s3 rm s3://% --recursive
+
+purgetmpbuckets:
+	aws --profile meadmin s3api list-buckets --query 'Buckets' --output json \
+		| jq -r '.[]|select(.Name | startswith("stack-assembly-tmp")) | .Name' \
 		| xargs -r -l -I % aws s3 rm s3://% --recursive
 
 lint:

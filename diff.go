@@ -5,8 +5,6 @@ import (
 	"github.com/molecule-man/stack-assembly/conf"
 )
 
-// TODO fix diff for bodies larger than 50k (need to upload to s3 first)
-
 func (sa SA) Diff(cfg conf.Config) error {
 	for _, childCfg := range cfg.Stacks {
 		err := sa.Diff(childCfg)
@@ -19,7 +17,15 @@ func (sa SA) Diff(cfg conf.Config) error {
 		return nil
 	}
 
-	diff, err := awscf.ChSetDiff{Color: sa.cli.Color}.Diff(cfg.ChangeSet())
+	cs := cfg.ChangeSet()
+
+	defer func() {
+		if closeErr := cs.Close(); closeErr != nil {
+			sa.cli.Warnf("Error while cleaning up: %s", closeErr.Error())
+		}
+	}()
+
+	diff, err := awscf.ChSetDiff{Color: sa.cli.Color}.Diff(cs)
 	if err != nil {
 		return err
 	}

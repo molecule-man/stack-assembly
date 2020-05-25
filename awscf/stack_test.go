@@ -215,7 +215,7 @@ func (cf *cfMock) WaitUntilStackUpdateCompleteWithContext(aws.Context, *cloudfor
 }
 
 func s3Uploader() *saAws.S3Uploader {
-	return saAws.NewS3Uploader(s3Mock{}, saAws.S3Settings{})
+	return saAws.NewS3Uploader(s3Mock{}, nil, saAws.S3Settings{})
 }
 
 type s3Mock struct {

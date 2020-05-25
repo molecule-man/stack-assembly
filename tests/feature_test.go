@@ -85,6 +85,14 @@ type feature struct {
 	fs vfs
 }
 
+func (f feature) aws() conf.AwsProv {
+	if os.Getenv("STAS_NO_MOCK") == "on" {
+		return &saaws.Provider{}
+	}
+
+	return mock.New(f.scenarioName, f.featureID, f.scenarioID)
+}
+
 func (f *feature) assertEgual(expected, actual interface{}, msgAndArgs ...interface{}) error {
 	result := assertionResult{}
 	assert.Equal(&result, expected, actual, msgAndArgs...)
@@ -174,7 +182,7 @@ func (f *feature) iRun(cmd string) error {
 	c := commands.Commands{
 		SA:        assembly.New(cli),
 		Cli:       cli,
-		CfgLoader: conf.NewLoader(f.fs, mock.New(f.scenarioName, f.featureID, f.scenarioID)),
+		CfgLoader: conf.NewLoader(f.fs, f.aws()),
 	}
 	root := c.RootCmd()
 	root.SetArgs(strings.Split(f.replaceParameters(cmd), " "))
@@ -325,7 +333,7 @@ func (f *feature) iLaunched(cmdInstruction string) error {
 	co := commands.Commands{
 		SA:        assembly.New(cli),
 		Cli:       cli,
-		CfgLoader: conf.NewLoader(f.fs, mock.New(f.scenarioName, f.featureID, f.scenarioID)),
+		CfgLoader: conf.NewLoader(f.fs, f.aws()),
 	}
 	root := co.RootCmd()
 	root.SetArgs(strings.Split(f.replaceParameters(cmdInstruction), " "))
@@ -411,10 +419,11 @@ func (f *feature) tagValue(stack *cloudformation.Stack, tagKey string) string {
 }
 
 func (f *feature) replaceParameters(s string) string {
-	s = strings.Replace(s, "%scenarioid%", f.scenarioID, -1)
-	s = strings.Replace(s, "%featureid%", f.featureID, -1)
-	s = strings.Replace(s, "%aws_profile%", os.Getenv("AWS_PROFILE"), -1)
-	s = strings.Replace(s, "%testdir%", f.testDir, -1)
+	s = strings.ReplaceAll(s, "%scenarioid%", f.scenarioID)
+	s = strings.ReplaceAll(s, "%featureid%", f.featureID)
+	s = strings.ReplaceAll(s, "%aws_profile%", os.Getenv("AWS_PROFILE"))
+	s = strings.ReplaceAll(s, "%testdir%", f.testDir)
+	s = strings.ReplaceAll(s, "%longstring%", strings.Repeat("s", 51200))
 
 	return s
 }
@@ -470,7 +479,7 @@ func FeatureContext(s *godog.Suite) {
 		f.scenarioName = re.ReplaceAllString(scenario.Name, "-")
 		f.scenarioID = fmt.Sprintf("%.80s-%d", f.scenarioName, rand.Int63())
 
-		f.cf = mock.New(f.scenarioName, f.featureID, f.scenarioID).Must(cfg).CF
+		f.cf = f.aws().Must(cfg).CF
 		f.testDir = filepath.Join(".tmp", "stas_test_"+f.scenarioID)
 		f.fs = vfs{
 			afero.NewBasePathFs(afero.NewOsFs(), f.testDir),

@@ -1,6 +1,6 @@
 Feature: stas sync with s3 upload
 
-    @mock
+    @nomock @fix-in-mock
     Scenario: sync single valid template with enforced s3 upload
         Given file "cfg.yaml" exists:
             """
@@ -37,4 +37,27 @@ Feature: stas sync with s3 upload
             """
         When I successfully run "deploy --no-interaction stastest-bucket-%scenarioid% tpls/bucket.yml"
         And I successfully run "sync -c cfg.yaml --no-interaction"
+        Then stack "stastest-%scenarioid%" should have status "CREATE_COMPLETE"
+
+    @nomock @fix-in-mock
+    Scenario: sync stack with body over 51200 without specifying bucket
+        Given file "cfg.yaml" exists:
+            """
+            stacks:
+              stack1:
+                name: stastest-%scenarioid%
+                path: tpls/stack.yml
+                tags:
+                  STAS_TEST: '%featureid%'
+
+            """
+        And file "tpls/stack.yml" exists:
+            """
+            Resources:
+              MySecret:
+                Type: 'AWS::SecretsManager::Secret'
+                Properties:
+                  SecretString: '{"whatever":"%longstring%"}'
+            """
+        When I successfully run "sync -c cfg.yaml --no-interaction"
         Then stack "stastest-%scenarioid%" should have status "CREATE_COMPLETE"
