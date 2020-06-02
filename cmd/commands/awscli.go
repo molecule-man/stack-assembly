@@ -45,7 +45,7 @@ func awsParamsToMap(params []string) (map[string]string, error) {
 
 	for _, p := range params {
 		if !awsParamsRe.MatchString(p) {
-			return mappedParams, fmt.Errorf("not able to parse parameter %s: %w", p, ErrAwsDropIn)
+			return mappedParams, fmt.Errorf("not able to parse parameter %s: %w", p, ErrAwsDropInArgParsingFailed)
 		}
 
 		parts := strings.Split(p, ",")
@@ -63,7 +63,7 @@ func awsParamsToMap(params []string) (map[string]string, error) {
 			case "UsePreviousValue":
 				// do nothing
 			default:
-				return mappedParams, fmt.Errorf("%s is not supported: %w", keyVal[0], ErrAwsDropIn)
+				return mappedParams, fmt.Errorf("%s is not supported: %w", keyVal[0], ErrAwsDropInArgParsingFailed)
 			}
 		}
 
@@ -75,4 +75,4 @@ func awsParamsToMap(params []string) (map[string]string, error) {
 	return mappedParams, nil
 }
 
-var ErrAwsDropIn = errors.New("aws drop in error")
+var ErrAwsDropInArgParsingFailed = errors.New("aws drop in error")

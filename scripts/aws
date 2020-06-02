@@ -18,12 +18,12 @@ fi
 ret=0
 $STACK_ASSEMBLY_EXE "$@" || ret=$?
 
-if ((ret == 4)); then # command is not found
+if ((ret == 2)); then # command is not found
     $FALLBACK_AWS_EXE "$@"
     exit $?
 fi
 
-if ((ret == 2 || ret == 3)); then
+if ((ret >= 3 && ret < 10)); then # argument parsing errors
     echo "stack-assembly was not able to parse awscli command" >&2
     while true; do
         read -p "Do you wish to try the same command with $FALLBACK_AWS_EXE [y|n]? " yn

@@ -11,7 +11,7 @@ linters-settings:
     threshold: 100
   goconst:
     min-len: 2
-    min-occurrences: 2
+    min-occurrences: 3
   misspell:
     locale: US
   lll:
@@ -22,6 +22,7 @@ linters-settings:
 linters:
   enable-all: true
   disable:
+    - gomnd
     - maligned
     - prealloc
     - gosec

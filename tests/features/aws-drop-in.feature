@@ -10,8 +10,31 @@ Feature: drop-in replacement for aws cloudformation create-stack|update-stack|de
                 Properties:
                   ClusterName: !Ref "AWS::StackName"
             """
-        When I successfully run "--no-interaction cloudformation create-stack --stack-name stastest-%scenarioid% --template-body file://tpls/cluster.yml"
+        When I successfully run "--no-interaction cloudformation create-stack --stack-name stastest-%scenarioid% --template-body file://tpls/cluster.yml --output text"
         Then stack "stastest-%scenarioid%" should have status "CREATE_COMPLETE"
+        And output should be exactly:
+            """
+            {%with StackInfo "stastest-%scenarioid%"%}{% .StackId %}{%end%}
+            """
+
+    @mock @short
+    Scenario: aws cloudformation create-stack json output
+        Given file "tpls/cluster.yml" exists:
+            """
+            Resources:
+              Cluster:
+                Type: AWS::ECS::Cluster
+                Properties:
+                  ClusterName: !Ref "AWS::StackName"
+            """
+        When I successfully run "--no-interaction cloudformation create-stack --stack-name stastest-%scenarioid% --template-body file://tpls/cluster.yml --output json"
+        Then stack "stastest-%scenarioid%" should have status "CREATE_COMPLETE"
+        And output should be exactly:
+            """
+            {
+                "StackId": "{%with StackInfo "stastest-%scenarioid%"%}{% .StackId %}{%end%}"
+            }
+            """
 
     @mock
     Scenario: aws cloudformation update-stack

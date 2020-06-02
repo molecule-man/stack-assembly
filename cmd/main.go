@@ -14,20 +14,26 @@ import (
 )
 
 func main() {
-	cli := &cli.CLI{
+	console := &cli.CLI{
 		Reader:  os.Stdin,
 		Writer:  os.Stdout,
 		Errorer: os.Stderr,
 	}
 
 	cmd := commands.Commands{
-		SA:  assembly.New(cli),
-		Cli: cli,
+		SA:  assembly.New(console),
+		Cli: console,
 		CfgLoader: conf.NewLoader(
 			&conf.OsFS{},
 			&aws.Provider{},
 		),
 	}
+
+	cmd.AWSCommandsCfg.SA = assembly.New(&cli.CLI{
+		Reader:  os.Stdin,
+		Writer:  os.Stderr,
+		Errorer: os.Stderr,
+	})
 
 	childCmd, _, err := cmd.RootCmd().Find(os.Args[1:])
 
@@ -38,10 +44,10 @@ func main() {
 				errMsg = err.Error()
 			}
 
-			cli.Error(errMsg)
+			console.Error(errMsg)
 		}
 
-		os.Exit(4)
+		os.Exit(2)
 	}
 
 	cmd.NormalizeAwscliParamsIfNeeded()
@@ -51,13 +57,15 @@ func main() {
 	if err != nil {
 		status := 1
 
-		cli.Error(err.Error())
+		console.Error(err.Error())
 
 		switch {
-		case errors.Is(err, commands.ErrAwsDropIn):
-			status = 2
-		case strings.HasPrefix(err.Error(), "unknown flag"):
+		case errors.Is(err, commands.ErrAwsDropInArgParsingFailed):
 			status = 3
+		case strings.HasPrefix(err.Error(), "unknown flag"):
+			status = 4
+		case strings.HasPrefix(err.Error(), "invalid argument"):
+			status = 5
 		}
 
 		os.Exit(status)

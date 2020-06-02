@@ -22,6 +22,10 @@ type Commands struct {
 	SA             *assembly.SA
 	Cli            *cli.CLI
 	CfgLoader      *conf.Loader
+	AWSCommandsCfg struct {
+		SA     *assembly.SA
+		output *string
+	}
 	cfg            *conf.Config
 	nonInteractive *bool
 	origArgs       []string
@@ -30,6 +34,8 @@ type Commands struct {
 func (c *Commands) RootCmd() *cobra.Command {
 	nonInteractive := false
 	c.nonInteractive = &nonInteractive
+	out := "text"
+	c.AWSCommandsCfg.output = &out
 
 	c.cfg = &conf.Config{
 		Parameters:   map[string]string{},
@@ -102,7 +108,9 @@ func (c Commands) deployCmd() *cobra.Command {
 			if err := c.CfgLoader.InitConfig(c.cfg); err != nil {
 				return err
 			}
-			return c.SA.Sync(*c.cfg, *c.nonInteractive)
+
+			_, err := c.SA.Sync(*c.cfg, *c.nonInteractive)
+			return err
 		},
 	}
 
@@ -164,7 +172,8 @@ have to be specified as well:
 				*c.cfg = stack
 			}
 
-			return c.SA.Sync(*c.cfg, *c.nonInteractive)
+			_, err := c.SA.Sync(*c.cfg, *c.nonInteractive)
+			return err
 		},
 	}
 
@@ -256,7 +265,8 @@ func (c Commands) cfDeployCmd() *cobra.Command {
 			if err := c.CfgLoader.InitConfig(c.cfg); err != nil {
 				return err
 			}
-			return c.SA.Sync(*c.cfg, *c.nonInteractive)
+			_, err := c.AWSCommandsCfg.SA.Sync(*c.cfg, *c.nonInteractive)
+			return err
 		},
 	}
 
@@ -369,11 +379,34 @@ func (c Commands) cfCreateUpdateFunc(cmd *cobra.Command) func(*cobra.Command, []
 			c.cfg.Body = ""
 		}
 
-		if err := c.CfgLoader.InitConfig(c.cfg); err != nil {
+		if err = c.CfgLoader.InitConfig(c.cfg); err != nil {
 			return err
 		}
 
-		return c.SA.Sync(*c.cfg, *c.nonInteractive)
+		stacks, err := c.AWSCommandsCfg.SA.Sync(*c.cfg, *c.nonInteractive)
+		if err != nil {
+			return err
+		}
+
+		info, err := stacks[0].Info()
+		if err != nil {
+			return err
+		}
+
+		if *c.AWSCommandsCfg.output == "json" {
+			out := struct {
+				StackID string `json:"StackId"`
+			}{StackID: info.ID()}
+
+			enc := json.NewEncoder(c.Cli.Writer)
+			enc.SetIndent("", "    ")
+
+			return enc.Encode(out)
+		}
+
+		c.Cli.Print(info.ID())
+
+		return nil
 	}
 }
 
@@ -417,6 +450,14 @@ func (c Commands) cfSharedFlags(cmd *cobra.Command) {
 		&c.cfg.RoleARN, "role-arn", "", flagDescription(
 			"ARN of an IAM role that AWS CloudFormation assumes ",
 			"when executing the change set"))
+
+	*c.AWSCommandsCfg.output = "text"
+	outFlag := EnumFlag{
+		Val:   c.AWSCommandsCfg.output,
+		Enums: []string{"text", "json"},
+	}
+	cmd.Flags().Var(&outFlag, "output", flagDescription(
+		"The formatting style for command output. Either text or json"))
 }
 
 func (c Commands) dumpCfg(format string) {
@@ -444,3 +485,21 @@ func addConfigFlag(cmd *cobra.Command, val *[]string) {
 func flagDescription(text ...string) string {
 	return cli.WordWrap(wrapFlagLen, text...)
 }
+
+type EnumFlag struct {
+	Val   *string
+	Enums []string
+}
+
+func (f *EnumFlag) Set(val string) error {
+	for _, e := range f.Enums {
+		if e == val {
+			*f.Val = val
+			return nil
+		}
+	}
+
+	return fmt.Errorf("value '%s' is not supported. Supported values are: %v", val, f.Enums)
+}
+func (f *EnumFlag) Type() string   { return "enum" }
+func (f *EnumFlag) String() string { return *f.Val }

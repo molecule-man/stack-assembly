@@ -11,11 +11,13 @@ import (
 	"github.com/molecule-man/stack-assembly/conf"
 )
 
-func (sa SA) Sync(cfg conf.Config, nonInteractive bool) error {
-	return sa.syncOne(cfg, cfg, nonInteractive)
+func (sa SA) Sync(cfg conf.Config, nonInteractive bool) ([]*awscf.Stack, error) {
+	return sa.syncRecursively(cfg, cfg, nonInteractive)
 }
 
-func (sa SA) syncOne(stackCfg conf.Config, root conf.Config, nonInteractive bool) error {
+func (sa SA) syncRecursively(stackCfg conf.Config, root conf.Config, nonInteractive bool) ([]*awscf.Stack, error) {
+	syncedStacks := []*awscf.Stack{}
+
 	MustSucceed(stackCfg.Hooks.Pre.Exec())
 
 	if stackCfg.Body != "" {
@@ -23,47 +25,51 @@ func (sa SA) syncOne(stackCfg conf.Config, root conf.Config, nonInteractive bool
 
 		logger.Info("Synchronizing template")
 
-		err := sa.exec(stackCfg, logger, nonInteractive)
+		stack, err := sa.exec(stackCfg, logger, nonInteractive)
 		if err != nil {
-			return err
+			return syncedStacks, err
 		}
 
 		for _, r := range stackCfg.Blocked {
 			logger.Infof("Blocking resource %s", r)
 
-			err = stackCfg.Stack().BlockResource(r)
+			err = stack.BlockResource(r)
 			if err != nil {
-				return err
+				return syncedStacks, err
 			}
 		}
+
+		syncedStacks = []*awscf.Stack{stack}
 	}
 
 	nestedStacks, err := stackCfg.StackConfigsSortedByExecOrder()
 	if err != nil {
-		return err
+		return syncedStacks, err
 	}
 
 	for _, nestedStack := range nestedStacks {
-		err := sa.syncOne(nestedStack, root, nonInteractive)
+		ss, err := sa.syncRecursively(nestedStack, root, nonInteractive)
 		if err != nil {
-			return err
+			return syncedStacks, err
 		}
+
+		syncedStacks = append(syncedStacks, ss...)
 	}
 
-	return stackCfg.Hooks.Post.Exec()
+	return syncedStacks, stackCfg.Hooks.Post.Exec()
 }
 
-func (sa SA) exec(stackCfg conf.Config, logger *cli.Logger, nonInteractive bool) error {
+func (sa SA) exec(stackCfg conf.Config, logger *cli.Logger, nonInteractive bool) (*awscf.Stack, error) {
 	cs := stackCfg.ChangeSet()
 
 	chSet, err := sa.register(cs, logger)
 	if err == awscf.ErrNoChange {
 		logger.Info("No changes to be synchronized")
-		return nil
+		return cs.Stack(), nil
 	}
 
 	if err != nil {
-		return err
+		return cs.Stack(), err
 	}
 
 	defer func() {
@@ -79,7 +85,7 @@ func (sa SA) exec(stackCfg conf.Config, logger *cli.Logger, nonInteractive bool)
 	if !nonInteractive {
 		err = sa.letUserChooseNextAction(cs)
 		if err != nil {
-			return err
+			return cs.Stack(), err
 		}
 	}
 
@@ -90,7 +96,7 @@ func (sa SA) exec(stackCfg conf.Config, logger *cli.Logger, nonInteractive bool)
 	}
 
 	if err != nil {
-		return err
+		return cs.Stack(), err
 	}
 
 	wait := sa.showEvents(cs.Stack(), logger)
@@ -101,7 +107,7 @@ func (sa SA) exec(stackCfg conf.Config, logger *cli.Logger, nonInteractive bool)
 	<-wait
 
 	if err != nil {
-		return err
+		return cs.Stack(), err
 	}
 
 	if chSet.IsUpdate {
@@ -111,12 +117,12 @@ func (sa SA) exec(stackCfg conf.Config, logger *cli.Logger, nonInteractive bool)
 	}
 
 	if err != nil {
-		return err
+		return cs.Stack(), err
 	}
 
 	logger.Print(sa.cli.Color.Success("Synchronization is complete"))
 
-	return nil
+	return cs.Stack(), nil
 }
 
 func (sa SA) register(cs *awscf.ChangeSet, logger *cli.Logger) (*awscf.ChangeSetHandle, error) {
@@ -156,6 +162,7 @@ func (sa SA) showEvents(stack *awscf.Stack, logger *cli.Logger) chan bool {
 			for _, e := range events.Reversed() {
 				logger.Fprint(writer, sa.sprintEvent(e))
 			}
+
 			writer.Flush()
 
 			select {

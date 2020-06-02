@@ -48,9 +48,9 @@ func TestParseAwsParams(t *testing.T) {
 
 	_, err = awsParamsToMap([]string{"ParameterKey=foo,UnknownPiece=bar"})
 	assert.Error(t, err)
-	assert.True(t, errors.Is(err, ErrAwsDropIn))
+	assert.True(t, errors.Is(err, ErrAwsDropInArgParsingFailed))
 
 	_, err = awsParamsToMap([]string{`[{"ParameterKey": "foo", "ParameterValue": "bar"}]`})
 	assert.Error(t, err)
-	assert.True(t, errors.Is(err, ErrAwsDropIn))
+	assert.True(t, errors.Is(err, ErrAwsDropInArgParsingFailed))
 }

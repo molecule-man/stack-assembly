@@ -33,6 +33,10 @@ type StackInfo struct {
 	awsStack *cloudformation.Stack
 }
 
+func (si StackInfo) ID() string {
+	return aws.StringValue(si.awsStack.StackId)
+}
+
 func (si StackInfo) AlreadyDeployed() bool {
 	return !si.InReviewState()
 }

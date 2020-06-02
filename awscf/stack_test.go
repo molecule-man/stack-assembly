@@ -94,6 +94,7 @@ func TestEventTracking(t *testing.T) {
 			emmittedEvents = append([]*cloudformation.StackEvent{{EventId: aws.String(i)}}, emmittedEvents...)
 			mu.Unlock()
 		}
+
 		wg.Done()
 	}()
 
