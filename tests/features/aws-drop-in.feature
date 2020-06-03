@@ -1,6 +1,6 @@
 Feature: drop-in replacement for aws cloudformation create-stack|update-stack|deploy
 
-    @mock @short
+    @short
     Scenario: aws cloudformation create-stack
         Given file "tpls/cluster.yml" exists:
             """
@@ -17,7 +17,7 @@ Feature: drop-in replacement for aws cloudformation create-stack|update-stack|de
             {%with StackInfo "stastest-%scenarioid%"%}{% .StackId %}{%end%}
             """
 
-    @mock @short
+    @short
     Scenario: aws cloudformation create-stack json output
         Given file "tpls/cluster.yml" exists:
             """
@@ -36,7 +36,7 @@ Feature: drop-in replacement for aws cloudformation create-stack|update-stack|de
             }
             """
 
-    @mock
+    
     Scenario: aws cloudformation update-stack
         Given file "tpls/cluster.yml" exists:
             """

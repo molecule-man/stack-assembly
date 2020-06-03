@@ -19,12 +19,12 @@ Feature: stas sync
                         ClusterName: stastest-%scenarioid%
             """
 
-    @short @mock
+    @short
     Scenario: sync single valid template without parameters
         When I successfully run "sync -c cfg.yaml --no-interaction"
         Then stack "stastest-%scenarioid%" should have status "CREATE_COMPLETE"
 
-    @short @mock
+    @short
     Scenario: sync stack with no changes
         Given I successfully run "sync -c cfg.yaml --no-interaction"
         When I successfully run "sync -c cfg.yaml"

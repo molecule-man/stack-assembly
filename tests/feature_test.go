@@ -22,13 +22,13 @@ import (
 	"text/template"
 	"time"
 
-	"github.com/DATA-DOG/godog"
-	"github.com/DATA-DOG/godog/colors"
-	"github.com/DATA-DOG/godog/gherkin"
 	expect "github.com/Netflix/go-expect"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/cloudformation/cloudformationiface"
+	"github.com/cucumber/godog"
+	"github.com/cucumber/godog/colors"
+	"github.com/cucumber/messages-go/v10"
 	assembly "github.com/molecule-man/stack-assembly"
 	saaws "github.com/molecule-man/stack-assembly/aws"
 	"github.com/molecule-man/stack-assembly/aws/mock"
@@ -100,7 +100,7 @@ func (f *feature) assertEgual(expected, actual interface{}, msgAndArgs ...interf
 	return result.err
 }
 
-func (f *feature) fileExists(fname string, content *gherkin.DocString) error {
+func (f *feature) fileExists(fname string, content *messages.PickleStepArgument_PickleDocString) error {
 	dir, _ := filepath.Split(fname)
 
 	err := f.fs.MkdirAll(dir, 0700)
@@ -168,7 +168,7 @@ func (f *feature) stackShouldNotExist(stackName string) error {
 	return nil
 }
 
-func (f *feature) iModifyFile(fname string, content *gherkin.DocString) error {
+func (f *feature) iModifyFile(fname string, content *messages.PickleStepArgument_PickleDocString) error {
 	return f.fileExists(fname, content)
 }
 
@@ -209,7 +209,7 @@ func (f *feature) exitCodeShouldNotBeZero() error {
 	return nil
 }
 
-func (f *feature) outputShouldContain(s *gherkin.DocString) error {
+func (f *feature) outputShouldContain(s *messages.PickleStepArgument_PickleDocString) error {
 	expected := f.replaceParameters(s.Content)
 	if !strings.Contains(f.LastOutput, expected) {
 		return fmt.Errorf(
@@ -220,14 +220,14 @@ func (f *feature) outputShouldContain(s *gherkin.DocString) error {
 	return nil
 }
 
-func (f *feature) outputShouldBeExactly(s *gherkin.DocString) error {
+func (f *feature) outputShouldBeExactly(s *messages.PickleStepArgument_PickleDocString) error {
 	if strings.TrimSpace(f.LastOutput) != strings.TrimSpace(f.replaceParameters(s.Content)) {
 		return fmt.Errorf("output isn't equal to expected string. Output:\n%s", f.LastOutput)
 	}
 	return nil
 }
 
-func (f *feature) nodeInJsonOutputShouldBe(nodePath string, expectedContent *gherkin.DocString) error {
+func (f *feature) nodeInJsonOutputShouldBe(nodePath string, expectedContent *messages.PickleStepArgument_PickleDocString) error {
 	var expected interface{}
 	c := f.replaceParameters(expectedContent.Content)
 	err := json.Unmarshal([]byte(c), &expected)
@@ -263,7 +263,7 @@ func (f *feature) nodeInJsonOutputShouldBe(nodePath string, expectedContent *ghe
 	return f.assertEgual(expected, actual)
 }
 
-func (f *feature) thereShouldBeStackThatMatches(stackName string, expectedContent *gherkin.DocString) error {
+func (f *feature) thereShouldBeStackThatMatches(stackName string, expectedContent *messages.PickleStepArgument_PickleDocString) error {
 	stackName = f.replaceParameters(stackName)
 	out, err := f.cf.DescribeStacks(&cloudformation.DescribeStacksInput{
 		StackName: aws.String(stackName),
@@ -357,7 +357,7 @@ func (f *feature) iLaunched(cmdInstruction string) error {
 	return nil
 }
 
-func (f *feature) terminalShows(s *gherkin.DocString) error {
+func (f *feature) terminalShows(s *messages.PickleStepArgument_PickleDocString) error {
 	lines := strings.Split(f.replaceParameters(s.Content), "\n")
 	for _, l := range lines {
 		o, err := f.console.ExpectString(l)
@@ -369,7 +369,7 @@ func (f *feature) terminalShows(s *gherkin.DocString) error {
 	return nil
 }
 
-func (f *feature) errorContains(s *gherkin.DocString) error {
+func (f *feature) errorContains(s *messages.PickleStepArgument_PickleDocString) error {
 	str := f.replaceParameters(s.Content)
 	if !strings.Contains(f.LastErr.Error(), str) {
 		return fmt.Errorf("error %v doesn't contain %s", f.LastErr, str)
@@ -456,7 +456,7 @@ func (f *feature) replaceParameters(s string) string {
 	return buff.String()
 }
 
-func (f *feature) fileShouldContainExactly(fname string, content *gherkin.DocString) error {
+func (f *feature) fileShouldContainExactly(fname string, content *messages.PickleStepArgument_PickleDocString) error {
 	c := f.replaceParameters(content.Content)
 
 	file, err := f.fs.Open(fname)
@@ -502,8 +502,7 @@ func FeatureContext(s *godog.Suite) {
 
 	re := regexp.MustCompile("\\W")
 
-	s.BeforeScenario(func(gs interface{}) {
-		scenario := gs.(*gherkin.Scenario)
+	s.BeforeScenario(func(scenario *messages.Pickle) {
 		f.ScenarioName = re.ReplaceAllString(scenario.Name, "-")
 		f.ScenarioID = fmt.Sprintf("%.80s-%d", f.ScenarioName, rand.Int63())
 
@@ -513,15 +512,15 @@ func FeatureContext(s *godog.Suite) {
 			afero.NewBasePathFs(afero.NewOsFs(), f.testDir),
 		}
 	})
-	s.AfterScenario(func(interface{}, error) {
+	s.AfterScenario(func(*messages.Pickle, error) {
 		f.fs.RemoveAll(".")
 	})
 
-	s.BeforeFeature(func(*gherkin.Feature) {
+	s.BeforeFeature(func(*messages.GherkinDocument) {
 		f.FeatureID = strconv.FormatInt(rand.Int63(), 10)
 	})
 
-	s.AfterFeature(func(*gherkin.Feature) {
+	s.AfterFeature(func(*messages.GherkinDocument) {
 		if mock.IsMockEnabled() {
 			return
 		}
