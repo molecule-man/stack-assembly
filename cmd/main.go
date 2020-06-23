@@ -6,6 +6,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/mattn/go-isatty"
 	assembly "github.com/molecule-man/stack-assembly"
 	"github.com/molecule-man/stack-assembly/aws"
 	"github.com/molecule-man/stack-assembly/cli"
@@ -20,6 +21,8 @@ func main() {
 		Errorer: os.Stderr,
 	}
 
+	nonInteractive := !isatty.IsTerminal(os.Stdout.Fd()) && !isatty.IsCygwinTerminal(os.Stdout.Fd())
+
 	cmd := commands.Commands{
 		SA:  assembly.New(console),
 		Cli: console,
@@ -27,6 +30,7 @@ func main() {
 			&conf.OsFS{},
 			&aws.Provider{},
 		),
+		NonInteractive: &nonInteractive,
 	}
 
 	cmd.AWSCommandsCfg.SA = assembly.New(&cli.CLI{

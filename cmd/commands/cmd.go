@@ -26,14 +26,18 @@ type Commands struct {
 		SA     *assembly.SA
 		output *string
 	}
-	cfg            *conf.Config
-	nonInteractive *bool
-	origArgs       []string
+	NonInteractive *bool
+
+	cfg      *conf.Config
+	origArgs []string
 }
 
 func (c *Commands) RootCmd() *cobra.Command {
-	nonInteractive := false
-	c.nonInteractive = &nonInteractive
+	if c.NonInteractive == nil {
+		nonInteractive := false
+		c.NonInteractive = &nonInteractive
+	}
+
 	out := "text"
 	c.AWSCommandsCfg.output = &out
 
@@ -59,7 +63,7 @@ func (c *Commands) RootCmd() *cobra.Command {
 
 	rootCmd.PersistentFlags().BoolVar(&c.Cli.Color.Disabled, "nocolor", false,
 		"Disables color output")
-	rootCmd.PersistentFlags().BoolVarP(c.nonInteractive, "no-interaction", "n", false,
+	rootCmd.PersistentFlags().BoolVarP(c.NonInteractive, "no-interaction", "n", *c.NonInteractive,
 		"Do not ask any interactive questions")
 
 	rootCmd.PersistentFlags().StringToStringVarP(&c.cfg.Parameters, "var", "v", map[string]string{},
@@ -110,7 +114,7 @@ func (c Commands) deployCmd() *cobra.Command {
 				return err
 			}
 
-			_, err := c.SA.Sync(*c.cfg, *c.nonInteractive)
+			_, err := c.SA.Sync(*c.cfg, *c.NonInteractive)
 			return err
 		},
 	}
@@ -173,7 +177,7 @@ have to be specified as well:
 				*c.cfg = stack
 			}
 
-			_, err := c.SA.Sync(*c.cfg, *c.nonInteractive)
+			_, err := c.SA.Sync(*c.cfg, *c.NonInteractive)
 			return err
 		},
 	}
@@ -211,7 +215,7 @@ func (c Commands) deleteCmd() *cobra.Command {
 				return err
 			}
 
-			return c.SA.Delete(*c.cfg, *c.nonInteractive)
+			return c.SA.Delete(*c.cfg, *c.NonInteractive)
 		},
 	}
 
@@ -266,7 +270,7 @@ func (c Commands) cfDeployCmd() *cobra.Command {
 			if err := c.CfgLoader.InitConfig(c.cfg); err != nil {
 				return err
 			}
-			_, err := c.AWSCommandsCfg.SA.Sync(*c.cfg, *c.nonInteractive)
+			_, err := c.AWSCommandsCfg.SA.Sync(*c.cfg, *c.NonInteractive)
 			return err
 		},
 	}
@@ -384,7 +388,7 @@ func (c Commands) cfCreateUpdateFunc(cmd *cobra.Command) func(*cobra.Command, []
 			return err
 		}
 
-		stacks, err := c.AWSCommandsCfg.SA.Sync(*c.cfg, *c.nonInteractive)
+		stacks, err := c.AWSCommandsCfg.SA.Sync(*c.cfg, *c.NonInteractive)
 		if err != nil {
 			return err
 		}
