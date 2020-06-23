@@ -55,6 +55,7 @@ func (c *Commands) RootCmd() *cobra.Command {
 	}
 	rootCmd.PersistentFlags().StringVarP(&c.cfg.Settings.Aws.Profile, "profile", "p", defaultProfile, "AWS named profile")
 	rootCmd.PersistentFlags().StringVarP(&c.cfg.Settings.Aws.Region, "region", "r", os.Getenv("AWS_REGION"), "AWS region")
+	rootCmd.PersistentFlags().StringVar(&c.cfg.Settings.Aws.Endpoint, "endpoint-url", "", "AWS endpoint url")
 
 	rootCmd.PersistentFlags().BoolVar(&c.Cli.Color.Disabled, "nocolor", false,
 		"Disables color output")
