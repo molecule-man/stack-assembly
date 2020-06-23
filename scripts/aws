@@ -23,6 +23,14 @@ if ((ret == 2)); then # command is not found
     exit $?
 fi
 
+if ((ret != 0)); then
+    if [[ ! -t 1 ]]; then # not interactive; not a terminal
+        echo "stack-assembly failed. Falling back to awscli" >&2
+        $FALLBACK_AWS_EXE "$@"
+        exit $?
+    fi
+fi
+
 if ((ret >= 3 && ret < 10)); then # argument parsing errors
     echo "stack-assembly was not able to parse awscli command" >&2
     while true; do
