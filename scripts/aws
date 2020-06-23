@@ -7,6 +7,11 @@ set -o pipefail # force pipelines to fail on the first non-zero status
 STACK_ASSEMBLY_EXE=stas
 FALLBACK_AWS_EXE=$(which -a aws | grep -v "$0" | head -1)
 
+if [[ -n "$STAS_AWS_DROP_IN_DISABLED" ]]; then
+    $FALLBACK_AWS_EXE "$@"
+    exit $?
+fi
+
 export STAS_SUPPRESS_CMD_NOT_FOUND_ERROR=yes
 
 if ! command -v $STACK_ASSEMBLY_EXE > /dev/null ; then

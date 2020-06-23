@@ -22,7 +22,7 @@ type settingsConfig struct {
 	S3Settings aws.S3Settings
 }
 
-// Config is a struct holding stacks configurations
+// Config is a struct holding stacks configurations.
 type Config struct {
 	Name       string
 	Path       string

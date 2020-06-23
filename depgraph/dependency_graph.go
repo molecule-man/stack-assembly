@@ -16,16 +16,16 @@ type node struct {
 	markedPerm bool
 }
 
-// DepGraph resolves dependency graph
+// DepGraph resolves dependency graph.
 type DepGraph struct {
 	nodes map[string]node
 }
 
 // ErrCyclicGraph is an error indicating that the dependency graph is cyclic
-// and therefore can't be resolved
+// and therefore can't be resolved.
 var ErrCyclicGraph = errors.New("the dependency graph is cyclic")
 
-// Add a dependency to the dependency graph
+// Add a dependency to the dependency graph.
 func (dg *DepGraph) Add(id string, dependsOn []string) {
 	if dg.nodes == nil {
 		dg.nodes = make(map[string]node)
@@ -54,7 +54,7 @@ func (dg *DepGraph) Add(id string, dependsOn []string) {
 	}
 }
 
-// Resolve dependencies added via Add method
+// Resolve dependencies added via Add method.
 func (dg *DepGraph) Resolve() ([]string, error) {
 	resolved := make([]string, 0, len(dg.nodes))
 

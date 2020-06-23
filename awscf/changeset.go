@@ -24,7 +24,7 @@ type ChangeSet struct {
 	input cloudformation.CreateChangeSetInput
 }
 
-// Change is a change that is applied to the stack
+// Change is a change that is applied to the stack.
 type Change struct {
 	Action            string
 	ResourceType      string
@@ -188,26 +188,24 @@ func (cs *ChangeSet) wait(id *string) error {
 		},
 	)
 
-	if aerr, ok := err.(awserr.Error); ok {
-		if aerr.Code() == request.WaiterResourceNotReadyErrorCode {
-			setInfo, derr := cs.stack.cf.DescribeChangeSet(&cloudformation.DescribeChangeSetInput{
-				ChangeSetName: id,
-			})
+	if aerr, ok := err.(awserr.Error); ok && aerr.Code() == request.WaiterResourceNotReadyErrorCode {
+		setInfo, derr := cs.stack.cf.DescribeChangeSet(&cloudformation.DescribeChangeSetInput{
+			ChangeSetName: id,
+		})
 
-			if derr != nil {
-				return fmt.Errorf("error while retrieving more info about change set failure: %v", derr)
-			}
-
-			if aws.StringValue(setInfo.StatusReason) == "No updates are to be performed." {
-				return ErrNoChange
-			}
-
-			if aws.StringValue(setInfo.StatusReason) == noChangeStatus {
-				return ErrNoChange
-			}
-
-			return fmt.Errorf("[%s] %s. Status: %s, StatusReason: %s", *setInfo.ChangeSetId, err.Error(), *setInfo.Status, *setInfo.StatusReason)
+		if derr != nil {
+			return fmt.Errorf("error while retrieving more info about change set failure: %v", derr)
 		}
+
+		if aws.StringValue(setInfo.StatusReason) == "No updates are to be performed." {
+			return ErrNoChange
+		}
+
+		if aws.StringValue(setInfo.StatusReason) == noChangeStatus {
+			return ErrNoChange
+		}
+
+		return fmt.Errorf("[%s] %s. Status: %s, StatusReason: %s", *setInfo.ChangeSetId, err.Error(), *setInfo.Status, *setInfo.StatusReason)
 	}
 
 	return err

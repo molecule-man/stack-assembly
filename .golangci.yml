@@ -28,3 +28,5 @@ linters:
     - gosec
     - gochecknoglobals
     - gochecknoinits
+    - goerr113
+    - testpackage
