@@ -1,6 +1,6 @@
 Feature: stas diff
 
-    @short @mock
+    @short
     Scenario: diff two stacks one of which is changed
         Given file "cfg.yaml" exists:
             """

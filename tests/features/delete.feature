@@ -20,12 +20,10 @@ Feature: stas delete
         And I successfully run "sync -c cfg.yaml --no-interaction"
         And stack "stastest-%scenarioid%" should have status "CREATE_COMPLETE"
 
-    @mock
     Scenario: I delete non interactively
         When I successfully run "delete -c cfg.yaml --no-interaction"
         Then stack "stastest-%scenarioid%" should not exist
 
-    @mock
     Scenario: I delete interactively
         Given I launched "delete -c cfg.yaml"
         And terminal shows:
@@ -43,7 +41,7 @@ Feature: stas delete
         Then launched program should exit with zero status
         And stack "stastest-%scenarioid%" should not exist
 
-    @short @mock
+    @short
     Scenario: I choose to quit while deleting stack
         Given I launched "delete -c cfg.yaml"
         And terminal shows:
@@ -55,9 +53,9 @@ Feature: stas delete
             """
             Interrupted by user
             """
-        And terminal shows:
+        And launched program should exit with non zero status
+        And error contains:
             """
             deletion is canceled
             """
-        And launched program should exit with non zero status
         And stack "stastest-%scenarioid%" should have status "CREATE_COMPLETE"

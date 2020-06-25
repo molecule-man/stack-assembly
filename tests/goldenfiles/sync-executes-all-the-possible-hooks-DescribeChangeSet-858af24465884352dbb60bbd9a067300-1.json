@@ -1,0 +1,47 @@
+{
+  "err": null,
+  "input": {
+    "ChangeSetName": "arn:aws:cloudformation:%AWS_REGION%:%AWS_ACC_ID%:changeSet/%CHST_ID%/d10012f8-cae2-43ab-b993-8aff0dca7767",
+    "NextToken": null,
+    "StackName": null
+  },
+  "output": {
+    "Capabilities": null,
+    "ChangeSetId": "arn:aws:cloudformation:%AWS_REGION%:%AWS_ACC_ID%:changeSet/%CHST_ID%/d10012f8-cae2-43ab-b993-8aff0dca7767",
+    "ChangeSetName": "%CHST_ID%",
+    "Changes": [
+      {
+        "ResourceChange": {
+          "Action": "Add",
+          "Details": null,
+          "LogicalResourceId": "EcsCluster",
+          "PhysicalResourceId": null,
+          "Replacement": null,
+          "ResourceType": "AWS::ECS::Cluster",
+          "Scope": null
+        },
+        "Type": "Resource"
+      }
+    ],
+    "CreationTime": "2020-06-25T08:23:20.403Z",
+    "Description": null,
+    "ExecutionStatus": "AVAILABLE",
+    "NextToken": null,
+    "NotificationARNs": null,
+    "Parameters": null,
+    "RollbackConfiguration": {
+      "MonitoringTimeInMinutes": null,
+      "RollbackTriggers": null
+    },
+    "StackId": "arn:aws:cloudformation:%AWS_REGION%:%AWS_ACC_ID%:stack/stastest-hooks-%SCENARIO_ID%/20cbc200-b6bd-11ea-a12f-0a07909a05bc",
+    "StackName": "stastest-hooks-%SCENARIO_ID%",
+    "Status": "CREATE_COMPLETE",
+    "StatusReason": null,
+    "Tags": [
+      {
+        "Key": "STAS_TEST",
+        "Value": "%FEATURE_ID%"
+      }
+    ]
+  }
+}

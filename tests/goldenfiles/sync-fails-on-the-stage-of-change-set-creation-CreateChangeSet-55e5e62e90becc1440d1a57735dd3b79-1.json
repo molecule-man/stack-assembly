@@ -1,0 +1,30 @@
+{
+  "err": null,
+  "input": {
+    "Capabilities": [],
+    "ChangeSetName": "%CHST_ID%",
+    "ChangeSetType": "CREATE",
+    "ClientToken": null,
+    "Description": null,
+    "NotificationARNs": null,
+    "Parameters": null,
+    "ResourceTypes": null,
+    "ResourcesToImport": null,
+    "RoleARN": null,
+    "RollbackConfiguration": null,
+    "StackName": "stastest-fail1-%SCENARIO_ID%",
+    "Tags": [
+      {
+        "Key": "STAS_TEST",
+        "Value": "%FEATURE_ID%"
+      }
+    ],
+    "TemplateBody": "Resources:\n  \"Fn::Transform\":\n    - Name: 'AWS::Include'\n      Parameters:\n        Location: 's3://non-existent-bucket-%SCENARIO_ID%/non-existent-tpl.yml'",
+    "TemplateURL": null,
+    "UsePreviousTemplate": null
+  },
+  "output": {
+    "Id": "arn:aws:cloudformation:%AWS_REGION%:%AWS_ACC_ID%:changeSet/%CHST_ID%/17d61c42-1032-4d88-a505-7ab6c402553a",
+    "StackId": "arn:aws:cloudformation:%AWS_REGION%:%AWS_ACC_ID%:stack/stastest-fail1-%SCENARIO_ID%/20380d80-b6bd-11ea-8a64-0abd335268a4"
+  }
+}

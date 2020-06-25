@@ -6,14 +6,14 @@ import (
 	"strings"
 )
 
-// Table represents data as a table
+// Table represents data as a table.
 type Table struct {
 	buf        *bytes.Buffer
 	currentRow int
 	w          *ColWriter
 }
 
-// NewTable creates a new table
+// NewTable creates a new table.
 func NewTable() *Table {
 	buf := bytes.NewBuffer([]byte{})
 	w := NewColWriter(buf, " | ")
@@ -50,7 +50,7 @@ func (t *Table) Row(cells ...string) *Table {
 	return t
 }
 
-// Render renders the table
+// Render renders the table.
 func (t *Table) Render() string {
 	fmt.Fprintln(t.w, "-")
 	t.w.Flush()

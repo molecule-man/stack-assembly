@@ -10,7 +10,6 @@ import (
 
 	"github.com/BurntSushi/toml"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
-	"github.com/aws/aws-sdk-go/service/cloudformation/cloudformationiface"
 	"github.com/mitchellh/mapstructure"
 	"github.com/molecule-man/stack-assembly/aws"
 	"github.com/molecule-man/stack-assembly/awscf"
@@ -19,20 +18,16 @@ import (
 )
 
 type settingsConfig struct {
-	Aws aws.Config
+	Aws        aws.Config
+	S3Settings aws.S3Settings
 }
 
-type AwsConfig struct {
-	Region   string
-	Profile  string
-	Endpoint string
-}
-
-// Config is a struct holding stacks configurations
+// Config is a struct holding stacks configurations.
 type Config struct {
 	Name       string
 	Path       string
 	Body       string
+	URL        string `json:",omitempty" yaml:",omitempty" toml:",omitempty"`
 	Parameters map[string]string
 	Tags       map[string]string `json:",omitempty" yaml:",omitempty" toml:",omitempty"`
 	DependsOn  []string          `json:",omitempty" yaml:",omitempty" toml:",omitempty"`
@@ -47,13 +42,18 @@ type Config struct {
 	} `json:",omitempty" yaml:",omitempty" toml:",omitempty"`
 
 	RollbackConfiguration *cloudformation.RollbackConfiguration `json:",omitempty" yaml:",omitempty" toml:",omitempty"`
+	UsePreviousTemplate   bool                                  `json:",omitempty" yaml:",omitempty" toml:",omitempty"`
 
-	Capabilities []string       `json:",omitempty" yaml:",omitempty" toml:",omitempty"`
-	Settings     settingsConfig `json:",omitempty" yaml:",omitempty" toml:",omitempty"`
+	RoleARN          string         `json:",omitempty" yaml:",omitempty" toml:",omitempty"`
+	ClientToken      string         `json:",omitempty" yaml:",omitempty" toml:",omitempty"`
+	NotificationARNs []string       `json:",omitempty" yaml:",omitempty" toml:",omitempty"`
+	Capabilities     []string       `json:",omitempty" yaml:",omitempty" toml:",omitempty"`
+	ResourceTypes    []string       `json:",omitempty" yaml:",omitempty" toml:",omitempty"`
+	Settings         settingsConfig `json:",omitempty" yaml:",omitempty" toml:",omitempty"`
 
 	Stacks map[string]Config `json:",omitempty" yaml:",omitempty" toml:",omitempty"`
 
-	aws awsProv
+	aws AwsProv
 }
 
 func (cfg Config) StackConfigsSortedByExecOrder() ([]Config, error) {
@@ -92,16 +92,28 @@ func (cfg Config) ChangeSets() ([]*awscf.ChangeSet, error) {
 }
 
 func (cfg Config) Stack() *awscf.Stack {
-	return awscf.NewStack(cfg.cf(), cfg.Name)
+	prov := cfg.aws.Must(cfg.Settings.Aws)
+
+	return awscf.NewStack(
+		cfg.Name,
+		prov.CF,
+		aws.NewS3Uploader(prov.S3UploadManager, prov.S3, cfg.Settings.S3Settings),
+	)
 }
 
 func (cfg Config) ChangeSet() *awscf.ChangeSet {
 	return cfg.Stack().
 		ChangeSet(cfg.Body).
+		WithTemplateURL(cfg.URL).
 		WithParameters(cfg.Parameters).
 		WithTags(cfg.Tags).
 		WithRollback(cfg.RollbackConfiguration).
-		WithCapabilities(cfg.Capabilities)
+		WithCapabilities(cfg.Capabilities).
+		WithRoleARN(cfg.RoleARN).
+		WithClientToken(cfg.ClientToken).
+		WithNotificationARNs(cfg.NotificationARNs).
+		WithUsePrevTpl(cfg.UsePreviousTemplate).
+		WithResourceTypes(cfg.ResourceTypes)
 }
 
 func (cfg *Config) initAwsSettings() {
@@ -109,28 +121,26 @@ func (cfg *Config) initAwsSettings() {
 		s.Settings.Aws.Merge(cfg.Settings.Aws)
 		s.aws = cfg.aws
 
+		s.Settings.S3Settings.Merge(cfg.Settings.S3Settings)
+
 		s.initAwsSettings()
 
 		cfg.Stacks[i] = s
 	}
 }
 
-func (cfg Config) cf() cloudformationiface.CloudFormationAPI {
-	return cfg.aws.Must(cfg.Settings.Aws).CF
-}
-
-type awsProv interface {
+type AwsProv interface {
 	Must(cfg aws.Config) *aws.AWS
 	New(cfg aws.Config) (*aws.AWS, error)
 }
 
-func NewLoader(fs FileSystem, awsProvider awsProv) *Loader {
+func NewLoader(fs FileSystem, awsProvider AwsProv) *Loader {
 	return &Loader{fs, awsProvider}
 }
 
 type Loader struct {
 	fs  FileSystem
-	aws awsProv
+	aws AwsProv
 }
 
 func (l Loader) LoadConfig(cfgFiles []string, cfg *Config) error {

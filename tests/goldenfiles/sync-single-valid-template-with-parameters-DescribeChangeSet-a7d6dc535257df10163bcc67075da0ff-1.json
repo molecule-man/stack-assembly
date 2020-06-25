@@ -1,0 +1,78 @@
+{
+  "err": null,
+  "input": {
+    "ChangeSetName": "arn:aws:cloudformation:%AWS_REGION%:%AWS_ACC_ID%:changeSet/%CHST_ID%/38c931be-b3b8-4d08-862a-251589f96d5c",
+    "NextToken": null,
+    "StackName": null
+  },
+  "output": {
+    "Capabilities": null,
+    "ChangeSetId": "arn:aws:cloudformation:%AWS_REGION%:%AWS_ACC_ID%:changeSet/%CHST_ID%/38c931be-b3b8-4d08-862a-251589f96d5c",
+    "ChangeSetName": "%CHST_ID%",
+    "Changes": [
+      {
+        "ResourceChange": {
+          "Action": "Add",
+          "Details": null,
+          "LogicalResourceId": "EcsCluster1",
+          "PhysicalResourceId": null,
+          "Replacement": null,
+          "ResourceType": "AWS::ECS::Cluster",
+          "Scope": null
+        },
+        "Type": "Resource"
+      },
+      {
+        "ResourceChange": {
+          "Action": "Add",
+          "Details": null,
+          "LogicalResourceId": "EcsCluster2",
+          "PhysicalResourceId": null,
+          "Replacement": null,
+          "ResourceType": "AWS::ECS::Cluster",
+          "Scope": null
+        },
+        "Type": "Resource"
+      }
+    ],
+    "CreationTime": "2020-06-25T08:23:46.033Z",
+    "Description": null,
+    "ExecutionStatus": "AVAILABLE",
+    "NextToken": null,
+    "NotificationARNs": null,
+    "Parameters": [
+      {
+        "ParameterKey": "Cluster1",
+        "ParameterValue": "cluster1-%SCENARIO_ID%",
+        "ResolvedValue": null,
+        "UsePreviousValue": null
+      },
+      {
+        "ParameterKey": "Cluster2",
+        "ParameterValue": "cluster2-%SCENARIO_ID%",
+        "ResolvedValue": null,
+        "UsePreviousValue": null
+      },
+      {
+        "ParameterKey": "Env",
+        "ParameterValue": "dev",
+        "ResolvedValue": null,
+        "UsePreviousValue": null
+      }
+    ],
+    "RollbackConfiguration": {
+      "MonitoringTimeInMinutes": null,
+      "RollbackTriggers": null
+    },
+    "StackId": "arn:aws:cloudformation:%AWS_REGION%:%AWS_ACC_ID%:stack/stastest-param-%SCENARIO_ID%/301220b0-b6bd-11ea-8e93-0ad4772b7a1e",
+    "StackName": "stastest-param-%SCENARIO_ID%",
+    "Status": "CREATE_COMPLETE",
+    "StatusReason": null,
+    "Tags": [
+      {
+        "Key": "STAS_TEST",
+        "Value": "%FEATURE_ID%"
+      }
+    ]
+  }
+}

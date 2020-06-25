@@ -1,7 +1,7 @@
 {
   "err": {
+    "Err": "ValidationError: Stack with id stack-tpl-dev-%SCENARIO_ID% does not exist\n\tstatus code: 400, request id: 0b154ac3-1f9f-4dee-8e50-0cca98218925",
     "Code": "ValidationError",
-    "Err": "ValidationError: Stack with id stack-tpl-dev-%SCENARIO_ID% does not exist\n\tstatus code: 400, request id: 45bfce59-6fbd-403f-96d5-5b599445322d",
     "Msg": "Stack with id stack-tpl-dev-%SCENARIO_ID% does not exist"
   },
   "input": {

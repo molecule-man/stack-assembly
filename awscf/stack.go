@@ -10,12 +10,13 @@ import (
 	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/cloudformation/cloudformationiface"
+	saAws "github.com/molecule-man/stack-assembly/aws"
 )
 
 const noChangeStatus = "The submitted information didn't contain changes. " +
 	"Submit different information to create a change set."
 
-// StackEvent is a stack event
+// StackEvent is a stack event.
 type StackEvent struct {
 	ID                string
 	ResourceType      string
@@ -35,7 +36,7 @@ func (se StackEvents) Reversed() StackEvents {
 	return se
 }
 
-//ErrNoChange is error that indicate that there are no changes to apply
+//ErrNoChange is error that indicate that there are no changes to apply.
 var ErrNoChange = errors.New("no changes")
 
 var ErrStackDoesntExist = errors.New("stack doesn't exist")
@@ -44,12 +45,13 @@ type Stack struct {
 	Name string
 
 	cf          cloudformationiface.CloudFormationAPI
+	uploader    *saAws.S3Uploader
 	cachedInfo  *StackInfo
 	eventsTrack *EventsTrack
 }
 
-func NewStack(cf cloudformationiface.CloudFormationAPI, name string) *Stack {
-	return &Stack{cf: cf, Name: name}
+func NewStack(name string, cf cloudformationiface.CloudFormationAPI, uploader *saAws.S3Uploader) *Stack {
+	return &Stack{Name: name, cf: cf, uploader: uploader}
 }
 
 func (s *Stack) Info() (StackInfo, error) {
@@ -157,7 +159,7 @@ func (s *Stack) Body() (string, error) {
 	return aws.StringValue(tpl.TemplateBody), nil
 }
 
-// Resources returns info about stack resources
+// Resources returns info about stack resources.
 func (s *Stack) Resources() ([]StackResource, error) {
 	resp, err := s.cf.DescribeStackResources(&cloudformation.DescribeStackResourcesInput{
 		StackName: aws.String(s.Name),
@@ -224,7 +226,7 @@ func (s *Stack) EventsTrack() *EventsTrack {
 	return s.eventsTrack
 }
 
-// BlockResource prevents a stack resource from deletion and replacement
+// BlockResource prevents a stack resource from deletion and replacement.
 func (s *Stack) BlockResource(resource string) error {
 	policy := `{
 		"Statement" : [{
@@ -241,7 +243,7 @@ func (s *Stack) BlockResource(resource string) error {
 	return s.applyPolicy(fmt.Sprintf(policy, resource))
 }
 
-// UnblockResource discards the blocking from the resource
+// UnblockResource discards the blocking from the resource.
 func (s *Stack) UnblockResource(resource string) error {
 	policy := `{
 		"Statement" : [{

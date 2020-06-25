@@ -1,0 +1,32 @@
+{
+  "err": null,
+  "input": {
+    "Capabilities": [],
+    "ChangeSetName": "%CHST_ID%",
+    "ChangeSetType": "CREATE",
+    "ClientToken": null,
+    "Description": null,
+    "NotificationARNs": null,
+    "Parameters": [
+      {
+        "ParameterKey": "version",
+        "ParameterValue": "1-2-3",
+        "ResolvedValue": null,
+        "UsePreviousValue": null
+      }
+    ],
+    "ResourceTypes": null,
+    "ResourcesToImport": null,
+    "RoleARN": null,
+    "RollbackConfiguration": null,
+    "StackName": "stastest-%SCENARIO_ID%",
+    "Tags": [],
+    "TemplateBody": "Parameters:\n  version:\n    Type: String\nResources:\n  Cluster:\n    Type: AWS::ECS::Cluster\n    Properties:\n      ClusterName: !Sub \"${AWS::StackName}-${version}\"",
+    "TemplateURL": null,
+    "UsePreviousTemplate": null
+  },
+  "output": {
+    "Id": "arn:aws:cloudformation:%AWS_REGION%:%AWS_ACC_ID%:changeSet/%CHST_ID%/c8dd843a-3bf2-48c8-b343-c8c6643a9068",
+    "StackId": "arn:aws:cloudformation:%AWS_REGION%:%AWS_ACC_ID%:stack/stastest-%SCENARIO_ID%/44b30ac0-b6bd-11ea-bced-02bc3c3f62ee"
+  }
+}

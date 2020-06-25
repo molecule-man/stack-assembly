@@ -1,0 +1,14 @@
+{
+  "err": null,
+  "input": {
+    "TemplateBody": null,
+    "TemplateURL": "https://stack-assembly-tmp-1593073541576917622-20af0ecf.s3.%AWS_REGION%.amazonaws.com/stack-assembly"
+  },
+  "output": {
+    "Capabilities": null,
+    "CapabilitiesReason": null,
+    "DeclaredTransforms": null,
+    "Description": null,
+    "Parameters": null
+  }
+}

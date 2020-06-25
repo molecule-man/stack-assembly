@@ -9,8 +9,8 @@
     "Stacks": [
       {
         "Capabilities": null,
-        "ChangeSetId": "arn:aws:cloudformation:%AWS_REGION%:%AWS_ACC_ID%:changeSet/%CHST_ID%/1de8b1f2-1cec-4e9e-aeb3-1ac5d7035f1b",
-        "CreationTime": "2019-10-15T08:07:14.73Z",
+        "ChangeSetId": "arn:aws:cloudformation:%AWS_REGION%:%AWS_ACC_ID%:changeSet/%CHST_ID%/844d1acd-6e04-4d40-af40-6520d8558cc8",
+        "CreationTime": "2020-06-25T08:23:11.206Z",
         "DeletionTime": null,
         "Description": null,
         "DisableRollback": false,
@@ -19,7 +19,7 @@
           "StackDriftStatus": "NOT_CHECKED"
         },
         "EnableTerminationProtection": false,
-        "LastUpdatedTime": "2019-10-15T08:07:17.886Z",
+        "LastUpdatedTime": "2020-06-25T08:23:15.895Z",
         "NotificationARNs": null,
         "Outputs": null,
         "Parameters": null,
@@ -30,7 +30,7 @@
           "RollbackTriggers": null
         },
         "RootId": null,
-        "StackId": "arn:aws:cloudformation:%AWS_REGION%:%AWS_ACC_ID%:stack/stastest-root-%SCENARIO_ID%/cc496780-ef22-11e9-87e2-0a8d8e29a944",
+        "StackId": "arn:aws:cloudformation:%AWS_REGION%:%AWS_ACC_ID%:stack/stastest-root-%SCENARIO_ID%/1b4c4980-b6bd-11ea-aa29-06fa7988ce00",
         "StackName": "stastest-root-%SCENARIO_ID%",
         "StackStatus": "CREATE_COMPLETE",
         "StackStatusReason": null,

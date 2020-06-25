@@ -1,0 +1,14 @@
+{
+  "err": null,
+  "input": {
+    "TemplateBody": null,
+    "TemplateURL": "https://stastest-%FEATURE_ID%-1.s3.%AWS_REGION%.amazonaws.com/stack-assembly"
+  },
+  "output": {
+    "Capabilities": null,
+    "CapabilitiesReason": null,
+    "DeclaredTransforms": null,
+    "Description": null,
+    "Parameters": null
+  }
+}

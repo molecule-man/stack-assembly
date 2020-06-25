@@ -8,6 +8,9 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/cloudformation/cloudformationiface"
+	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/aws/aws-sdk-go/service/s3/s3iface"
+	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	"github.com/aws/aws-sdk-go/service/sts"
 )
 
@@ -34,9 +37,11 @@ func (ac *Config) Merge(otherCfg Config) {
 var awsPool = map[Config]*AWS{}
 
 type AWS struct {
-	CF        cloudformationiface.CloudFormationAPI
-	AccountID string
-	Region    string
+	CF              cloudformationiface.CloudFormationAPI
+	S3UploadManager S3UploadManager
+	S3              s3iface.S3API
+	AccountID       string
+	Region          string
 }
 
 type Provider struct{}
@@ -61,6 +66,8 @@ func (Provider) New(cfg Config) (*AWS, error) {
 	aws := AWS{}
 
 	aws.CF = cloudformation.New(sess)
+	aws.S3UploadManager = s3manager.NewUploader(sess)
+	aws.S3 = s3.New(sess)
 	aws.Region = awssdk.StringValue(sess.Config.Region)
 
 	callerIdent, err := sts.New(sess).GetCallerIdentity(&sts.GetCallerIdentityInput{})
@@ -100,4 +107,12 @@ func initSession(cfg Config) *session.Session {
 	opts.SharedConfigState = session.SharedConfigEnable
 
 	return session.Must(session.NewSessionWithOptions(opts))
+}
+
+func nilString(s string) *string {
+	if s == "" {
+		return nil
+	}
+
+	return &s
 }

@@ -1,6 +1,6 @@
 Feature: stas sync failure handling
 
-    @short @mock
+    @short
     Scenario: sync fails on the stage of change set creation
         Given file "cfg.yaml" exists:
             """
@@ -21,7 +21,7 @@ Feature: stas sync failure handling
             """
         When I run "sync -c cfg.yaml --no-interaction"
         Then exit code should not be zero
-        And output should contain:
+        And error contains:
             """
             ResourceNotReady: failed waiting for successful resource state. Status: FAILED, StatusReason: Transform AWS::Include failed with: S3 bucket [non-existent-bucket-%scenarioid%] does not exist.
             """

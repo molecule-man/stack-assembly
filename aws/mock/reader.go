@@ -5,6 +5,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/request"
 	clf "github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/cloudformation/cloudformationiface"
+	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	"github.com/molecule-man/stack-assembly/aws"
 )
 
@@ -25,12 +26,13 @@ func (p ReadProvider) Must(cfg aws.Config) *aws.AWS {
 }
 
 func (p ReadProvider) New(cfg aws.Config) (*aws.AWS, error) {
+	d := newDumper(p.testID, p.featureID, p.scenarioID)
+
 	return &aws.AWS{
-		CF: &GfCloudFormation{
-			dumper: newDumper(p.testID, p.featureID, p.scenarioID),
-		},
-		AccountID: "ACCID",
-		Region:    "eu-west-1",
+		CF:              &GfCloudFormation{dumper: d},
+		S3UploadManager: &S3UploadManagerReadProvider{dumper: d},
+		AccountID:       "ACCID",
+		Region:          "eu-west-1",
 	}, nil
 }
 
@@ -142,4 +144,17 @@ func (c *GfCloudFormation) SetStackPolicy(input *clf.SetStackPolicyInput) (*clf.
 func (c *GfCloudFormation) GetTemplate(input *clf.GetTemplateInput) (*clf.GetTemplateOutput, error) {
 	output := &clf.GetTemplateOutput{}
 	return output, c.dumper.read("GetTemplate", input, output)
+}
+
+type S3UploadManagerReadProvider struct {
+	aws.S3UploadManager
+	dumper *dumper
+}
+
+func (r *S3UploadManagerReadProvider) Upload(
+	input *s3manager.UploadInput,
+	opts ...func(*s3manager.Uploader),
+) (*s3manager.UploadOutput, error) {
+	output := &s3manager.UploadOutput{}
+	return output, r.dumper.read("s3uploader_Upload", input, output)
 }

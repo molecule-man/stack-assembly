@@ -2,25 +2,20 @@ module github.com/molecule-man/stack-assembly
 
 require (
 	github.com/BurntSushi/toml v0.3.1
-	github.com/DATA-DOG/godog v0.7.13
 	github.com/Netflix/go-expect v0.0.0-20190729225929-0e00d9168667
-	github.com/aws/aws-sdk-go v1.23.3
-	github.com/cnf/structhash v0.0.0-20180104161610-62a607eb0224
-	github.com/kr/pretty v0.1.0 // indirect
+	github.com/aws/aws-sdk-go v1.32.9
+	github.com/cucumber/godog v0.9.0
+	github.com/cucumber/messages-go/v10 v10.0.3
 	github.com/kr/pty v1.1.8 // indirect
-	github.com/mitchellh/hashstructure v1.0.0
+	github.com/mattn/go-isatty v0.0.12
+	github.com/mitchellh/go-wordwrap v1.0.0
 	github.com/mitchellh/mapstructure v1.1.2
 	github.com/pmezard/go-difflib v1.0.0
 	github.com/spf13/afero v1.2.2
 	github.com/spf13/cobra v0.0.5
-	github.com/spf13/pflag v1.0.3
-	github.com/stretchr/testify v1.4.0
-	golang.org/x/net v0.0.0-20190813141303-74dc4d7220e7 // indirect
-	golang.org/x/sys v0.0.0-20190813064441-fde4db37ae7a // indirect
+	github.com/stretchr/testify v1.5.1
 	golang.org/x/text v0.3.2 // indirect
-	golang.org/x/tools v0.0.0-20190816200558-6889da9d5479
-	gopkg.in/check.v1 v1.0.0-20180628173108-788fd7840127 // indirect
-	gopkg.in/yaml.v2 v2.2.2
+	gopkg.in/yaml.v2 v2.2.8
 )
 
 go 1.13

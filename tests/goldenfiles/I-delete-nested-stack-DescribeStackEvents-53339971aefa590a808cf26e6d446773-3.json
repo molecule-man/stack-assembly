@@ -9,29 +9,29 @@
     "StackEvents": [
       {
         "ClientRequestToken": null,
-        "EventId": "d46f6ef0-ef22-11e9-b24a-06e78b19b516",
+        "EventId": "28b90630-b6bd-11ea-b72f-0a7e2e210ed2",
         "LogicalResourceId": "stastest-child-%SCENARIO_ID%",
-        "PhysicalResourceId": "arn:aws:cloudformation:%AWS_REGION%:%AWS_ACC_ID%:stack/stastest-child-%SCENARIO_ID%/d29334e0-ef22-11e9-afc7-0a736ea8438a",
+        "PhysicalResourceId": "arn:aws:cloudformation:%AWS_REGION%:%AWS_ACC_ID%:stack/stastest-child-%SCENARIO_ID%/26989730-b6bd-11ea-a8ed-0aac2484be2a",
         "ResourceProperties": null,
         "ResourceStatus": "CREATE_IN_PROGRESS",
         "ResourceStatusReason": "User Initiated",
         "ResourceType": "AWS::CloudFormation::Stack",
-        "StackId": "arn:aws:cloudformation:%AWS_REGION%:%AWS_ACC_ID%:stack/stastest-child-%SCENARIO_ID%/d29334e0-ef22-11e9-afc7-0a736ea8438a",
+        "StackId": "arn:aws:cloudformation:%AWS_REGION%:%AWS_ACC_ID%:stack/stastest-child-%SCENARIO_ID%/26989730-b6bd-11ea-a8ed-0aac2484be2a",
         "StackName": "stastest-child-%SCENARIO_ID%",
-        "Timestamp": "2019-10-15T08:07:28.337Z"
+        "Timestamp": "2020-06-25T08:23:33.642Z"
       },
       {
         "ClientRequestToken": null,
-        "EventId": "d292bfb0-ef22-11e9-afc7-0a736ea8438a",
+        "EventId": "26984910-b6bd-11ea-a8ed-0aac2484be2a",
         "LogicalResourceId": "stastest-child-%SCENARIO_ID%",
-        "PhysicalResourceId": "arn:aws:cloudformation:%AWS_REGION%:%AWS_ACC_ID%:stack/stastest-child-%SCENARIO_ID%/d29334e0-ef22-11e9-afc7-0a736ea8438a",
+        "PhysicalResourceId": "arn:aws:cloudformation:%AWS_REGION%:%AWS_ACC_ID%:stack/stastest-child-%SCENARIO_ID%/26989730-b6bd-11ea-a8ed-0aac2484be2a",
         "ResourceProperties": null,
         "ResourceStatus": "REVIEW_IN_PROGRESS",
         "ResourceStatusReason": "User Initiated",
         "ResourceType": "AWS::CloudFormation::Stack",
-        "StackId": "arn:aws:cloudformation:%AWS_REGION%:%AWS_ACC_ID%:stack/stastest-child-%SCENARIO_ID%/d29334e0-ef22-11e9-afc7-0a736ea8438a",
+        "StackId": "arn:aws:cloudformation:%AWS_REGION%:%AWS_ACC_ID%:stack/stastest-child-%SCENARIO_ID%/26989730-b6bd-11ea-a8ed-0aac2484be2a",
         "StackName": "stastest-child-%SCENARIO_ID%",
-        "Timestamp": "2019-10-15T08:07:25.273Z"
+        "Timestamp": "2020-06-25T08:23:30.146Z"
       }
     ]
   }

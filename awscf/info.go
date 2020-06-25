@@ -12,7 +12,7 @@ type KeyVal struct {
 	Val string
 }
 
-// StackOutput contains info about stack output variables
+// StackOutput contains info about stack output variables.
 type StackOutput struct {
 	Key         string
 	Value       string
@@ -31,6 +31,10 @@ type StackResource struct {
 
 type StackInfo struct {
 	awsStack *cloudformation.Stack
+}
+
+func (si StackInfo) ID() string {
+	return aws.StringValue(si.awsStack.StackId)
 }
 
 func (si StackInfo) AlreadyDeployed() bool {
@@ -85,7 +89,7 @@ func (si StackInfo) Tags() []KeyVal {
 	return tags
 }
 
-// Outputs returns the "outputs" of a stack
+// Outputs returns the "outputs" of a stack.
 func (si StackInfo) Outputs() []StackOutput {
 	outputs := make([]StackOutput, len(si.awsStack.Outputs))
 

@@ -5,6 +5,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/request"
 	clf "github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/cloudformation/cloudformationiface"
+	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	"github.com/molecule-man/stack-assembly/aws"
 )
 
@@ -37,11 +38,14 @@ func (p WriteProvider) New(cfg aws.Config) (*aws.AWS, error) {
 	d.addReplacement(raws.Region, "AWS_REGION")
 
 	cf := &CloudFormation{realCF: raws.CF, dumper: d}
+	s3 := &S3UploadManagerWriteProvider{realMGR: raws.S3UploadManager, dumper: d}
 
 	return &aws.AWS{
-		CF:        cf,
-		AccountID: raws.AccountID,
-		Region:    raws.Region,
+		CF:              cf,
+		S3UploadManager: s3,
+		S3:              raws.S3,
+		AccountID:       raws.AccountID,
+		Region:          raws.Region,
 	}, nil
 }
 
@@ -170,6 +174,21 @@ func (c *CloudFormation) SetStackPolicy(input *clf.SetStackPolicyInput) (*clf.Se
 func (c *CloudFormation) GetTemplate(input *clf.GetTemplateInput) (*clf.GetTemplateOutput, error) {
 	output, err := c.realCF.GetTemplate(input)
 	c.dumper.dump("GetTemplate", input, output, err)
+
+	return output, err
+}
+
+type S3UploadManagerWriteProvider struct {
+	realMGR aws.S3UploadManager
+	dumper  *dumper
+}
+
+func (w *S3UploadManagerWriteProvider) Upload(
+	input *s3manager.UploadInput,
+	opts ...func(*s3manager.Uploader),
+) (*s3manager.UploadOutput, error) {
+	output, err := w.realMGR.Upload(input, opts...)
+	w.dumper.dump("s3uploader_Upload", input, output, err)
 
 	return output, err
 }

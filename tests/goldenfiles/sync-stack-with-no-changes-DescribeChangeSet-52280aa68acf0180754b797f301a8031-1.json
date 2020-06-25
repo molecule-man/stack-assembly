@@ -1,0 +1,34 @@
+{
+  "err": null,
+  "input": {
+    "ChangeSetName": "arn:aws:cloudformation:%AWS_REGION%:%AWS_ACC_ID%:changeSet/%CHST_ID-2%/9d629f1a-e7b8-49ad-9913-47d632e9bf67",
+    "NextToken": null,
+    "StackName": null
+  },
+  "output": {
+    "Capabilities": null,
+    "ChangeSetId": "arn:aws:cloudformation:%AWS_REGION%:%AWS_ACC_ID%:changeSet/%CHST_ID-2%/9d629f1a-e7b8-49ad-9913-47d632e9bf67",
+    "ChangeSetName": "%CHST_ID-2%",
+    "Changes": null,
+    "CreationTime": "2020-06-25T08:25:27.013Z",
+    "Description": null,
+    "ExecutionStatus": "UNAVAILABLE",
+    "NextToken": null,
+    "NotificationARNs": null,
+    "Parameters": null,
+    "RollbackConfiguration": {
+      "MonitoringTimeInMinutes": null,
+      "RollbackTriggers": null
+    },
+    "StackId": "arn:aws:cloudformation:%AWS_REGION%:%AWS_ACC_ID%:stack/stastest-%SCENARIO_ID%/61469030-b6bd-11ea-bc1e-0adf61345742",
+    "StackName": "stastest-%SCENARIO_ID%",
+    "Status": "FAILED",
+    "StatusReason": "The submitted information didn't contain changes. Submit different information to create a change set.",
+    "Tags": [
+      {
+        "Key": "STAS_TEST",
+        "Value": "%FEATURE_ID%"
+      }
+    ]
+  }
+}

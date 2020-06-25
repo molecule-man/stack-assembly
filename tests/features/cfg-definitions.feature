@@ -1,6 +1,6 @@
 Feature: reuse (definitions)
 
-    @short @mock
+    @short
     Scenario: reusing stacks
         Given file "cfg.yaml" exists:
             """
@@ -26,7 +26,7 @@ Feature: reuse (definitions)
         When I successfully run "sync -c cfg.yaml --no-interaction"
         Then stack "stastest-%scenarioid%" should have status "CREATE_COMPLETE"
 
-    @short @mock
+    @short
     Scenario: the stack in resulting config is based on referenced stack definition
         Given file "cfg.yaml" exists:
             """

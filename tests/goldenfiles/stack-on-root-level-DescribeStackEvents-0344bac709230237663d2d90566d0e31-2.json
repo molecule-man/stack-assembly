@@ -9,16 +9,29 @@
     "StackEvents": [
       {
         "ClientRequestToken": null,
-        "EventId": "9c3730e0-ef22-11e9-81a1-0ade9df0c35e",
+        "EventId": "072f0e60-b6bd-11ea-99de-02d3b89dc706",
         "LogicalResourceId": "stastest-2-%SCENARIO_ID%",
-        "PhysicalResourceId": "arn:aws:cloudformation:%AWS_REGION%:%AWS_ACC_ID%:stack/stastest-2-%SCENARIO_ID%/9c377f00-ef22-11e9-81a1-0ade9df0c35e",
+        "PhysicalResourceId": "arn:aws:cloudformation:%AWS_REGION%:%AWS_ACC_ID%:stack/stastest-2-%SCENARIO_ID%/045efe70-b6bd-11ea-9227-0615f1e712e0",
+        "ResourceProperties": null,
+        "ResourceStatus": "CREATE_IN_PROGRESS",
+        "ResourceStatusReason": "User Initiated",
+        "ResourceType": "AWS::CloudFormation::Stack",
+        "StackId": "arn:aws:cloudformation:%AWS_REGION%:%AWS_ACC_ID%:stack/stastest-2-%SCENARIO_ID%/045efe70-b6bd-11ea-9227-0615f1e712e0",
+        "StackName": "stastest-2-%SCENARIO_ID%",
+        "Timestamp": "2020-06-25T08:22:37.373Z"
+      },
+      {
+        "ClientRequestToken": null,
+        "EventId": "045e8940-b6bd-11ea-9227-0615f1e712e0",
+        "LogicalResourceId": "stastest-2-%SCENARIO_ID%",
+        "PhysicalResourceId": "arn:aws:cloudformation:%AWS_REGION%:%AWS_ACC_ID%:stack/stastest-2-%SCENARIO_ID%/045efe70-b6bd-11ea-9227-0615f1e712e0",
         "ResourceProperties": null,
         "ResourceStatus": "REVIEW_IN_PROGRESS",
         "ResourceStatusReason": "User Initiated",
         "ResourceType": "AWS::CloudFormation::Stack",
-        "StackId": "arn:aws:cloudformation:%AWS_REGION%:%AWS_ACC_ID%:stack/stastest-2-%SCENARIO_ID%/9c377f00-ef22-11e9-81a1-0ade9df0c35e",
+        "StackId": "arn:aws:cloudformation:%AWS_REGION%:%AWS_ACC_ID%:stack/stastest-2-%SCENARIO_ID%/045efe70-b6bd-11ea-9227-0615f1e712e0",
         "StackName": "stastest-2-%SCENARIO_ID%",
-        "Timestamp": "2019-10-15T08:05:54.074Z"
+        "Timestamp": "2020-06-25T08:22:32.725Z"
       }
     ]
   }

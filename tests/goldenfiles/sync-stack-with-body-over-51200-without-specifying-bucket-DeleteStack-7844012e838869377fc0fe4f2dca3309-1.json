@@ -1,0 +1,10 @@
+{
+  "err": null,
+  "input": {
+    "ClientRequestToken": null,
+    "RetainResources": null,
+    "RoleARN": null,
+    "StackName": "stastest-sync-single-valid-template-with-enforced-s3-upload-1259252952440278409"
+  },
+  "output": {}
+}

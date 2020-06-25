@@ -10,6 +10,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/cloudformation/cloudformationiface"
+	saAws "github.com/molecule-man/stack-assembly/aws"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -20,7 +21,7 @@ func TestOnlyRequiredParametersAreSubmitted(t *testing.T) {
 		{ParameterKey: aws.String("foo")},
 		{ParameterKey: aws.String("bar")},
 	}
-	chSet := NewStack(cf, "mystack").
+	chSet := NewStack("mystack", cf, s3Uploader()).
 		ChangeSet("body").
 		WithParameter("foo", "fooval").
 		WithParameter("bar", "barval").
@@ -52,7 +53,7 @@ func TestChangeSetCreationErrors(t *testing.T) {
 		cf := &cfMock{}
 		tc.errProv(cf, tc.err)
 
-		_, err := NewStack(cf, "mystack").
+		_, err := NewStack("mystack", cf, s3Uploader()).
 			ChangeSet("body").
 			Register()
 
@@ -80,7 +81,7 @@ func TestEventTracking(t *testing.T) {
 		},
 	}
 
-	stack := NewStack(cf, "mystack")
+	stack := NewStack("mystack", cf, s3Uploader())
 	cs, err := stack.ChangeSet("body").Register()
 	require.NoError(t, err)
 
@@ -93,6 +94,7 @@ func TestEventTracking(t *testing.T) {
 			emmittedEvents = append([]*cloudformation.StackEvent{{EventId: aws.String(i)}}, emmittedEvents...)
 			mu.Unlock()
 		}
+
 		wg.Done()
 	}()
 
@@ -211,4 +213,12 @@ func (cf *cfMock) WaitUntilStackUpdateCompleteWithContext(aws.Context, *cloudfor
 	}
 
 	return nil
+}
+
+func s3Uploader() *saAws.S3Uploader {
+	return saAws.NewS3Uploader(s3Mock{}, nil, saAws.S3Settings{})
+}
+
+type s3Mock struct {
+	saAws.S3UploadManager
 }

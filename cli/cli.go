@@ -78,8 +78,8 @@ func (cli CLI) Prompt(commands []PromptCmd) error {
 	return nil
 }
 
-func (cli CLI) Ask(query string, args ...interface{}) (string, error) {
-	cli.Printf(query, args...)
+func (cli CLI) Fask(w io.Writer, query string, args ...interface{}) (string, error) {
+	fmt.Fprintf(w, query, args...)
 
 	reader := bufio.NewReader(cli.Reader)
 	response, err := reader.ReadString('\n')
@@ -89,6 +89,10 @@ func (cli CLI) Ask(query string, args ...interface{}) (string, error) {
 	}
 
 	return strings.TrimSpace(response), nil
+}
+
+func (cli CLI) Ask(query string, args ...interface{}) (string, error) {
+	return cli.Fask(cli.Writer, query, args...)
 }
 
 func (cli CLI) PrefixedLogger(prefix string) *Logger {

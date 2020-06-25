@@ -1,0 +1,14 @@
+{
+  "err": null,
+  "input": {
+    "TemplateBody": "Resources:\n  Bucket:\n    Type: AWS::S3::Bucket\n    Properties:\n      BucketName: stastest-%FEATURE_ID%-1\n      Tags:\n        - Key: STAS_TEST\n          Value: true",
+    "TemplateURL": null
+  },
+  "output": {
+    "Capabilities": null,
+    "CapabilitiesReason": null,
+    "DeclaredTransforms": null,
+    "Description": null,
+    "Parameters": null
+  }
+}

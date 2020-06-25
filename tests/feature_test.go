@@ -19,15 +19,16 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"text/template"
 	"time"
 
-	"github.com/DATA-DOG/godog"
-	"github.com/DATA-DOG/godog/colors"
-	"github.com/DATA-DOG/godog/gherkin"
 	expect "github.com/Netflix/go-expect"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/cloudformation/cloudformationiface"
+	"github.com/cucumber/godog"
+	"github.com/cucumber/godog/colors"
+	"github.com/cucumber/messages-go/v10"
 	assembly "github.com/molecule-man/stack-assembly"
 	saaws "github.com/molecule-man/stack-assembly/aws"
 	"github.com/molecule-man/stack-assembly/aws/mock"
@@ -68,13 +69,13 @@ func TestMain(m *testing.M) {
 }
 
 type feature struct {
-	scenarioName string
-	scenarioID   string
+	ScenarioName string
+	ScenarioID   string
 	testDir      string
-	featureID    string
+	FeatureID    string
 
-	lastOutput string
-	lastErr    error
+	LastOutput string
+	LastErr    error
 
 	console *expect.Console
 	lastCmd *exec.Cmd
@@ -85,13 +86,21 @@ type feature struct {
 	fs vfs
 }
 
+func (f feature) aws() conf.AwsProv {
+	if os.Getenv("STAS_NO_MOCK") == "on" {
+		return &saaws.Provider{}
+	}
+
+	return mock.New(f.ScenarioName, f.FeatureID, f.ScenarioID)
+}
+
 func (f *feature) assertEgual(expected, actual interface{}, msgAndArgs ...interface{}) error {
 	result := assertionResult{}
 	assert.Equal(&result, expected, actual, msgAndArgs...)
 	return result.err
 }
 
-func (f *feature) fileExists(fname string, content *gherkin.DocString) error {
+func (f *feature) fileExists(fname string, content *messages.PickleStepArgument_PickleDocString) error {
 	dir, _ := filepath.Split(fname)
 
 	err := f.fs.MkdirAll(dir, 0700)
@@ -120,8 +129,8 @@ func (f *feature) iSuccessfullyRun(cmd string) error {
 		return err
 	}
 
-	if f.lastErr != nil {
-		return fmt.Errorf("err: %v, output:\n%s", err, f.lastOutput)
+	if f.LastErr != nil {
+		return fmt.Errorf("err: %v, output:\n%s", f.LastErr, f.LastOutput)
 	}
 
 	return nil
@@ -159,61 +168,66 @@ func (f *feature) stackShouldNotExist(stackName string) error {
 	return nil
 }
 
-func (f *feature) iModifyFile(fname string, content *gherkin.DocString) error {
+func (f *feature) iModifyFile(fname string, content *messages.PickleStepArgument_PickleDocString) error {
 	return f.fileExists(fname, content)
 }
 
 func (f *feature) iRun(cmd string) error {
 	buf := bytes.NewBuffer([]byte{})
-	cli := &cli.CLI{
+	console := &cli.CLI{
 		Reader:  buf,
 		Writer:  buf,
 		Errorer: buf,
 	}
 
 	c := commands.Commands{
-		SA:        assembly.New(cli),
-		Cli:       cli,
-		CfgLoader: conf.NewLoader(f.fs, mock.New(f.scenarioName, f.featureID, f.scenarioID)),
+		SA:        assembly.New(console),
+		Cli:       console,
+		CfgLoader: conf.NewLoader(f.fs, f.aws()),
 	}
+	c.AWSCommandsCfg.SA = assembly.New(&cli.CLI{
+		Reader:  buf,
+		Writer:  ioutil.Discard,
+		Errorer: ioutil.Discard,
+	})
 	root := c.RootCmd()
 	root.SetArgs(strings.Split(f.replaceParameters(cmd), " "))
 	root.SetOutput(buf)
 
 	err := root.Execute()
 
-	f.lastOutput = buf.String()
-	f.lastErr = err
+	f.LastOutput = buf.String()
+	f.LastErr = err
 
 	return nil
 }
 
 func (f *feature) exitCodeShouldNotBeZero() error {
-	if f.lastErr == nil {
-		return fmt.Errorf("program returned zero exit code. Programs output: \n%s", f.lastOutput)
+	if f.LastErr == nil {
+		return fmt.Errorf("program returned zero exit code. Programs output: \n%s", f.LastOutput)
 	}
 	return nil
 }
 
-func (f *feature) outputShouldContain(s *gherkin.DocString) error {
+func (f *feature) outputShouldContain(s *messages.PickleStepArgument_PickleDocString) error {
 	expected := f.replaceParameters(s.Content)
-	if !strings.Contains(f.lastOutput, expected) {
+	if !strings.Contains(f.LastOutput, expected) {
 		return fmt.Errorf(
 			"output doesn't contain searched string:\n%s\nActual output:\n%s",
 			expected,
-			f.lastOutput)
+			f.LastOutput)
 	}
 	return nil
 }
 
-func (f *feature) outputShouldBeExactly(s *gherkin.DocString) error {
-	if strings.TrimSpace(f.lastOutput) != strings.TrimSpace(f.replaceParameters(s.Content)) {
-		return fmt.Errorf("output isn't equal to expected string. Output:\n%s", f.lastOutput)
+func (f *feature) outputShouldBeExactly(s *messages.PickleStepArgument_PickleDocString) error {
+	if strings.TrimSpace(f.LastOutput) != strings.TrimSpace(f.replaceParameters(s.Content)) {
+		return fmt.Errorf("output isn't equal to expected string. Output:\n%s", f.LastOutput)
 	}
 	return nil
 }
 
-func (f *feature) nodeInJsonOutputShouldBe(nodePath string, expectedContent *gherkin.DocString) error {
+func (f *feature) nodeInJsonOutputShouldBe(nodePath string, expectedContent *messages.PickleStepArgument_PickleDocString) error {
 	var expected interface{}
 	c := f.replaceParameters(expectedContent.Content)
 	err := json.Unmarshal([]byte(c), &expected)
@@ -222,10 +236,10 @@ func (f *feature) nodeInJsonOutputShouldBe(nodePath string, expectedContent *ghe
 	}
 
 	var actual interface{}
-	c = f.replaceParameters(f.lastOutput)
+	c = f.replaceParameters(f.LastOutput)
 	err = json.Unmarshal([]byte(c), &actual)
 	if err != nil {
-		return fmt.Errorf("err: %s, output:\n%s", err, f.lastOutput)
+		return fmt.Errorf("err: %s, output:\n%s", err, f.LastOutput)
 	}
 
 	for _, key := range strings.Split(nodePath, ".") {
@@ -249,7 +263,7 @@ func (f *feature) nodeInJsonOutputShouldBe(nodePath string, expectedContent *ghe
 	return f.assertEgual(expected, actual)
 }
 
-func (f *feature) thereShouldBeStackThatMatches(stackName string, expectedContent *gherkin.DocString) error {
+func (f *feature) thereShouldBeStackThatMatches(stackName string, expectedContent *messages.PickleStepArgument_PickleDocString) error {
 	stackName = f.replaceParameters(stackName)
 	out, err := f.cf.DescribeStacks(&cloudformation.DescribeStacksInput{
 		StackName: aws.String(stackName),
@@ -325,8 +339,9 @@ func (f *feature) iLaunched(cmdInstruction string) error {
 	co := commands.Commands{
 		SA:        assembly.New(cli),
 		Cli:       cli,
-		CfgLoader: conf.NewLoader(f.fs, mock.New(f.scenarioName, f.featureID, f.scenarioID)),
+		CfgLoader: conf.NewLoader(f.fs, f.aws()),
 	}
+	co.AWSCommandsCfg.SA = co.SA
 	root := co.RootCmd()
 	root.SetArgs(strings.Split(f.replaceParameters(cmdInstruction), " "))
 	root.SetOutput(c.Tty())
@@ -334,7 +349,7 @@ func (f *feature) iLaunched(cmdInstruction string) error {
 	f.wg = &sync.WaitGroup{}
 	f.wg.Add(1)
 	go func() {
-		f.lastErr = root.Execute()
+		f.LastErr = root.Execute()
 		f.wg.Done()
 	}()
 	f.console = c
@@ -342,13 +357,22 @@ func (f *feature) iLaunched(cmdInstruction string) error {
 	return nil
 }
 
-func (f *feature) terminalShows(s *gherkin.DocString) error {
+func (f *feature) terminalShows(s *messages.PickleStepArgument_PickleDocString) error {
 	lines := strings.Split(f.replaceParameters(s.Content), "\n")
 	for _, l := range lines {
 		o, err := f.console.ExpectString(l)
 		if err != nil {
 			return fmt.Errorf("error: %v, output:\n%s", err, o)
 		}
+	}
+
+	return nil
+}
+
+func (f *feature) errorContains(s *messages.PickleStepArgument_PickleDocString) error {
+	str := f.replaceParameters(s.Content)
+	if !strings.Contains(f.LastErr.Error(), str) {
+		return fmt.Errorf("error %v doesn't contain %s", f.LastErr, str)
 	}
 
 	return nil
@@ -363,7 +387,7 @@ func (f *feature) launchedProgramShouldExitWithZeroStatus() error {
 	if err := f.waitLaunched(); err != nil {
 		return err
 	}
-	return f.lastErr
+	return f.LastErr
 }
 
 func (f *feature) waitLaunched() error {
@@ -378,7 +402,7 @@ func (f *feature) waitLaunched() error {
 	case <-c:
 		return nil
 	case <-time.After(20 * time.Second):
-		return fmt.Errorf("test %s timed out", f.scenarioID)
+		return fmt.Errorf("test %s timed out", f.ScenarioID)
 	}
 }
 
@@ -386,7 +410,7 @@ func (f *feature) launchedProgramShouldExitWithNonZeroStatus() error {
 	if err := f.waitLaunched(); err != nil {
 		return err
 	}
-	if f.lastErr == nil {
+	if f.LastErr == nil {
 		return errors.New("program returned zero exit code")
 	}
 	return nil
@@ -402,15 +426,37 @@ func (f *feature) tagValue(stack *cloudformation.Stack, tagKey string) string {
 }
 
 func (f *feature) replaceParameters(s string) string {
-	s = strings.Replace(s, "%scenarioid%", f.scenarioID, -1)
-	s = strings.Replace(s, "%featureid%", f.featureID, -1)
-	s = strings.Replace(s, "%aws_profile%", os.Getenv("AWS_PROFILE"), -1)
-	s = strings.Replace(s, "%testdir%", f.testDir, -1)
+	s = strings.ReplaceAll(s, "%scenarioid%", f.ScenarioID)
+	s = strings.ReplaceAll(s, "%featureid%", f.FeatureID)
+	s = strings.ReplaceAll(s, "%aws_profile%", os.Getenv("AWS_PROFILE"))
+	s = strings.ReplaceAll(s, "%testdir%", f.testDir)
+	s = strings.ReplaceAll(s, "%longstring%", strings.Repeat("s", 51200))
 
-	return s
+	t, err := template.New(s).Funcs(template.FuncMap{
+		"StackInfo": func(stackName string) (*cloudformation.Stack, error) {
+			out, err := f.cf.DescribeStacks(&cloudformation.DescribeStacksInput{
+				StackName: aws.String(stackName),
+			})
+			if err != nil {
+				return nil, err
+			}
+
+			return out.Stacks[0], nil
+		},
+	}).Delims("{%", "%}").Parse(s)
+	if err != nil {
+		panic(err)
+	}
+
+	var buff bytes.Buffer
+	if err := t.Execute(&buff, f); err != nil {
+		panic(err)
+	}
+
+	return buff.String()
 }
 
-func (f *feature) fileShouldContainExactly(fname string, content *gherkin.DocString) error {
+func (f *feature) fileShouldContainExactly(fname string, content *messages.PickleStepArgument_PickleDocString) error {
 	c := f.replaceParameters(content.Content)
 
 	file, err := f.fs.Open(fname)
@@ -452,29 +498,29 @@ func FeatureContext(s *godog.Suite) {
 	s.Step(`^launched program should exit with zero status$`, f.launchedProgramShouldExitWithZeroStatus)
 	s.Step(`^launched program should exit with non zero status$`, f.launchedProgramShouldExitWithNonZeroStatus)
 	s.Step(`^file "([^"]*)" should contain exactly:$`, f.fileShouldContainExactly)
+	s.Step(`^error contains:$`, f.errorContains)
 
 	re := regexp.MustCompile("\\W")
 
-	s.BeforeScenario(func(gs interface{}) {
-		scenario := gs.(*gherkin.Scenario)
-		f.scenarioName = re.ReplaceAllString(scenario.Name, "-")
-		f.scenarioID = fmt.Sprintf("%.80s-%d", f.scenarioName, rand.Int63())
+	s.BeforeScenario(func(scenario *messages.Pickle) {
+		f.ScenarioName = re.ReplaceAllString(scenario.Name, "-")
+		f.ScenarioID = fmt.Sprintf("%.80s-%d", f.ScenarioName, rand.Int63())
 
-		f.cf = mock.New(f.scenarioName, f.featureID, f.scenarioID).Must(cfg).CF
-		f.testDir = filepath.Join(".tmp", "stas_test_"+f.scenarioID)
+		f.cf = f.aws().Must(cfg).CF
+		f.testDir = filepath.Join(".tmp", "stas_test_"+f.ScenarioID)
 		f.fs = vfs{
 			afero.NewBasePathFs(afero.NewOsFs(), f.testDir),
 		}
 	})
-	s.AfterScenario(func(interface{}, error) {
+	s.AfterScenario(func(*messages.Pickle, error) {
 		f.fs.RemoveAll(".")
 	})
 
-	s.BeforeFeature(func(*gherkin.Feature) {
-		f.featureID = strconv.FormatInt(rand.Int63(), 10)
+	s.BeforeFeature(func(*messages.GherkinDocument) {
+		f.FeatureID = strconv.FormatInt(rand.Int63(), 10)
 	})
 
-	s.AfterFeature(func(*gherkin.Feature) {
+	s.AfterFeature(func(*messages.GherkinDocument) {
 		if mock.IsMockEnabled() {
 			return
 		}
@@ -485,7 +531,7 @@ func FeatureContext(s *godog.Suite) {
 		}
 
 		for _, s := range stacks.Stacks {
-			if f.tagValue(s, "STAS_TEST") == f.featureID {
+			if f.tagValue(s, "STAS_TEST") == f.FeatureID {
 				f.cf.DeleteStack(&cloudformation.DeleteStackInput{
 					StackName: s.StackName,
 				})

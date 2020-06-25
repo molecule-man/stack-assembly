@@ -23,7 +23,7 @@ parameters:
 
 	cf := &cfMock{}
 	cf.body = oldTplBody
-	chSet := NewStack(cf, "teststack").ChangeSet(newTplBody)
+	chSet := NewStack("teststack", cf, nil).ChangeSet(newTplBody)
 
 	diff, err := d.Diff(chSet)
 	require.NoError(t, err)
@@ -49,7 +49,7 @@ parameters:
 
 	cf := &cfMock{}
 	cf.describeErr = errors.New("stack does not exist")
-	chSet := NewStack(cf, "teststack").ChangeSet(newTplBody)
+	chSet := NewStack("teststack", cf, nil).ChangeSet(newTplBody)
 
 	diff, err := d.Diff(chSet)
 	require.NoError(t, err)

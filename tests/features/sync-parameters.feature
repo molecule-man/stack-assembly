@@ -1,6 +1,6 @@
 Feature: stas sync with parameters
 
-    @short @mock
+    @short
     Scenario: sync single valid template with parameters
         Given file "cfg.yaml" exists:
             """
@@ -38,7 +38,6 @@ Feature: stas sync with parameters
         When I successfully run "sync -c cfg.yaml --no-interaction"
         Then stack "stastest-param-%scenarioid%" should have status "CREATE_COMPLETE"
 
-    @mock
     Scenario: sync doesn't fail when I remove parameter from config. Old parameter value is used
         Given file "cfg.yaml" exists:
             """
@@ -83,7 +82,7 @@ Feature: stas sync with parameters
         And I successfully run "sync -c cfg.yaml --no-interaction"
         Then stack "stastest-rmparam-%scenarioid%" should have status "UPDATE_COMPLETE"
 
-    @short @mock
+    @short
     Scenario: sync prompts me to enter parameter value if it's not present in config when I create stack
         Given file "cfg.yaml" exists:
             """
@@ -130,7 +129,6 @@ Feature: stas sync with parameters
         Then launched program should exit with zero status
         And stack "stastest-%scenarioid%" should have status "CREATE_COMPLETE"
 
-    @mock
     Scenario: sync prompts me to enter parameter value if it's not present in config when I update stack
         Given file "cfg.yaml" exists:
             """
@@ -168,7 +166,7 @@ Feature: stas sync with parameters
             Enter Env:
             """
 
-    @short @mock
+    @short
     Scenario: sync doesn't promt when parameter with default value is missing
         Given file "cfg.yaml" exists:
             """
@@ -195,7 +193,7 @@ Feature: stas sync with parameters
         Then I successfully run "sync -c cfg.yaml --no-interaction"
         And stack "stastest-defaultparam-%scenarioid%" should have status "CREATE_COMPLETE"
 
-    @short @mock
+    @short
     Scenario: parameters can be taken from command line
         Given file "cfg.yaml" exists:
             """
