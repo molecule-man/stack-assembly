@@ -9,81 +9,81 @@
     "StackEvents": [
       {
         "ClientRequestToken": null,
-        "EventId": "6c9e2290-9b60-11ea-98d8-02d3b89dc706",
+        "EventId": "4465fc30-b6bd-11ea-9ba0-06c12ca9f35c",
         "LogicalResourceId": "stastest-rmparam-%SCENARIO_ID%",
-        "PhysicalResourceId": "arn:aws:cloudformation:%AWS_REGION%:%AWS_ACC_ID%:stack/stastest-rmparam-%SCENARIO_ID%/65c115e0-9b60-11ea-8a79-02c18823f600",
+        "PhysicalResourceId": "arn:aws:cloudformation:%AWS_REGION%:%AWS_ACC_ID%:stack/stastest-rmparam-%SCENARIO_ID%/3cdbbf90-b6bd-11ea-9ce6-02e29081c656",
         "ResourceProperties": null,
         "ResourceStatus": "CREATE_COMPLETE",
         "ResourceStatusReason": null,
         "ResourceType": "AWS::CloudFormation::Stack",
-        "StackId": "arn:aws:cloudformation:%AWS_REGION%:%AWS_ACC_ID%:stack/stastest-rmparam-%SCENARIO_ID%/65c115e0-9b60-11ea-8a79-02c18823f600",
+        "StackId": "arn:aws:cloudformation:%AWS_REGION%:%AWS_ACC_ID%:stack/stastest-rmparam-%SCENARIO_ID%/3cdbbf90-b6bd-11ea-9ce6-02e29081c656",
         "StackName": "stastest-rmparam-%SCENARIO_ID%",
-        "Timestamp": "2020-05-21T12:41:42.956Z"
+        "Timestamp": "2020-06-25T08:24:20.066Z"
       },
       {
         "ClientRequestToken": null,
-        "EventId": "MyeSecret-CREATE_COMPLETE-2020-05-21T12:41:41.546Z",
+        "EventId": "MyeSecret-CREATE_COMPLETE-2020-06-25T08:24:18.677Z",
         "LogicalResourceId": "MyeSecret",
-        "PhysicalResourceId": "arn:aws:secretsmanager:%AWS_REGION%:%AWS_ACC_ID%:secret:stastest-rmparam-%SCENARIO_ID%-secret-dev-XnXR8Z",
+        "PhysicalResourceId": "arn:aws:secretsmanager:%AWS_REGION%:%AWS_ACC_ID%:secret:stastest-rmparam-%SCENARIO_ID%-secret-dev-vpmTa5",
         "ResourceProperties": "{\"SecretString\":\"{\\\"password\\\":\\\"****\\\"}\",\"Name\":\"stastest-rmparam-%SCENARIO_ID%-secret-dev\"}",
         "ResourceStatus": "CREATE_COMPLETE",
         "ResourceStatusReason": null,
         "ResourceType": "AWS::SecretsManager::Secret",
-        "StackId": "arn:aws:cloudformation:%AWS_REGION%:%AWS_ACC_ID%:stack/stastest-rmparam-%SCENARIO_ID%/65c115e0-9b60-11ea-8a79-02c18823f600",
+        "StackId": "arn:aws:cloudformation:%AWS_REGION%:%AWS_ACC_ID%:stack/stastest-rmparam-%SCENARIO_ID%/3cdbbf90-b6bd-11ea-9ce6-02e29081c656",
         "StackName": "stastest-rmparam-%SCENARIO_ID%",
-        "Timestamp": "2020-05-21T12:41:41.546Z"
+        "Timestamp": "2020-06-25T08:24:18.677Z"
       },
       {
         "ClientRequestToken": null,
-        "EventId": "MyeSecret-CREATE_IN_PROGRESS-2020-05-21T12:41:41.370Z",
+        "EventId": "MyeSecret-CREATE_IN_PROGRESS-2020-06-25T08:24:18.513Z",
         "LogicalResourceId": "MyeSecret",
-        "PhysicalResourceId": "arn:aws:secretsmanager:%AWS_REGION%:%AWS_ACC_ID%:secret:stastest-rmparam-%SCENARIO_ID%-secret-dev-XnXR8Z",
+        "PhysicalResourceId": "arn:aws:secretsmanager:%AWS_REGION%:%AWS_ACC_ID%:secret:stastest-rmparam-%SCENARIO_ID%-secret-dev-vpmTa5",
         "ResourceProperties": "{\"SecretString\":\"{\\\"password\\\":\\\"****\\\"}\",\"Name\":\"stastest-rmparam-%SCENARIO_ID%-secret-dev\"}",
         "ResourceStatus": "CREATE_IN_PROGRESS",
         "ResourceStatusReason": "Resource creation Initiated",
         "ResourceType": "AWS::SecretsManager::Secret",
-        "StackId": "arn:aws:cloudformation:%AWS_REGION%:%AWS_ACC_ID%:stack/stastest-rmparam-%SCENARIO_ID%/65c115e0-9b60-11ea-8a79-02c18823f600",
+        "StackId": "arn:aws:cloudformation:%AWS_REGION%:%AWS_ACC_ID%:stack/stastest-rmparam-%SCENARIO_ID%/3cdbbf90-b6bd-11ea-9ce6-02e29081c656",
         "StackName": "stastest-rmparam-%SCENARIO_ID%",
-        "Timestamp": "2020-05-21T12:41:41.37Z"
+        "Timestamp": "2020-06-25T08:24:18.513Z"
       },
       {
         "ClientRequestToken": null,
-        "EventId": "MyeSecret-CREATE_IN_PROGRESS-2020-05-21T12:41:39.718Z",
+        "EventId": "MyeSecret-CREATE_IN_PROGRESS-2020-06-25T08:24:16.924Z",
         "LogicalResourceId": "MyeSecret",
         "PhysicalResourceId": "",
         "ResourceProperties": "{\"SecretString\":\"{\\\"password\\\":\\\"****\\\"}\",\"Name\":\"stastest-rmparam-%SCENARIO_ID%-secret-dev\"}",
         "ResourceStatus": "CREATE_IN_PROGRESS",
         "ResourceStatusReason": null,
         "ResourceType": "AWS::SecretsManager::Secret",
-        "StackId": "arn:aws:cloudformation:%AWS_REGION%:%AWS_ACC_ID%:stack/stastest-rmparam-%SCENARIO_ID%/65c115e0-9b60-11ea-8a79-02c18823f600",
+        "StackId": "arn:aws:cloudformation:%AWS_REGION%:%AWS_ACC_ID%:stack/stastest-rmparam-%SCENARIO_ID%/3cdbbf90-b6bd-11ea-9ce6-02e29081c656",
         "StackName": "stastest-rmparam-%SCENARIO_ID%",
-        "Timestamp": "2020-05-21T12:41:39.718Z"
+        "Timestamp": "2020-06-25T08:24:16.924Z"
       },
       {
         "ClientRequestToken": null,
-        "EventId": "68387e80-9b60-11ea-a34e-022b3a528618",
+        "EventId": "3fb1ea00-b6bd-11ea-961b-06d5232dd458",
         "LogicalResourceId": "stastest-rmparam-%SCENARIO_ID%",
-        "PhysicalResourceId": "arn:aws:cloudformation:%AWS_REGION%:%AWS_ACC_ID%:stack/stastest-rmparam-%SCENARIO_ID%/65c115e0-9b60-11ea-8a79-02c18823f600",
+        "PhysicalResourceId": "arn:aws:cloudformation:%AWS_REGION%:%AWS_ACC_ID%:stack/stastest-rmparam-%SCENARIO_ID%/3cdbbf90-b6bd-11ea-9ce6-02e29081c656",
         "ResourceProperties": null,
         "ResourceStatus": "CREATE_IN_PROGRESS",
         "ResourceStatusReason": "User Initiated",
         "ResourceType": "AWS::CloudFormation::Stack",
-        "StackId": "arn:aws:cloudformation:%AWS_REGION%:%AWS_ACC_ID%:stack/stastest-rmparam-%SCENARIO_ID%/65c115e0-9b60-11ea-8a79-02c18823f600",
+        "StackId": "arn:aws:cloudformation:%AWS_REGION%:%AWS_ACC_ID%:stack/stastest-rmparam-%SCENARIO_ID%/3cdbbf90-b6bd-11ea-9ce6-02e29081c656",
         "StackName": "stastest-rmparam-%SCENARIO_ID%",
-        "Timestamp": "2020-05-21T12:41:35.571Z"
+        "Timestamp": "2020-06-25T08:24:12.171Z"
       },
       {
         "ClientRequestToken": null,
-        "EventId": "65c0c7c0-9b60-11ea-8a79-02c18823f600",
+        "EventId": "3cdb7170-b6bd-11ea-9ce6-02e29081c656",
         "LogicalResourceId": "stastest-rmparam-%SCENARIO_ID%",
-        "PhysicalResourceId": "arn:aws:cloudformation:%AWS_REGION%:%AWS_ACC_ID%:stack/stastest-rmparam-%SCENARIO_ID%/65c115e0-9b60-11ea-8a79-02c18823f600",
+        "PhysicalResourceId": "arn:aws:cloudformation:%AWS_REGION%:%AWS_ACC_ID%:stack/stastest-rmparam-%SCENARIO_ID%/3cdbbf90-b6bd-11ea-9ce6-02e29081c656",
         "ResourceProperties": null,
         "ResourceStatus": "REVIEW_IN_PROGRESS",
         "ResourceStatusReason": "User Initiated",
         "ResourceType": "AWS::CloudFormation::Stack",
-        "StackId": "arn:aws:cloudformation:%AWS_REGION%:%AWS_ACC_ID%:stack/stastest-rmparam-%SCENARIO_ID%/65c115e0-9b60-11ea-8a79-02c18823f600",
+        "StackId": "arn:aws:cloudformation:%AWS_REGION%:%AWS_ACC_ID%:stack/stastest-rmparam-%SCENARIO_ID%/3cdbbf90-b6bd-11ea-9ce6-02e29081c656",
         "StackName": "stastest-rmparam-%SCENARIO_ID%",
-        "Timestamp": "2020-05-21T12:41:31.51Z"
+        "Timestamp": "2020-06-25T08:24:07.492Z"
       }
     ]
   }

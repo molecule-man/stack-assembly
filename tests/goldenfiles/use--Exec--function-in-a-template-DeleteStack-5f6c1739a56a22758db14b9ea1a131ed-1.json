@@ -1,0 +1,10 @@
+{
+  "err": null,
+  "input": {
+    "ClientRequestToken": null,
+    "RetainResources": null,
+    "RoleARN": null,
+    "StackName": "stack-tpl-dev-sync-single-valid-template-with-templating-934229139591574784"
+  },
+  "output": {}
+}

@@ -11,14 +11,14 @@
         "LastCheckTimestamp": null,
         "StackResourceDriftStatus": "NOT_CHECKED"
       },
-      "LastUpdatedTimestamp": "2020-05-21T12:41:29.173Z",
+      "LastUpdatedTimestamp": "2020-06-25T08:24:17.294Z",
       "LogicalResourceId": "Cluster",
       "Metadata": "{}",
       "PhysicalResourceId": "stastest-dev-%SCENARIO_ID%",
       "ResourceStatus": "CREATE_COMPLETE",
       "ResourceStatusReason": null,
       "ResourceType": "AWS::ECS::Cluster",
-      "StackId": "arn:aws:cloudformation:%AWS_REGION%:%AWS_ACC_ID%:stack/stack-tpl-dev-%SCENARIO_ID%/5cefb340-9b60-11ea-af97-06527026dd82",
+      "StackId": "arn:aws:cloudformation:%AWS_REGION%:%AWS_ACC_ID%:stack/stack-tpl-dev-%SCENARIO_ID%/3a963c60-b6bd-11ea-aa61-0a535c7d72e8",
       "StackName": "stack-tpl-dev-%SCENARIO_ID%"
     }
   }

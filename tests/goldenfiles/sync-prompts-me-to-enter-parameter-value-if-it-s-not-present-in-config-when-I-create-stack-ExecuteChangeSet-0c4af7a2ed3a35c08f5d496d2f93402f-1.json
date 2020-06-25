@@ -1,0 +1,9 @@
+{
+  "err": null,
+  "input": {
+    "ChangeSetName": "arn:aws:cloudformation:%AWS_REGION%:%AWS_ACC_ID%:changeSet/%CHST_ID%/9e4d0fd0-1a1a-4476-8202-0b64c7fe6d98",
+    "ClientRequestToken": null,
+    "StackName": null
+  },
+  "output": {}
+}

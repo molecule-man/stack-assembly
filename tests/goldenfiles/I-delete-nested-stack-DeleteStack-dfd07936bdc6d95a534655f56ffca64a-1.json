@@ -1,0 +1,10 @@
+{
+  "err": null,
+  "input": {
+    "ClientRequestToken": null,
+    "RetainResources": null,
+    "RoleARN": null,
+    "StackName": "stastest-2-nested-stacks--1-level--6113812605768258132"
+  },
+  "output": {}
+}

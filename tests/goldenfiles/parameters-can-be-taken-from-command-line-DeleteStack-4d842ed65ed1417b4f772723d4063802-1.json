@@ -1,0 +1,10 @@
+{
+  "err": null,
+  "input": {
+    "ClientRequestToken": null,
+    "RetainResources": null,
+    "RoleARN": null,
+    "StackName": "stastest-defaultparam-sync-doesn-t-promt-when-parameter-with-default-value-is-missing-2160743269568624037"
+  },
+  "output": {}
+}
