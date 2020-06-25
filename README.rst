@@ -493,6 +493,16 @@ use:
       info        Show info about the stack
       sync        Synchronize (deploy) stacks
 
+Drop-in replacement of cloudformation commands of aws-cli
+---------------------------------------------------------
+
+Stack-assembly provides a possibility to enhance
+`aws-cli <https://github.com/aws/aws-cli>`_ by replacing
+`create-stack <https://docs.aws.amazon.com/cli/latest/reference/cloudformation/create-stack.html>`_,
+`update-stack <https://docs.aws.amazon.com/cli/latest/reference/cloudformation/update-stack.html>`_
+and
+`deploy <https://docs.aws.amazon.com/cli/latest/reference/cloudformation/deploy.html>`_ commands with improved versions of those commands. More info can be found `here <https://github.com/molecule-man/stack-assembly/blob/master/docs/aws-drop-in.md`_
+
 TODO
 ====
 
