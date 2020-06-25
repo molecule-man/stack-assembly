@@ -252,7 +252,12 @@ func (c Commands) cloudformationCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "cloudformation",
 		Short: "Drop-in replacement of several aws cloudformation commands",
-		// this is to prevent showing help when `cloudformation bullshit` command requested
+
+		// next configs are here to prevent showing help when
+		// `cloudformation bullshit` command requested.  see also
+		// https://github.com/spf13/cobra/issues/582
+		DisableFlagParsing:    true,
+		DisableFlagsInUseLine: true,
 		RunE: func(_ *cobra.Command, _ []string) error {
 			return ErrNotRunnable
 		},
