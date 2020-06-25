@@ -39,40 +39,34 @@ func main() {
 		Errorer: os.Stderr,
 	})
 
-	childCmd, _, err := cmd.RootCmd().Find(os.Args[1:])
-
-	if err != nil || !childCmd.Runnable() {
-		if os.Getenv("STAS_SUPPRESS_CMD_NOT_FOUND_ERROR") != "yes" {
-			errMsg := "the command is not runnable"
-			if err != nil {
-				errMsg = err.Error()
-			}
-
-			console.Error(errMsg)
-		}
-
-		os.Exit(2)
-	}
-
 	cmd.NormalizeAwscliParamsIfNeeded()
 
-	err = cmd.RootCmd().Execute()
+	err := cmd.RootCmd().Execute()
 
 	if err != nil {
-		status := 1
-
-		console.Error(err.Error())
-
 		switch {
-		case errors.Is(err, commands.ErrAwsDropInArgParsingFailed):
-			status = 3
-		case strings.HasPrefix(err.Error(), "unknown flag"):
-			status = 4
-		case strings.HasPrefix(err.Error(), "invalid argument"):
-			status = 5
-		}
+		case errors.Is(err, commands.ErrNotRunnable), strings.HasPrefix(err.Error(), "unknown command"):
+			if os.Getenv("STAS_SUPPRESS_CMD_NOT_FOUND_ERROR") != "yes" {
+				console.Error(err.Error())
+			}
 
-		os.Exit(status)
+			os.Exit(2)
+		case errors.Is(err, commands.ErrAwsDropInArgParsingFailed):
+			console.Error(err.Error())
+			os.Exit(3)
+		case strings.HasPrefix(err.Error(), "unknown flag"):
+			console.Error(err.Error())
+			os.Exit(4)
+		case strings.HasPrefix(err.Error(), "invalid argument"):
+			console.Error(err.Error())
+			os.Exit(5)
+		case errors.Is(err, commands.ErrInvalidInput):
+			console.Error(err.Error())
+			os.Exit(6)
+		default:
+			console.Error(err.Error())
+			os.Exit(1)
+		}
 	}
 
 	assembly.MustSucceed(err)

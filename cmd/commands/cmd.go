@@ -2,6 +2,7 @@ package commands
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -251,6 +252,10 @@ func (c Commands) cloudformationCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "cloudformation",
 		Short: "Drop-in replacement of several aws cloudformation commands",
+		// this is to prevent showing help when `cloudformation bullshit` command requested
+		RunE: func(_ *cobra.Command, _ []string) error {
+			return ErrNotRunnable
+		},
 	}
 
 	cmd.AddCommand(
@@ -312,8 +317,7 @@ func (c Commands) cfCreateCmd() *cobra.Command {
 		Long: cli.WordWrap(80,
 			"Creates a stack. Drop-in replacement of `aws cloudformation create-stack` command\n",
 			"\n",
-			"The following flags are not implemented. If you provide those flags you will be asked ",
-			"if you want to fallback to original aws cli command.\n",
+			"The following flags are not implemented.\n",
 			" * --rollback-configuration\n",
 			" * --disable-rollback\n",
 			" * --no-disable-rollback\n",
@@ -342,8 +346,7 @@ func (c Commands) cfUpdateCmd() *cobra.Command {
 		Long: cli.WordWrap(80,
 			"Updates a stack. Drop-in replacement of `aws cloudformation update-stack` command\n",
 			"\n",
-			"The following flags are not implemented. If you provide those flags you will be asked ",
-			"if you want to fallback to original aws cli command.\n",
+			"The following flags are not implemented.\n",
 			" * --stack-policy-during-update-body\n",
 			" * --stack-policy-during-update-url\n",
 			" * --rollback-configuration\n",
@@ -504,7 +507,10 @@ func (f *EnumFlag) Set(val string) error {
 		}
 	}
 
-	return fmt.Errorf("value '%s' is not supported. Supported values are: %v", val, f.Enums)
+	return fmt.Errorf("value '%s' is not supported. Supported values are: %v: %w", val, f.Enums, ErrInvalidInput)
 }
 func (f *EnumFlag) Type() string   { return "enum" }
 func (f *EnumFlag) String() string { return *f.Val }
+
+var ErrNotRunnable = errors.New("command is not runnable")
+var ErrInvalidInput = errors.New("invalid input")
