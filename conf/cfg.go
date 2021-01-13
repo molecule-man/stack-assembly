@@ -180,9 +180,6 @@ func (l Loader) parseBodies(id string, stackCfg *Config) error {
 	switch {
 	case stackCfg.Body != "":
 		return nil
-	case stackCfg.Path == "" && len(stackCfg.Stacks) == 0:
-		return fmt.Errorf("not possible to parse config for stack %s. "+
-			"Either \"path\", \"body\" or non-empty \"stacks\" should be provided", id)
 	case stackCfg.Path == "":
 		return nil
 	}

@@ -162,6 +162,11 @@ func (cs *ChangeSet) setupTplLocation() error {
 		return nil
 	}
 
+	if cs.body == "" {
+		cs.input.UsePreviousTemplate = aws.Bool(true)
+		return nil
+	}
+
 	url, err := cs.stack.uploader.Upload(cs.body)
 	if err != nil {
 		return err
