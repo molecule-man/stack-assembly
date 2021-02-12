@@ -155,7 +155,7 @@ func (l Loader) LoadConfig(cfgFiles []string, cfg *Config) error {
 func (l Loader) InitConfig(cfg *Config) error {
 	cfg.aws = l.aws
 
-	err := l.parseBodies("root", cfg)
+	err := l.parseBodies(cfg)
 	if err != nil {
 		return err
 	}
@@ -165,11 +165,11 @@ func (l Loader) InitConfig(cfg *Config) error {
 	return l.applyTemplating(cfg)
 }
 
-func (l Loader) parseBodies(id string, stackCfg *Config) error {
+func (l Loader) parseBodies(stackCfg *Config) error {
 	for i, nestedStack := range stackCfg.Stacks {
 		nestedStack := nestedStack
 
-		err := l.parseBodies(i, &nestedStack)
+		err := l.parseBodies(&nestedStack)
 		if err != nil {
 			return err
 		}

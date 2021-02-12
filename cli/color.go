@@ -11,7 +11,7 @@ var NoColor bool
 type ColorCode int
 
 const (
-	// Foreground colors
+	// Foreground colors.
 	BlackFG ColorCode = iota + 30
 	RedFG
 	GreenFG

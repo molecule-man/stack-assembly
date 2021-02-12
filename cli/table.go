@@ -20,8 +20,8 @@ func NewTable() *Table {
 	w.PadLastColumn = true
 	w.DecorateLine = func(line string) string {
 		if strings.HasPrefix(line, "-") {
-			line = strings.Replace(line, "|", "+", -1)
-			line = strings.Replace(line, " ", "-", -1)
+			line = strings.ReplaceAll(line, "|", "+")
+			line = strings.ReplaceAll(line, " ", "-")
 
 			return "+-" + line + "-+"
 		}

@@ -86,7 +86,7 @@ func (d *dumper) read(methodName string, input interface{}, output interface{}) 
 	if err != nil {
 		jsonF, jErr := json.MarshalIndent(input, "", "  ")
 		if jErr != nil {
-			log.Fatal(jErr)
+			log.Fatal(jErr) //nolint:gocritic
 		}
 
 		fmt.Printf("json = %+v\n", string(jsonF))
