@@ -88,6 +88,22 @@ func (s *Stack) describe() (*cloudformation.Stack, error) {
 	return info.Stacks[0], nil
 }
 
+func (s *Stack) getTemplateSummary() (*cloudformation.GetTemplateSummaryOutput, error) {
+	summary, err := s.cf.GetTemplateSummary(&cloudformation.GetTemplateSummaryInput{
+		StackName: aws.String(s.Name),
+	})
+
+	if err != nil {
+		if strings.Contains(err.Error(), "does not exist") {
+			return nil, ErrStackDoesntExist
+		}
+
+		return nil, err
+	}
+
+	return summary, nil
+}
+
 func (s *Stack) Exists() (bool, error) {
 	_, err := s.Info()
 

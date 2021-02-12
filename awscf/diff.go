@@ -49,6 +49,10 @@ func (d ChSetDiff) Diff(chSet *ChangeSet) (string, error) {
 }
 
 func diffBody(chSet *ChangeSet) (string, error) {
+	if chSet.body == "" {
+		return "", nil
+	}
+
 	oldBody := ""
 	oldName := defaultDiffName
 

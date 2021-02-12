@@ -20,7 +20,7 @@ func (sa SA) syncRecursively(stackCfg conf.Config, root conf.Config, nonInteract
 
 	MustSucceed(stackCfg.Hooks.Pre.Exec())
 
-	if stackCfg.Body != "" {
+	if stackCfg.Body != "" || stackCfg.UsePreviousTemplate {
 		logger := sa.cli.PrefixedLogger(fmt.Sprintf("[%s] ", stackCfg.Name))
 
 		logger.Info("Synchronizing template")

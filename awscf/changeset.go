@@ -224,19 +224,30 @@ func (cs *ChangeSet) awsParameters() ([]*cloudformation.Parameter, error) {
 		input.TemplateURL = cs.input.TemplateURL
 	case cs.input.TemplateBody != nil:
 		input.TemplateBody = cs.input.TemplateBody
-	default:
+	case cs.body != "":
 		input.TemplateBody = &cs.body
-	}
-
-	output, err := cs.stack.cf.ValidateTemplate(&input)
-	if err != nil {
-		return []*cloudformation.Parameter{}, err
 	}
 
 	pb := newChSetParams(cs.stack, cs.parameters)
 
-	for _, p := range output.Parameters {
-		pb.add(p)
+	if input.TemplateURL != nil || input.TemplateBody != nil {
+		output, err := cs.stack.cf.ValidateTemplate(&input)
+		if err != nil {
+			return []*cloudformation.Parameter{}, fmt.Errorf("validation error: %w", err)
+		}
+
+		for _, p := range output.Parameters {
+			pb.add(aws.StringValue(p.ParameterKey), aws.StringValue(p.DefaultValue))
+		}
+	} else {
+		summary, err := cs.stack.getTemplateSummary()
+		if err != nil {
+			return []*cloudformation.Parameter{}, err
+		}
+
+		for _, p := range summary.Parameters {
+			pb.add(aws.StringValue(p.ParameterKey), aws.StringValue(p.DefaultValue))
+		}
 	}
 
 	return pb.collect()

@@ -48,12 +48,10 @@ func (cp *chSetParams) collect() ([]*cloudformation.Parameter, error) {
 	return cp.builtPP, nil
 }
 
-func (cp *chSetParams) add(bodyParam *cloudformation.TemplateParameter) {
+func (cp *chSetParams) add(paramKey, defaultValue string) {
 	if cp.err != nil {
 		return
 	}
-
-	paramKey := aws.StringValue(bodyParam.ParameterKey)
 
 	if v, ok := cp.providedPP[paramKey]; ok {
 		cp.builtPP = append(cp.builtPP, &cloudformation.Parameter{
@@ -64,7 +62,7 @@ func (cp *chSetParams) add(bodyParam *cloudformation.TemplateParameter) {
 		return
 	}
 
-	if aws.StringValue(bodyParam.DefaultValue) != "" {
+	if defaultValue != "" {
 		return
 	}
 
