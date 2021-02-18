@@ -8,6 +8,9 @@ builds:
       - windows
     env:
       - CGO_ENABLED=0
+    ignore:
+      - goos: darwin
+        goarch: 386
 archives:
   -
     name_template: "{{ .Binary }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}{{ if .Arm }}v{{ .Arm }}{{ end }}"
