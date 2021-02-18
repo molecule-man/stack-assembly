@@ -57,7 +57,8 @@ func TestChangeSetCreationErrors(t *testing.T) {
 			ChangeSet("body").
 			Register()
 
-		assert.EqualError(t, err, tc.err.Error())
+		assert.Error(t, err)
+		assert.True(t, errors.Is(err, tc.err))
 	}
 }
 

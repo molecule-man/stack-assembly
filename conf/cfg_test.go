@@ -29,6 +29,7 @@ var expectedParsedConfig = Config{
 		"Tpl2": {
 			Name:      "name1",
 			DependsOn: []string{"sns1"},
+			Blocked:   []string{},
 		},
 	},
 }

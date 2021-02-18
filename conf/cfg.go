@@ -14,7 +14,7 @@ import (
 	"github.com/molecule-man/stack-assembly/aws"
 	"github.com/molecule-man/stack-assembly/awscf"
 	"github.com/molecule-man/stack-assembly/depgraph"
-	yaml "gopkg.in/yaml.v2"
+	yaml "gopkg.in/yaml.v3"
 )
 
 type settingsConfig struct {
