@@ -63,7 +63,7 @@ func (sa SA) exec(stackCfg conf.Config, logger *cli.Logger, nonInteractive bool)
 	cs := stackCfg.ChangeSet()
 
 	chSet, err := sa.register(cs, logger)
-	if err == awscf.ErrNoChange {
+	if errors.Is(err, awscf.ErrNoChange) {
 		logger.Info("No changes to be synchronized")
 		return cs.Stack(), nil
 	}
@@ -262,7 +262,7 @@ func (sa SA) letUserChooseNextAction(chSet *awscf.ChangeSet) error {
 				},
 			},
 		})
-		if err != cli.ErrPromptCommandIsNotKnown {
+		if !errors.Is(err, cli.ErrPromptCommandIsNotKnown) {
 			MustSucceed(err)
 		}
 	}

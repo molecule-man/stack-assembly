@@ -58,7 +58,7 @@ func (a *deleteAction) delete(cfg conf.Config) error {
 
 	err = a.ask(stack)
 
-	if err == errSkipDelete {
+	if errors.Is(err, errSkipDelete) {
 		return nil
 	}
 
@@ -118,7 +118,7 @@ func (a *deleteAction) ask(stack *awscf.Stack) error {
 				actionErr = errors.New("deletion is canceled")
 			},
 		}})
-		if err != nil && err != cli.ErrPromptCommandIsNotKnown {
+		if err != nil && !errors.Is(err, cli.ErrPromptCommandIsNotKnown) {
 			return err
 		}
 

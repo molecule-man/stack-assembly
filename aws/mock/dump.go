@@ -58,7 +58,9 @@ func (d *dumper) dump(methodName string, input interface{}, output interface{}, 
 		dumpedErr = &dumpedError{
 			Err: err.Error(),
 		}
-		if aerr, ok := err.(awserr.Error); ok {
+
+		var aerr awserr.Error
+		if errors.As(err, &aerr) {
 			dumpedErr.Code = aerr.Code()
 			dumpedErr.Msg = aerr.Message()
 		}

@@ -85,7 +85,7 @@ func (cli CLI) Fask(w io.Writer, query string, args ...interface{}) (string, err
 	response, err := reader.ReadString('\n')
 
 	if err != nil {
-		return "", fmt.Errorf("reading user input failed with err: %v", err)
+		return "", fmt.Errorf("reading user input failed with err: %w", err)
 	}
 
 	return strings.TrimSpace(response), nil

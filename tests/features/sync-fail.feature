@@ -23,6 +23,6 @@ Feature: stas sync failure handling
         Then exit code should not be zero
         And error contains:
             """
-            ResourceNotReady: failed waiting for successful resource state. Status: FAILED, StatusReason: Transform AWS::Include failed with: S3 bucket [non-existent-bucket-%scenarioid%] does not exist.
+            failed to wait changeset. Status: FAILED, StatusReason: Transform AWS::Include failed with: S3 bucket [non-existent-bucket-%scenarioid%] does not exist.
             """
         And stack "stastest-fail1-%scenarioid%" should have status "REVIEW_IN_PROGRESS"

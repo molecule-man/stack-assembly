@@ -203,13 +203,14 @@ func (cs *ChangeSet) wait(id *string) error {
 		},
 	)
 
-	if aerr, ok := err.(awserr.Error); ok && aerr.Code() == request.WaiterResourceNotReadyErrorCode {
+	var aerr awserr.Error
+	if errors.As(err, &aerr) && aerr.Code() == request.WaiterResourceNotReadyErrorCode {
 		setInfo, derr := cs.stack.cf.DescribeChangeSet(&cloudformation.DescribeChangeSetInput{
 			ChangeSetName: id,
 		})
 
 		if derr != nil {
-			return fmt.Errorf("error while retrieving more info about change set failure: %v", derr)
+			return fmt.Errorf("error while retrieving more info about change set failure: %w", derr)
 		}
 
 		if aws.StringValue(setInfo.StatusReason) == "No updates are to be performed." {
@@ -220,7 +221,9 @@ func (cs *ChangeSet) wait(id *string) error {
 			return ErrNoChange
 		}
 
-		return fmt.Errorf("[%s] %s. Status: %s, StatusReason: %s", *setInfo.ChangeSetId, err.Error(), *setInfo.Status, *setInfo.StatusReason)
+		return fmt.Errorf(
+			"[%s] failed to wait changeset. Status: %s, StatusReason: %s, Error: %w",
+			*setInfo.ChangeSetId, *setInfo.Status, *setInfo.StatusReason, err)
 	}
 
 	return err

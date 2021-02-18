@@ -222,7 +222,7 @@ func (l Loader) decodeConfigs(mainConfig *Config, cfgFiles []string) error {
 	for _, cf := range cfgFiles {
 		extraRawCfg := make(map[string]interface{})
 		if err := l.parseFile(cf, &extraRawCfg); err != nil {
-			return fmt.Errorf("error occurred while parsing config file %s: %v", cf, err)
+			return fmt.Errorf("error occurred while parsing config file %s: %w", cf, err)
 		}
 
 		merged := merge(mainRawCfg, extraRawCfg)
@@ -241,7 +241,7 @@ func (l Loader) decodeConfigs(mainConfig *Config, cfgFiles []string) error {
 		}
 
 		if err := inheritDefinitions(&mainRawCfg, definitions); err != nil {
-			return fmt.Errorf("error occurred while parsing config: %v", err)
+			return fmt.Errorf("error occurred while parsing config: %w", err)
 		}
 	}
 
