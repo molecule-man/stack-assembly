@@ -11,6 +11,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/cloudformation/cloudformationiface"
 	saAws "github.com/molecule-man/stack-assembly/aws"
+	"github.com/molecule-man/stack-assembly/errd"
 )
 
 const noChangeStatus = "The submitted information didn't contain changes. " +
@@ -41,6 +42,8 @@ var ErrNoChange = errors.New("no changes")
 
 var ErrStackDoesntExist = errors.New("stack doesn't exist")
 
+var ErrStackAlreadyInProgress = errors.New("stack is already in progress")
+
 type Stack struct {
 	Name string
 
@@ -54,7 +57,9 @@ func NewStack(name string, cf cloudformationiface.CloudFormationAPI, uploader *s
 	return &Stack{Name: name, cf: cf, uploader: uploader}
 }
 
-func (s *Stack) Info() (StackInfo, error) {
+func (s *Stack) Info() (_ StackInfo, err error) {
+	defer errd.Wrapf(&err, "failed to fetch stack info from aws")
+
 	if s.cachedInfo != nil {
 		return *s.cachedInfo, nil
 	}
@@ -70,6 +75,10 @@ func (s *Stack) Info() (StackInfo, error) {
 	s.cachedInfo = &info
 
 	return info, err
+}
+
+func (s *Stack) Refresh() {
+	s.cachedInfo = nil
 }
 
 func (s *Stack) describe() (*cloudformation.Stack, error) {
@@ -104,10 +113,12 @@ func (s *Stack) getTemplateSummary() (*cloudformation.GetTemplateSummaryOutput, 
 	return summary, nil
 }
 
-func (s *Stack) Exists() (bool, error) {
-	_, err := s.Info()
+func (s *Stack) Exists() (_ bool, err error) {
+	defer errd.Wrapf(&err, "failed to check if stack exists")
 
-	if err == ErrStackDoesntExist {
+	_, err = s.Info()
+
+	if errors.Is(err, ErrStackDoesntExist) {
 		return false, nil
 	}
 
@@ -137,7 +148,46 @@ func (s *Stack) Delete() error {
 	})
 }
 
-func (s *Stack) AlreadyDeployed() (bool, error) {
+func (s *Stack) Wait() (err error) {
+	defer errd.Wrapf(&err, "failed to wait until stack operation is completed")
+
+	info, err := s.Info()
+	if err != nil {
+		return err
+	}
+
+	info.Status()
+
+	ctx := aws.BackgroundContext()
+	waitInput := cloudformation.DescribeStacksInput{
+		StackName: aws.String(s.Name),
+	}
+	waiter := func(w *request.Waiter) {
+		w.MaxAttempts = 900
+		w.Delay = request.ConstantWaiterDelay(2 * time.Second)
+	}
+
+	if !strings.HasSuffix(info.Status(), "IN_PROGRESS") {
+		return fmt.Errorf("stack is in state that can't be waited for: %s", info.Status())
+	}
+
+	switch {
+	case strings.Contains(info.Status(), "ROLLBACK"):
+		return s.cf.WaitUntilStackRollbackCompleteWithContext(ctx, &waitInput, waiter)
+	case strings.Contains(info.Status(), "UPDATE"):
+		return s.cf.WaitUntilStackUpdateCompleteWithContext(ctx, &waitInput, waiter)
+	case strings.Contains(info.Status(), "CREATE"):
+		return s.cf.WaitUntilStackCreateCompleteWithContext(ctx, &waitInput, waiter)
+	case strings.Contains(info.Status(), "DELETE"):
+		return s.cf.WaitUntilStackDeleteCompleteWithContext(ctx, &waitInput, waiter)
+	}
+
+	return fmt.Errorf("stack is in state that can't be waited for: %s", info.Status())
+}
+
+func (s *Stack) AlreadyDeployed() (_ bool, err error) {
+	defer errd.Wrapf(&err, "failed to check if stack already deployed")
+
 	exists, err := s.Exists()
 	if err != nil {
 		return false, err

@@ -128,7 +128,29 @@ func (sa SA) exec(stackCfg conf.Config, logger *cli.Logger, nonInteractive bool)
 func (sa SA) register(cs *awscf.ChangeSet, logger *cli.Logger) (*awscf.ChangeSetHandle, error) {
 	chSet, err := cs.Register()
 
-	if paramerr, ok := err.(*awscf.ParametersMissingError); ok {
+	if errors.Is(err, awscf.ErrStackAlreadyInProgress) {
+		logger.Warn(err.Error())
+		logger.Warn("Will wait until the current operation is complete")
+
+		wait := sa.showEvents(cs.Stack(), logger)
+
+		waitErr := cs.Stack().Wait()
+
+		wait <- true
+		<-wait
+
+		if waitErr != nil {
+			return chSet, waitErr
+		}
+
+		cs.Stack().Refresh()
+
+		chSet, err = cs.Register()
+	}
+
+	var paramerr *awscf.ParametersMissingError
+
+	if errors.As(err, &paramerr) {
 		logger.Warn(paramerr.Error())
 
 		for _, p := range paramerr.MissingParameters {

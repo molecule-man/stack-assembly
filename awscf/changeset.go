@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"sort"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -12,6 +13,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/cloudformation/cloudformationiface"
+	"github.com/molecule-man/stack-assembly/errd"
 )
 
 type ChangeSet struct {
@@ -109,13 +111,15 @@ func (cs *ChangeSet) WithNotificationARNs(arns []string) *ChangeSet {
 	return cs
 }
 
-func (cs *ChangeSet) Register() (*ChangeSetHandle, error) {
+func (cs *ChangeSet) Register() (_ *ChangeSetHandle, err error) {
+	defer errd.Wrapf(&err, "failed to register changeset")
+
 	chSet := &ChangeSetHandle{
 		cf:        cs.stack.cf,
 		stackName: cs.stack.Name,
 	}
 
-	if err := cs.setupTplLocation(); err != nil {
+	if err = cs.setupTplLocation(); err != nil {
 		return chSet, err
 	}
 
@@ -142,8 +146,12 @@ func (cs *ChangeSet) Register() (*ChangeSetHandle, error) {
 
 	output, err := cs.stack.cf.CreateChangeSet(&cs.input)
 
+	if err != nil && strings.Contains(err.Error(), "IN_PROGRESS state and can not be updated") {
+		return nil, fmt.Errorf("%s: %w", err, ErrStackAlreadyInProgress)
+	}
+
 	if err != nil {
-		return chSet, err
+		return chSet, fmt.Errorf("failed to perform CreateChangeSet: %w", err)
 	}
 
 	chSet.ID = aws.StringValue(output.Id)
@@ -156,7 +164,9 @@ func (cs *ChangeSet) Register() (*ChangeSetHandle, error) {
 	return chSet, chSet.loadChanges()
 }
 
-func (cs *ChangeSet) setupTplLocation() error {
+func (cs *ChangeSet) setupTplLocation() (err error) {
+	defer errd.Wrapf(&err, "failed to setup template location")
+
 	if cs.url != "" {
 		cs.input.TemplateURL = aws.String(cs.url)
 		return nil
@@ -317,7 +327,9 @@ func (csh *ChangeSetHandle) loadChanges() error {
 	return csh.changes(&csh.Changes, nil)
 }
 
-func (csh ChangeSetHandle) changes(store *[]Change, nextToken *string) error {
+func (csh ChangeSetHandle) changes(store *[]Change, nextToken *string) (err error) {
+	defer errd.Wrapf(&err, "failed to fetch stack changes")
+
 	setInfo, err := csh.cf.DescribeChangeSet(&cloudformation.DescribeChangeSetInput{
 		ChangeSetName: aws.String(csh.ID),
 		NextToken:     nextToken,
