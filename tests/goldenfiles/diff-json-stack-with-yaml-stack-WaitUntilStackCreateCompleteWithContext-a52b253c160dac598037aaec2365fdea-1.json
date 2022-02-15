@@ -1,0 +1,8 @@
+{
+  "err": null,
+  "input": {
+    "NextToken": null,
+    "StackName": "stastest-json-yaml-diff-%SCENARIO_ID%"
+  },
+  "output": ""
+}

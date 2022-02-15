@@ -55,3 +55,99 @@ Feature: stas diff
             -      ClusterName: stastest1-%scenarioid%
             +      ClusterName: stastest1-mod-%scenarioid%
             """
+
+    @short
+    Scenario: diff stack with no real changes (only yaml stylistic changes)
+        Given file "cfg.yaml" exists:
+            """
+            name: stastest-no-change-%scenarioid%
+            path: tpls/stack1.yml
+            tags:
+              STAS_TEST: '%featureid%'
+            """
+        And file "tpls/stack1.yml" exists:
+            """
+            Resources:
+              EcsCluster:
+                Type: AWS::ECS::Cluster
+                Properties:
+                  ClusterName: !Ref AWS::StackName
+                  Tags:
+                    - Key: SOME_TAG
+                      Value: some long string that can take two lines
+            """
+        And I successfully run "sync -c cfg.yaml --no-interaction"
+        When I modify file "tpls/stack1.yml":
+            """
+            Resources:
+              EcsCluster:
+                Type: AWS::ECS::Cluster
+                Properties:
+                  ClusterName: !Ref AWS::StackName
+                  Tags:
+                    - Key: SOME_TAG
+                      Value: some long string that
+                        can take two lines
+            """
+        And I successfully run "diff -c cfg.yaml --nocolor"
+        Then output should be exactly:
+            """
+            """
+
+    @short
+    Scenario: diff json stack with yaml stack
+        Given file "cfg.yaml" exists:
+            """
+            name: stastest-json-yaml-diff-%scenarioid%
+            path: tpls/stack1.yml
+            tags:
+              STAS_TEST: '%featureid%'
+            """
+        And file "tpls/stack1.yml" exists:
+            """
+            Resources:
+              EcsCluster:
+                Type: AWS::ECS::Cluster
+                Properties:
+                  ClusterName: stastest-json-yaml-diff-%scenarioid%
+                  Tags:
+                    - Key: SOME_TAG
+                      Value: some value
+            """
+        And I successfully run "sync -c cfg.yaml --no-interaction"
+        When I modify file "tpls/stack1.yml":
+            """
+            {
+              "Resources": {
+                "EcsCluster": {
+                  "Type": "AWS::ECS::Cluster",
+                  "Properties": {
+                    "ClusterName": "stastest-json-yaml-diff-%scenarioid%",
+                    "Tags": [{
+                      "Key": "SOME_TAG",
+                      "Value": "some other value"
+                    }]
+                  }
+                }
+              }
+            }
+            """
+        And I successfully run "diff -c cfg.yaml --nocolor"
+        Then output should be exactly:
+            """
+            --- old/stastest-json-yaml-diff-%scenarioid%
+            +++ new/stastest-json-yaml-diff-%scenarioid%
+            @@ -4,11 +4,11 @@
+                   "Properties": {
+                     "ClusterName": "stastest-json-yaml-diff-%scenarioid%",
+                     "Tags": [
+                       {
+                         "Key": "SOME_TAG",
+            -            "Value": "some value"
+            +            "Value": "some other value"
+                       }
+                     ]
+                   },
+                   "Type": "AWS::ECS::Cluster"
+                 }
+            """

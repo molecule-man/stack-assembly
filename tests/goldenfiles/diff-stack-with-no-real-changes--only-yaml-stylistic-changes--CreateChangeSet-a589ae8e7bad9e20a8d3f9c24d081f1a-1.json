@@ -1,0 +1,30 @@
+{
+  "err": null,
+  "input": {
+    "Capabilities": [],
+    "ChangeSetName": "%CHST_ID%",
+    "ChangeSetType": "CREATE",
+    "ClientToken": null,
+    "Description": null,
+    "NotificationARNs": null,
+    "Parameters": null,
+    "ResourceTypes": null,
+    "ResourcesToImport": null,
+    "RoleARN": null,
+    "RollbackConfiguration": null,
+    "StackName": "stastest-no-change-%SCENARIO_ID%",
+    "Tags": [
+      {
+        "Key": "STAS_TEST",
+        "Value": "%FEATURE_ID%"
+      }
+    ],
+    "TemplateBody": "Resources:\n  EcsCluster:\n    Type: AWS::ECS::Cluster\n    Properties:\n      ClusterName: !Ref AWS::StackName\n      Tags:\n        - Key: SOME_TAG\n          Value: some long string that can take two lines",
+    "TemplateURL": null,
+    "UsePreviousTemplate": null
+  },
+  "output": {
+    "Id": "arn:aws:cloudformation:%AWS_REGION%:%AWS_ACC_ID%:changeSet/%CHST_ID%/b285da54-e0b4-4721-a93b-3b450024ff16",
+    "StackId": "arn:aws:cloudformation:%AWS_REGION%:%AWS_ACC_ID%:stack/stastest-no-change-%SCENARIO_ID%/21a82460-8e53-11ec-98d7-06d02ee28d33"
+  }
+}

@@ -1,0 +1,47 @@
+{
+  "err": null,
+  "input": {
+    "NextToken": null,
+    "StackName": "stastest-json-yaml-diff-%SCENARIO_ID%"
+  },
+  "output": {
+    "NextToken": null,
+    "Stacks": [
+      {
+        "Capabilities": null,
+        "ChangeSetId": "arn:aws:cloudformation:%AWS_REGION%:%AWS_ACC_ID%:changeSet/%CHST_ID%/1cc65d80-11de-4b86-82bb-636f1511a471",
+        "CreationTime": "2022-02-15T11:34:04.006Z",
+        "DeletionTime": null,
+        "Description": null,
+        "DisableRollback": false,
+        "DriftInformation": {
+          "LastCheckTimestamp": null,
+          "StackDriftStatus": "NOT_CHECKED"
+        },
+        "EnableTerminationProtection": false,
+        "LastUpdatedTime": "2022-02-15T11:34:08.815Z",
+        "NotificationARNs": null,
+        "Outputs": null,
+        "Parameters": null,
+        "ParentId": null,
+        "RoleARN": null,
+        "RollbackConfiguration": {
+          "MonitoringTimeInMinutes": null,
+          "RollbackTriggers": null
+        },
+        "RootId": null,
+        "StackId": "arn:aws:cloudformation:%AWS_REGION%:%AWS_ACC_ID%:stack/stastest-json-yaml-diff-%SCENARIO_ID%/2d919c70-8e53-11ec-bde4-021c792de899",
+        "StackName": "stastest-json-yaml-diff-%SCENARIO_ID%",
+        "StackStatus": "CREATE_COMPLETE",
+        "StackStatusReason": null,
+        "Tags": [
+          {
+            "Key": "STAS_TEST",
+            "Value": "%FEATURE_ID%"
+          }
+        ],
+        "TimeoutInMinutes": null
+      }
+    ]
+  }
+}

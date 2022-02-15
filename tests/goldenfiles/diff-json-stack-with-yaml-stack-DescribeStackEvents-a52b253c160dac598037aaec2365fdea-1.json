@@ -1,0 +1,25 @@
+{
+  "err": null,
+  "input": {
+    "NextToken": null,
+    "StackName": "stastest-json-yaml-diff-%SCENARIO_ID%"
+  },
+  "output": {
+    "NextToken": null,
+    "StackEvents": [
+      {
+        "ClientRequestToken": null,
+        "EventId": "2d914e50-8e53-11ec-bde4-021c792de899",
+        "LogicalResourceId": "stastest-json-yaml-diff-%SCENARIO_ID%",
+        "PhysicalResourceId": "arn:aws:cloudformation:%AWS_REGION%:%AWS_ACC_ID%:stack/stastest-json-yaml-diff-%SCENARIO_ID%/2d919c70-8e53-11ec-bde4-021c792de899",
+        "ResourceProperties": null,
+        "ResourceStatus": "REVIEW_IN_PROGRESS",
+        "ResourceStatusReason": "User Initiated",
+        "ResourceType": "AWS::CloudFormation::Stack",
+        "StackId": "arn:aws:cloudformation:%AWS_REGION%:%AWS_ACC_ID%:stack/stastest-json-yaml-diff-%SCENARIO_ID%/2d919c70-8e53-11ec-bde4-021c792de899",
+        "StackName": "stastest-json-yaml-diff-%SCENARIO_ID%",
+        "Timestamp": "2022-02-15T11:34:04.006Z"
+      }
+    ]
+  }
+}

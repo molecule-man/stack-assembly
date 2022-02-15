@@ -116,6 +116,7 @@ func (sa SA) printParameters(info awscf.StackInfo) {
 	w := cli.NewColWriter(sa.cli.Writer, " ")
 
 	info.Parameters()
+
 	for _, kv := range info.Parameters() {
 		fmt.Fprintf(w, "%s:\t%s\n", kv.Key, kv.Val)
 	}

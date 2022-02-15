@@ -24,7 +24,7 @@ Feature: stas sync
         When I successfully run "sync -c cfg.yaml --no-interaction"
         Then stack "stastest-%scenarioid%" should have status "CREATE_COMPLETE"
 
-    @short @wip
+    @short
     Scenario: sync stack with no changes
         Given I successfully run "sync -c cfg.yaml --no-interaction"
         When I successfully run "sync -c cfg.yaml"

@@ -1,12 +1,15 @@
 package awscf
 
 import (
+	"encoding/json"
+	"reflect"
 	"sort"
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/molecule-man/stack-assembly/cli"
 	"github.com/pmezard/go-difflib/difflib"
+	"gopkg.in/yaml.v3"
 )
 
 const defaultDiffName = "/dev/null"
@@ -70,9 +73,54 @@ func diffBody(chSet *ChangeSet) (string, error) {
 		oldName = "old/" + chSet.Stack().Name
 	}
 
+	var (
+		oldBodyRaw interface{}
+		bodyRaw    interface{}
+	)
+
+	newBodyBytes := []byte(chSet.body)
+	oldBodyBytes := []byte(oldBody)
+	oldBodyYAML := false
+	oldBodyJSON := false
+	newBodyYAML := false
+
+	if oldBody != "" {
+		jsonErr := json.Unmarshal(oldBodyBytes, &oldBodyRaw)
+		oldBodyJSON = jsonErr == nil
+
+		if !oldBodyJSON {
+			yamlErr := yaml.Unmarshal(oldBodyBytes, &oldBodyRaw)
+			oldBodyYAML = yamlErr == nil
+		}
+	}
+
+	jsonErr := json.Unmarshal(newBodyBytes, &bodyRaw)
+	newBodyJSON := jsonErr == nil
+
+	if !newBodyJSON {
+		yamlErr := yaml.Unmarshal(newBodyBytes, &bodyRaw)
+		newBodyYAML = yamlErr == nil
+	}
+
+	if newBodyYAML && oldBodyYAML && reflect.DeepEqual(bodyRaw, oldBodyRaw) {
+		return "", nil
+	}
+
+	if newBodyJSON || oldBodyJSON {
+		newBodyBytes, err = json.MarshalIndent(bodyRaw, "", "  ")
+		if err != nil {
+			return "", err
+		}
+
+		oldBodyBytes, err = json.MarshalIndent(oldBodyRaw, "", "  ")
+		if err != nil {
+			return "", err
+		}
+	}
+
 	return difflib.GetUnifiedDiffString(difflib.UnifiedDiff{
-		A:        difflib.SplitLines(strings.TrimSpace(oldBody)),
-		B:        difflib.SplitLines(strings.TrimSpace(chSet.body)),
+		A:        difflib.SplitLines(strings.TrimSpace(string(oldBodyBytes))),
+		B:        difflib.SplitLines(strings.TrimSpace(string(newBodyBytes))),
 		FromFile: oldName,
 		FromDate: "",
 		ToFile:   "new/" + chSet.Stack().Name,

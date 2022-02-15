@@ -1,0 +1,10 @@
+{
+  "err": null,
+  "input": {
+    "ClientRequestToken": null,
+    "RetainResources": null,
+    "RoleARN": null,
+    "StackName": "stastest-json-yaml-diff-%SCENARIO_ID%"
+  },
+  "output": {}
+}

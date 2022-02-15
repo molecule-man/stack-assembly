@@ -1,0 +1,15 @@
+{
+  "err": null,
+  "input": {
+    "ChangeSetName": null,
+    "StackName": "stastest-no-change-%SCENARIO_ID%",
+    "TemplateStage": null
+  },
+  "output": {
+    "StagesAvailable": [
+      "Original",
+      "Processed"
+    ],
+    "TemplateBody": "Resources:\n  EcsCluster:\n    Type: AWS::ECS::Cluster\n    Properties:\n      ClusterName: !Ref AWS::StackName\n      Tags:\n        - Key: SOME_TAG\n          Value: some long string that can take two lines"
+  }
+}

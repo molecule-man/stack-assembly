@@ -1,0 +1,10 @@
+{
+  "err": null,
+  "input": {
+    "ClientRequestToken": null,
+    "RetainResources": null,
+    "RoleARN": null,
+    "StackName": "stastest-no-change-diff-stack-with-no-real-changes--only-yaml-stylistic-changes--8692882408407181829"
+  },
+  "output": {}
+}

@@ -1,0 +1,14 @@
+{
+  "err": null,
+  "input": {
+    "TemplateBody": "{\n  \"Resources\": {\n    \"EcsCluster\": {\n      \"Type\": \"AWS::ECS::Cluster\",\n      \"Properties\": {\n        \"ClusterName\": \"stastest-json-yaml-diff-%SCENARIO_ID%\",\n        \"Tags\": [{\n          \"Key\": \"SOME_TAG\",\n          \"Value\": \"some other value\"\n        }]\n      }\n    }\n  }\n}",
+    "TemplateURL": null
+  },
+  "output": {
+    "Capabilities": null,
+    "CapabilitiesReason": null,
+    "DeclaredTransforms": null,
+    "Description": null,
+    "Parameters": null
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "err": null,
+  "input": {
+    "TemplateBody": "Resources:\n  EcsCluster:\n    Type: AWS::ECS::Cluster\n    Properties:\n      ClusterName: !Ref AWS::StackName\n      Tags:\n        - Key: SOME_TAG\n          Value: some long string that can take two lines",
+    "TemplateURL": null
+  },
+  "output": {
+    "Capabilities": null,
+    "CapabilitiesReason": null,
+    "DeclaredTransforms": null,
+    "Description": null,
+    "Parameters": null
+  }
+}
