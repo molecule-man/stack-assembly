@@ -97,6 +97,8 @@ func (c Commands) infoCmd() *cobra.Command {
 		},
 	}
 
+	cmd.Flags().StringVar(&c.cfg.Name, "stack-name", "", flagDescription("Stack name"))
+
 	addConfigFlag(cmd, &cfgFiles)
 
 	return cmd
