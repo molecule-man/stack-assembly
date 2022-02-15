@@ -44,6 +44,7 @@ func (sa SA) Info(stack *awscf.Stack) error {
 
 	sa.printStackDetails(stack.Name, info)
 	sa.printResources(stack)
+	sa.printParameters(info)
 	sa.printOutputs(info)
 	sa.printEvents(stack)
 
@@ -103,6 +104,20 @@ func (sa SA) printOutputs(info awscf.StackInfo) {
 
 	for _, out := range info.Outputs() {
 		fmt.Fprintln(w, strings.Join([]string{out.Key, out.Value, out.ExportName}, "\t"))
+	}
+
+	MustSucceed(w.Flush())
+	sa.cli.Print("")
+}
+
+func (sa SA) printParameters(info awscf.StackInfo) {
+	sa.cli.Print("==== PARAMETERS ====")
+
+	w := cli.NewColWriter(sa.cli.Writer, " ")
+
+	info.Parameters()
+	for _, kv := range info.Parameters() {
+		fmt.Fprintf(w, "%s:\t%s\n", kv.Key, kv.Val)
 	}
 
 	MustSucceed(w.Flush())
