@@ -203,6 +203,8 @@ func (c Commands) diffCmd() *cobra.Command {
 		},
 	}
 
+	cmd.Flags().StringVar(&c.cfg.Name, "stack-name", "", flagDescription("Stack name"))
+	cmd.Flags().StringVar(&c.cfg.Path, "template-path", "", flagDescription("Path to Cloudformation template body"))
 	addConfigFlag(cmd, &cfgFiles)
 
 	return cmd
