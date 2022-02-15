@@ -222,7 +222,10 @@ func (cs *ChangeSet) wait(id *string) error {
 
 		return fmt.Errorf(
 			"[%s] failed to wait changeset. Status: %s, StatusReason: %s, Error: %w",
-			*setInfo.ChangeSetId, *setInfo.Status, *setInfo.StatusReason, err)
+			aws.StringValue(setInfo.ChangeSetId),
+			aws.StringValue(setInfo.Status),
+			aws.StringValue(setInfo.StatusReason),
+			err)
 	}
 
 	return err
