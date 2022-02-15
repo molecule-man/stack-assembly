@@ -198,9 +198,8 @@ func (cs *ChangeSet) wait(id *string) error {
 		&cloudformation.DescribeChangeSetInput{
 			ChangeSetName: id,
 		},
-		func(w *request.Waiter) {
-			w.Delay = request.ConstantWaiterDelay(1 * time.Second)
-		},
+		request.WithWaiterDelay(request.ConstantWaiterDelay(time.Second)),
+		request.WithWaiterMaxAttempts(120*30),
 	)
 
 	var aerr awserr.Error
