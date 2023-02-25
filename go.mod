@@ -3,7 +3,7 @@ module github.com/molecule-man/stack-assembly
 require (
 	github.com/BurntSushi/toml v0.3.1
 	github.com/Netflix/go-expect v0.0.0-20201125194554-85d881c3777e
-	github.com/aws/aws-sdk-go v1.33.0
+	github.com/aws/aws-sdk-go v1.34.0
 	github.com/creack/pty v1.1.11 // indirect
 	github.com/cucumber/godog v0.9.0
 	github.com/cucumber/messages-go/v10 v10.0.3
